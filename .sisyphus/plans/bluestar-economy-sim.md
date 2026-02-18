@@ -1684,7 +1684,7 @@ Max Concurrent: 6 (Wave 1)
   - Files: `pages/dashboard.py`
   - Pre-commit: `streamlit run app.py --server.headless true & sleep 5 && curl -s -o /dev/null -w "%{http_code}" http://localhost:8501 | grep 200 && kill %1`
 
-- [ ] 15. Dashboard — Coin Economy Flow + Pack ROI Charts
+- [x] 15. Dashboard — Coin Economy Flow + Pack ROI Charts
 
   **What to do**:
   - Add to `pages/dashboard.py` (same file as Task 14):

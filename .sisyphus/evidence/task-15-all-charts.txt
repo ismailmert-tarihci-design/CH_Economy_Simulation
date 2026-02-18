@@ -1,0 +1,4 @@
+Snapshots: 10
+HTTP Response: 200
+plotly_chart calls: 4
+✅ All 4 charts present

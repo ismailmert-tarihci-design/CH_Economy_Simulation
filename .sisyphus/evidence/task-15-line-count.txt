@@ -1,0 +1,2 @@
+pages/dashboard.py:      243 lines
+✅ Within 300-line limit
