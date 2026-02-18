@@ -854,3 +854,102 @@ if st.button("🔄 Restore Defaults", key="restore_unique_key"):
 - Config stored in `st.session_state.config` (initialized once on first run)
 - Sidebar shows 3 pages: Configuration (Task 12), Simulation (Task 13), Dashboard (Tasks 14-15)
 - All edits to config tables update `st.session_state.config` immediately for use by simulation engine
+
+## Task 13: Simulation Controls & URL Sharing
+
+### Implementation Patterns
+
+**URL Encoding Pipeline**:
+- Process: JSON → bytes → gzip (level 6) → base64.urlsafe_b64encode → string
+- Compression effectiveness: ~8.3KB JSON → ~2-3KB encoded (>50% reduction)
+- Use `urlsafe_b64encode/decode` (not standard b64encode) to avoid URL-unsafe characters
+- Regex for URL-safe validation: `^[A-Za-z0-9_-]+=*$`
+
+**Streamlit Query Params**:
+- Access via `st.query_params["key"]` (returns string)
+- Check existence with `if "key" in st.query_params:`
+- Load config AFTER `set_page_config()` but BEFORE sidebar initialization
+- Use `st.session_state.config_loaded_from_url` flag to prevent re-loading on every rerun
+
+**Caching Strategy**:
+- Use `@st.cache_data(ttl=3600, max_entries=10)` for simulation results
+- Cache key: MD5 hash of config JSON (`hashlib.md5(config.model_dump_json().encode()).hexdigest()`)
+- Function signature: `_run_cached(config_hash: str, config: SimConfig, ...)`
+  - First param is hash for cache identification
+  - Pass full config object (not 15 separate params)
+- Prefix unused cache key param with `_` to suppress LSP warnings: `_config_hash`
+
+**Progress Indicators**:
+- Use `with st.spinner("message"):` for long operations
+- DO NOT put progress bars inside `@st.cache_data` functions (breaks caching)
+- For MC runs, show completion time in success message
+
+**Session State Management**:
+- Store results in `st.session_state.sim_result`
+- Track mode in `st.session_state.sim_mode` ("deterministic" or "monte_carlo")
+- Dashboard page will read from these session state keys
+
+### Gotchas Discovered
+
+**Possibly Unbound Variable (LSP Error)**:
+- If `num_runs` is defined inside `if mode == "Monte Carlo":` block, LSP reports it as "possibly unbound" in else block
+- Fix: Initialize `num_runs = 100` before the if block, then override inside if needed
+
+**Implicit String Concatenation Warning**:
+- f-strings split across lines trigger LSP warning: `f"text " f"more text"`
+- Fix: Combine into single f-string: `f"text more text"`
+
+**st.context.headers Access**:
+- Use `st.context.headers.get("host", "localhost:8501")` to get current host
+- Detect Streamlit Cloud: `"streamlit.app" in base_url`
+- Construct protocol: `"https" if "streamlit.app" in base_url else "http"`
+
+**Error Handling for URL Decode**:
+- decode_config raises ValueError on corruption
+- Wrap in try/except in app.py to show user-friendly error
+- Fall back to load_defaults() if decode fails
+
+### Evidence Files Created
+
+1. `.sisyphus/evidence/task-13-url-roundtrip.txt`
+   - test_round_trip PASSED in 0.10s
+   - Verifies encode → decode produces identical config
+
+2. `.sisyphus/evidence/task-13-corrupt-url.txt`
+   - test_corrupted_string and test_empty_string both PASSED
+   - Verifies clear ValueError messages on invalid input
+
+3. `.sisyphus/evidence/task-13-cache-key.txt`
+   - Shows cache pattern: `@st.cache_data(ttl=3600, max_entries=10)`
+   - Function signatures: `_run_cached_simulation(_config_hash: str, config: SimConfig)`
+   - Confirms single hash parameter + config object (not 15 separate params)
+
+### Files Created
+
+- `simulation/url_config.py` — encode_config/decode_config functions (pure Python)
+- `tests/test_url_config.py` — 5 tests (round-trip, url-safe, corrupted, empty, compression)
+- `pages/simulation_controls.py` — render_simulation_controls UI with caching
+- Updated `app.py` — Added URL query param handling on startup
+
+### Integration Points
+
+**Query Param Flow**:
+1. User loads URL with `?cfg=<encoded>`
+2. app.py checks `st.query_params["cfg"]` after set_page_config
+3. Calls decode_config → stores in `st.session_state.config`
+4. Sets flag `st.session_state.config_loaded_from_url = True`
+5. Shows success message to user
+
+**Simulation Flow**:
+1. User edits config in Config Editor → updates `st.session_state.config`
+2. User navigates to Simulation page → calls render_simulation_controls
+3. User sets days/mode/runs → clicks "Run Simulation"
+4. Calls cached function (_run_cached_simulation or _run_cached_mc)
+5. Stores result in `st.session_state.sim_result` and mode in `st.session_state.sim_mode`
+6. User navigates to Dashboard → reads sim_result from session state
+
+**URL Sharing Flow**:
+1. User clicks "Generate Shareable URL"
+2. Calls encode_config(st.session_state.config)
+3. Constructs URL: `{protocol}://{host}/?cfg={encoded}`
+4. Displays in st.code() for user to copy

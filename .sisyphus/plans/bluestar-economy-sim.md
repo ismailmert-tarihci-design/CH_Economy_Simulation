@@ -1465,7 +1465,7 @@ Max Concurrent: 6 (Wave 1)
   - Files: `app.py, pages/config_editor.py`
   - Pre-commit: `streamlit run app.py --server.headless true & sleep 5 && curl -s -o /dev/null -w "%{http_code}" http://localhost:8501 | grep 200 && kill %1`
 
-- [ ] 13. Streamlit Simulation Controls & URL Sharing
+- [x] 13. Streamlit Simulation Controls & URL Sharing
 
   **What to do**:
   - Create `pages/simulation_controls.py` (imported into app.py):
