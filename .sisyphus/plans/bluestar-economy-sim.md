@@ -729,7 +729,7 @@ Max Concurrent: 6 (Wave 1)
   - Files: `simulation/coin_economy.py, tests/test_coin_economy.py`
   - Pre-commit: `pytest tests/test_coin_economy.py -v`
 
-- [ ] 7. Card Drop Algorithm — Phase 1: Rarity Decision
+- [x] 7. Card Drop Algorithm — Phase 1: Rarity Decision
 
   **What to do**:
   - Create `simulation/drop_algorithm.py`:
@@ -980,7 +980,7 @@ Max Concurrent: 6 (Wave 1)
   - Files: `simulation/drop_algorithm.py, tests/test_drop_algorithm.py`
   - Pre-commit: `pytest tests/test_drop_algorithm.py -v`
 
-- [ ] 9. Upgrade Engine
+- [x] 9. Upgrade Engine
 
   **What to do**:
   - Create `simulation/upgrade_engine.py`:

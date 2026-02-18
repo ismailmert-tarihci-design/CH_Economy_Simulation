@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.0, pytest-8.3.2, pluggy-1.6.0 -- /usr/local/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/mertt7/Documents/GitHub/coin_sim
+configfile: pytest.ini
+collecting ... collected 1 item
+
+tests/test_upgrade_engine.py::test_priority_order_unique_first PASSED    [100%]
+
+============================== 1 passed in 0.09s ===============================

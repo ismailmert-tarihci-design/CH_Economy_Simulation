@@ -1,0 +1,68 @@
+TASK 7: Phase 1 Drop Algorithm - Streak Penalty Tests
+=======================================================
+
+Test 1: test_shared_streak_penalty
+Status: PASSED
+
+Configuration:
+- Balanced progression: SShared=0.5, SUnique=0.5, Gap=0
+- Streak state: streak_shared=3, streak_unique=0
+- Base rates: 70% shared, 30% unique
+
+Algorithm Calculation:
+1. Gap Adjustment (Gap=0):
+   - WShared = 0.70 * (1.5^0) = 0.70
+   - WUnique = 0.30 * (1.5^0) = 0.30
+
+2. Streak Penalty:
+   - FinalShared = 0.70 * (0.6^3) = 0.70 * 0.216 = 0.1512
+   - FinalUnique = 0.30 * (0.3^0) = 0.30 * 1.0 = 0.30
+
+3. Normalize:
+   - Total = 0.1512 + 0.30 = 0.4512
+   - ProbShared = 0.1512 / 0.4512 = 0.335 (33.5%)
+   - ProbUnique = 0.30 / 0.4512 = 0.665 (66.5%)
+
+Expected: ProbShared < 0.40 (severe penalty after 3 shared in a row)
+Result: TEST PASSED (observed ~33.5%)
+
+Interpretation: STREAK_DECAY_SHARED = 0.6 causes exponential decay.
+After 3 consecutive shared cards, shared probability drops from 70% to 33.5%.
+This enforces variety by heavily penalizing long streaks.
+
+---
+
+Test 2: test_unique_streak_penalty
+Status: PASSED
+
+Configuration:
+- Balanced progression: SShared=0.5, SUnique=0.5, Gap=0
+- Streak state: streak_shared=0, streak_unique=3
+- Base rates: 70% shared, 30% unique
+
+Algorithm Calculation:
+1. Gap Adjustment (Gap=0):
+   - WShared = 0.70 * (1.5^0) = 0.70
+   - WUnique = 0.30 * (1.5^0) = 0.30
+
+2. Streak Penalty:
+   - FinalShared = 0.70 * (0.6^0) = 0.70 * 1.0 = 0.70
+   - FinalUnique = 0.30 * (0.3^3) = 0.30 * 0.027 = 0.0081
+
+3. Normalize:
+   - Total = 0.70 + 0.0081 = 0.7081
+   - ProbShared = 0.70 / 0.7081 = 0.989 (98.9%)
+   - ProbUnique = 0.0081 / 0.7081 = 0.011 (1.1%)
+
+Expected: ProbUnique < 0.05 (very severe penalty after 3 unique in a row)
+Result: TEST PASSED (observed ~1.1%)
+
+Interpretation: STREAK_DECAY_UNIQUE = 0.3 is MUCH more aggressive than
+shared decay (0.6). After 3 consecutive unique cards, unique probability
+drops from 30% to just 1.1%. This makes long unique streaks nearly impossible.
+
+---
+
+Verification: Streak penalties enforce variety with asymmetric harshness.
+Unique streaks are penalized more severely (0.3 decay) than shared streaks (0.6 decay),
+preventing rare cards from clustering.

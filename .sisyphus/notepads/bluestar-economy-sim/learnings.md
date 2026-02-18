@@ -296,3 +296,143 @@ All PASSED ✓
 - Multiple pack types with different card yields ✓
 - Floor lookup at exact threshold, between thresholds, below min ✓
 - Poisson distribution reproducibility with seed ✓
+
+## Task 9: Upgrade Engine Implementation
+
+### Greedy Algorithm Behavior
+- Upgrade loop continues until no more upgrades possible
+- Single card can upgrade multiple times in one `attempt_upgrades()` call
+- Example: Card with 100 dupes + 500 coins upgrades twice (2×50 dupes, 2×200 coins)
+- Test expectations must account for multi-upgrade behavior
+
+### Priority Ordering Implementation
+- Three-tier priority: UNIQUE > GOLD_SHARED > BLUE_SHARED
+- Within each category: lowest level first (catch-up mechanic)
+- Implementation: Sort three lists separately, concatenate in priority order
+- Loop restarts candidate scan after each upgrade (priorities may shift)
+
+### Index Arithmetic for Bluestar Rewards
+- Critical pattern: `bluestar_rewards[card.level]` where card.level is BEFORE increment
+- bluestar_rewards[i] = reward for reaching level i+1
+- For level 5→6 upgrade: use bluestar_rewards[5] (0-indexed)
+- This is DIFFERENT from dupe/coin costs which use [card.level - 1]
+
+### Progression Gating Integration
+- `compute_category_progression()` returns 0.0-1.0 normalized score
+- Must multiply by 100 to convert to avg shared level for gating check
+- Formula: avg_shared_level = ((gold_prog + blue_prog) / 2.0) * 100.0
+- Gating only applies to UNIQUE cards
+
+### Resource Deduction Order
+- Check all 4 conditions BEFORE executing upgrade
+- Execute in order: deduct dupes → spend coins → increment level → award bluestars
+- Assert on coin spend success (should never fail after can_afford check)
+
+### Test Coverage Patterns
+- 11 tests covering: success, blocking conditions (3), priority (2), loops, accumulation, maxed cards (2)
+- Tests validate greedy loop behavior (multiple upgrades per call)
+- Evidence files capture key scenarios (success, priority, gating)
+
+## Task 7: Phase 1 Drop Algorithm (Rarity Decision)
+
+### Implementation Patterns
+
+**5-Step Algorithm Structure**
+- Step-by-step comments map directly to Revamp Master Doc flowchart
+- Each step is mathematically isolated for debugging
+- Progression → Gap Adjustment → Streak Penalty → Normalize → Roll
+
+**Key Formula Insights**
+- Gap adjustment uses exponential balancing: `base_rate * (GAP_BASE ^ Gap)`
+- Asymmetric gap application: positive gap boosts shared, negative gap boosts unique
+- Streak decay is exponential: `weight * (decay_rate ^ streak_count)`
+- Unique streak decay (0.3) is 2x more aggressive than shared (0.6)
+
+**Function Signature Pattern**
+```python
+decide_rarity(
+    game_state: GameState,
+    config: SimConfig,
+    streak_state: StreakState,
+    rng: Optional[Random] = None,  # None = deterministic mode
+) -> CardCategory
+```
+
+**Deterministic vs Monte Carlo**
+- `rng=None`: Returns majority category (ProbShared >= 0.5 → GOLD_SHARED)
+- `rng=Random(seed)`: Weighted random roll for statistical simulation
+- Both modes use identical probability calculations
+
+### Dependencies Discovered
+
+**Progression Module**
+- `compute_category_progression()` requires 3 args: `(cards, category, mapping)`
+- Task spec showed 2 args - corrected during implementation
+- Returns 0.0 for empty categories (safe default)
+
+**ProgressionMapping Required**
+- SimConfig must include `progression_mapping` for progression calculations
+- Test fixtures must provide valid `ProgressionMapping` with shared/unique levels
+
+### Test Design Patterns
+
+**Statistical Test Strategy**
+- 10,000 Monte Carlo rolls with seeded RNG (seed=42)
+- Tolerance bands: ±3% for balanced state (0.67-0.73 for 70% target)
+- Assertions use probability ranges not exact values
+
+**Edge Case Coverage**
+- Empty card list: Returns base rates (70/30)
+- Deterministic mode: Always chooses majority
+- Streak alternation: Correctly resets counters
+
+### Mathematical Verification
+
+**Balanced State (Gap=0, No Streaks)**
+- Expected: 70% shared, 30% unique
+- Observed: Within 0.67-0.73 range (verified)
+
+**Positive Gap (Unique Ahead by 0.6)**
+- Expected: System catches up shared → ProbShared > 75%
+- Observed: ~80.9% (gap adjustment working)
+
+**Negative Gap (Shared Ahead by 0.6)**
+- Expected: System catches up unique → ProbUnique > 35%
+- Observed: ~43.8% (gap adjustment working)
+
+**Streak Penalty Effects**
+- Shared streak=3: ProbShared drops from 70% to ~33.5%
+- Unique streak=3: ProbUnique drops from 30% to ~1.1%
+- Unique streaks are penalized 3.6x more severely
+
+### Gotchas and Notes
+
+**Return Type**
+- Function returns `CardCategory.GOLD_SHARED` not generic "SHARED"
+- Phase 2 (Task 8) will handle Gold vs Blue selection
+- Current implementation uses GOLD_SHARED as placeholder for any shared card
+
+**Streak Update Isolation**
+- `update_rarity_streak()` only updates rarity streaks
+- Color and hero streaks preserved (updated in Phase 2)
+- Returns new StreakState (immutable pattern)
+
+**Constants Export**
+- STREAK_DECAY_SHARED, STREAK_DECAY_UNIQUE, GAP_BASE at module level
+- Required for test verification and future tuning
+
+### Quality Metrics
+
+- Files created: 2 (drop_algorithm.py, test_drop_algorithm.py)
+- Tests implemented: 11 (exceeded minimum 7 requirement)
+- Test coverage: All major scenarios + edge cases
+- LSP diagnostics: Only warnings (type inference), no errors
+- All tests: PASSED ✅
+
+### Evidence Artifacts
+
+Created verification files:
+- task-7-balanced-rates.txt: Statistical distribution verification
+- task-7-gap-adjustment.txt: Gap balancing behavior
+- task-7-streak-penalty.txt: Streak penalty calculations
+

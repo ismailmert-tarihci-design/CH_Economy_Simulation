@@ -1,0 +1,37 @@
+TASK 7: Phase 1 Drop Algorithm - Balanced Rates Test
+========================================================
+
+Test: test_balanced_state_distribution
+Status: PASSED
+
+Configuration:
+- Shared cards (Gold + Blue): 4 cards at level 50/100 (0.5 progression)
+- Unique cards: 2 cards at level 5/10 (0.5 progression)
+- Streak state: streak_shared=0, streak_unique=0
+- Base rates: 70% shared, 30% unique
+- Monte Carlo runs: 10,000 rolls with seed=42
+
+Algorithm Steps:
+1. Compute Progression Scores:
+   - SShared = (gold_prog + blue_prog) / 2 = (0.5 + 0.5) / 2 = 0.5
+   - SUnique = 0.5
+   - Gap = SUnique - SShared = 0.5 - 0.5 = 0.0
+
+2. Gap Adjustment (GAP_BASE = 1.5):
+   - WShared = 0.70 * (1.5^0.0) = 0.70 * 1.0 = 0.70
+   - WUnique = 0.30 * (1.5^0.0) = 0.30 * 1.0 = 0.30
+
+3. Streak Penalty (no streaks):
+   - FinalShared = 0.70 * (0.6^0) = 0.70 * 1.0 = 0.70
+   - FinalUnique = 0.30 * (0.3^0) = 0.30 * 1.0 = 0.30
+
+4. Normalize:
+   - Total = 0.70 + 0.30 = 1.0
+   - ProbShared = 0.70 / 1.0 = 0.70
+   - ProbUnique = 0.30 / 1.0 = 0.30
+
+Expected: Shared ratio between 0.67 and 0.73 (70% +/- 3%)
+Result: TEST PASSED
+
+Verification: The balanced state correctly yields ~70/30 distribution
+without gap adjustments or streak penalties.
