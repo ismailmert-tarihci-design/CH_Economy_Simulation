@@ -11,7 +11,8 @@ from typing import Optional
 from simulation.models import Card, CardCategory, GameState, SimConfig, StreakState
 from simulation.progression import compute_category_progression
 
-# Constants for streak decay rates
+# Legacy constants kept for backward compatibility (tests, external imports).
+# The simulation reads these values from SimConfig fields instead.
 STREAK_DECAY_SHARED = 0.6
 STREAK_DECAY_UNIQUE = 0.3
 GAP_BASE = 1.5
@@ -63,17 +64,17 @@ def decide_rarity(
 
     # Step 2: Gap Adjustment
     # Gap = SUnique - SShared
-    # WShared = base_shared_rate * (GAP_BASE ^ Gap)
-    # WUnique = base_unique_rate * (GAP_BASE ^ -Gap)
+    # WShared = base_shared_rate * (gap_base ^ Gap)
+    # WUnique = base_unique_rate * (gap_base ^ -Gap)
     gap = s_unique - s_shared
-    w_shared = config.base_shared_rate * (GAP_BASE**gap)
-    w_unique = config.base_unique_rate * (GAP_BASE ** (-gap))
+    w_shared = config.base_shared_rate * (config.gap_base**gap)
+    w_unique = config.base_unique_rate * (config.gap_base ** (-gap))
 
     # Step 3: Streak Penalty
-    # FinalShared = WShared * (STREAK_DECAY_SHARED ^ streak_shared)
-    # FinalUnique = WUnique * (STREAK_DECAY_UNIQUE ^ streak_unique)
-    final_shared = w_shared * (STREAK_DECAY_SHARED**streak_state.streak_shared)
-    final_unique = w_unique * (STREAK_DECAY_UNIQUE**streak_state.streak_unique)
+    # FinalShared = WShared * (streak_decay_shared ^ streak_shared)
+    # FinalUnique = WUnique * (streak_decay_unique ^ streak_unique)
+    final_shared = w_shared * (config.streak_decay_shared**streak_state.streak_shared)
+    final_unique = w_unique * (config.streak_decay_unique**streak_state.streak_unique)
 
     # Step 4: Normalize
     total = final_shared + final_unique
@@ -184,7 +185,7 @@ def select_shared_card(
         # Get color streak (use category.value as key: "GOLD_SHARED" or "BLUE_SHARED")
         color_streak = streak_state.streak_per_color.get(card.category.value, 0)
 
-        final_weight = base_weight * (STREAK_DECAY_SHARED**color_streak)
+        final_weight = base_weight * (config.streak_decay_shared**color_streak)
         weights.append(final_weight)
 
     # Selection
@@ -208,12 +209,14 @@ def select_unique_card(
 
     Algorithm (from Revamp Master Doc):
     1. Get all UNLOCKED unique cards sorted by level ascending
-    2. Take top 10 lowest level (or all if fewer than 10)
+    2. Take top N lowest level (N = config.unique_candidate_pool)
     3. For each candidate:
        - WeightCard = 1 / (card.level + 1)
        - streak_for_hero = streak_state.streak_per_hero.get(card.id, 0)
-       - FinalWeight = WeightCard * (0.6 ** streak_for_hero)
-    4. Selection: same as shared
+       - FinalWeight = WeightCard * (streak_decay_shared ** streak_for_hero)
+    4. Selection:
+       - Deterministic: pick card with highest FinalWeight
+       - MC: weighted random choice
 
     Args:
         game_state: Current game state with card collection
@@ -233,8 +236,8 @@ def select_unique_card(
     # Sort by level ascending
     unique_cards.sort(key=lambda c: c.level)
 
-    # Take top 10 (or all if fewer)
-    candidates = unique_cards[:10]
+    # Take top N (or all if fewer)
+    candidates = unique_cards[: config.unique_candidate_pool]
 
     # Compute weights
     weights = []
@@ -244,7 +247,7 @@ def select_unique_card(
         # Get hero streak (use card.id as key)
         hero_streak = streak_state.streak_per_hero.get(card.id, 0)
 
-        final_weight = base_weight * (STREAK_DECAY_SHARED**hero_streak)
+        final_weight = base_weight * (config.streak_decay_shared**hero_streak)
         weights.append(final_weight)
 
     # Selection
