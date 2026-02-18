@@ -1,0 +1,23 @@
+Scenario 3: Config data round-trips through session state
+==========================================================
+
+Test: Verify SimConfig serializes and deserializes correctly via JSON
+
+Command: python3 -c "config round-trip test script"
+
+Process:
+1. Load defaults via load_defaults()
+2. Serialize to JSON via model_dump_json()
+3. Deserialize back via model_validate_json()
+4. Compare original vs deserialized for equality
+
+Results:
+- Original config type: <class 'simulation.models.SimConfig'>
+- JSON length: 8307 bytes
+- Deserialized config type: <class 'simulation.models.SimConfig'>
+- Equality check: PASS (c == c2)
+
+Status: ✓ PASS - Round-trip OK - configs are identical
+
+This confirms that SimConfig can be safely stored in st.session_state,
+serialized to JSON, and deserialized without data loss or corruption.

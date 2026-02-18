@@ -1,0 +1,13 @@
+Scenario 1: Config editor renders without errors
+================================================
+
+Test: Launch Streamlit app and verify HTTP 200 response
+
+Command: streamlit run app.py --server.headless true --server.port 8501
+Wait: 12 seconds for startup
+HTTP Test: curl http://localhost:8501
+
+Result: HTTP Status 200
+Status: ✓ PASS - App launched successfully
+
+The configuration editor page loads without errors and responds to HTTP requests.

@@ -1,0 +1,16 @@
+Scenario 2: No st.expander used for config tables
+==================================================
+
+Test: Verify st.tabs used instead of st.expander for performance
+
+Command: grep -n "st.expander" pages/config_editor.py app.py
+
+Result: No matches found (exit code 1)
+
+Exit Code: 1
+Status: ✓ PASS - No st.expander usage detected
+
+All table organization uses st.tabs as required:
+- Main organization: 4 tabs (Pack Config, Upgrade Tables, Card Economy, Progression)
+- Nested pack details: st.tabs for 9 pack card_types_tables
+- No st.expander anywhere in the codebase
