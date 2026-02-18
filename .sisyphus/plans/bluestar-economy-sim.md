@@ -1891,7 +1891,7 @@ Max Concurrent: 6 (Wave 1)
   - Files: `tests/test_integration.py, tests/conftest.py`
   - Pre-commit: `pytest tests/ -v`
 
-- [ ] 17. Deployment Prep (Streamlit Cloud + README)
+- [x] 17. Deployment Prep (Streamlit Cloud + README)
 
   **What to do**:
   - Update `.streamlit/config.toml`:
