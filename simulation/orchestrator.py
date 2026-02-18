@@ -1,0 +1,243 @@
+"""
+Simulation orchestrator for the Bluestar Economy Simulator.
+
+Main integration module that orchestrates the daily loop:
+1. Check unique unlock schedule
+2. Process packs for the day
+3. Perform card pulls (sequential with streak propagation)
+4. Attempt upgrades (greedy loop)
+5. Record daily snapshot
+"""
+
+from dataclasses import dataclass
+from random import Random
+from typing import Any, Dict, List, Optional
+
+from simulation.coin_economy import CoinLedger
+from simulation.drop_algorithm import perform_card_pull
+from simulation.models import (
+    Card,
+    CardCategory,
+    GameState,
+    SimConfig,
+    SimResult,
+    StreakState,
+)
+from simulation.pack_system import process_packs_for_day
+from simulation.progression import get_unlocked_unique_count
+from simulation.upgrade_engine import UpgradeEvent, attempt_upgrades
+
+
+@dataclass
+class DailySnapshot:
+    """Records the state of the game for a single day."""
+
+    day: int
+    total_bluestars: int
+    bluestars_earned_today: int
+    coins_balance: int
+    coins_earned_today: int
+    coins_spent_today: int
+    card_levels: Dict[str, int]
+    upgrades_today: List[UpgradeEvent]
+    category_avg_levels: Dict[str, float]
+    total_unique_unlocked: int
+
+
+def create_initial_state(
+    config: SimConfig,
+) -> tuple[GameState, CoinLedger, StreakState]:
+    """
+    Create initial game state for simulation.
+
+    Sets up:
+    - 9 Gold Shared cards (level 1, 0 dupes)
+    - 14 Blue Shared cards (level 1, 0 dupes)
+    - Initial unique cards based on day 1 unlock schedule
+
+    Args:
+        config: Simulation configuration
+
+    Returns:
+        Tuple of (game_state, coin_ledger, streak_state)
+    """
+    cards = []
+
+    # 9 Gold Shared cards
+    for i in range(1, 10):
+        cards.append(
+            Card(
+                id=f"gold_{i}",
+                name=f"Gold Shared {i}",
+                category=CardCategory.GOLD_SHARED,
+                level=1,
+                duplicates=0,
+            )
+        )
+
+    # 14 Blue Shared cards
+    for i in range(1, 15):
+        cards.append(
+            Card(
+                id=f"blue_{i}",
+                name=f"Blue Shared {i}",
+                category=CardCategory.BLUE_SHARED,
+                level=1,
+                duplicates=0,
+            )
+        )
+
+    # Initial unique cards from day 1 unlock schedule
+    initial_unique_count = get_unlocked_unique_count(1, config.unique_unlock_schedule)
+    for i in range(1, initial_unique_count + 1):
+        cards.append(
+            Card(
+                id=f"hero_{i}",
+                name=f"Hero {i}",
+                category=CardCategory.UNIQUE,
+                level=1,
+                duplicates=0,
+            )
+        )
+
+    game_state = GameState(
+        day=0,
+        cards=cards,
+        coins=0,
+        total_bluestars=0,
+        streak_state=StreakState(
+            streak_shared=0,
+            streak_unique=0,
+            streak_per_color={},
+            streak_per_hero={},
+        ),
+    )
+
+    coin_ledger = CoinLedger(balance=0)
+
+    streak_state = StreakState(
+        streak_shared=0,
+        streak_unique=0,
+        streak_per_color={},
+        streak_per_hero={},
+    )
+
+    return game_state, coin_ledger, streak_state
+
+
+def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult:
+    """
+    Main deterministic simulation loop.
+
+    Daily loop order (CRITICAL):
+    1. Check unique unlock schedule
+    2. Process packs for day
+    3. For each card pull (sequential with streak propagation)
+    4. Attempt upgrades (greedy loop)
+    5. Record daily snapshot
+
+    Args:
+        config: Simulation configuration
+        rng: Random instance for Monte Carlo mode (None = deterministic)
+
+    Returns:
+        SimResult with daily snapshots and aggregate statistics
+    """
+    game_state, coin_ledger, streak_state = create_initial_state(config)
+    daily_snapshots: List[DailySnapshot] = []
+
+    for day in range(1, config.num_days + 1):
+        game_state.day = day
+
+        # Step a: Check unique unlock schedule
+        unlocked_count = get_unlocked_unique_count(day, config.unique_unlock_schedule)
+        current_unique_count = len(
+            [c for c in game_state.cards if c.category == CardCategory.UNIQUE]
+        )
+
+        # Add new unique cards if schedule unlocked more
+        if unlocked_count > current_unique_count:
+            for i in range(current_unique_count + 1, unlocked_count + 1):
+                game_state.cards.append(
+                    Card(
+                        id=f"hero_{i}",
+                        name=f"Hero {i}",
+                        category=CardCategory.UNIQUE,
+                        level=1,
+                        duplicates=0,
+                    )
+                )
+
+        # Step b: Process packs
+        card_pulls = process_packs_for_day(game_state, config, rng)
+
+        # Step c: For each CardPull (SEQUENTIAL - ORDER MATTERS)
+        for card_pull in card_pulls:
+            card, dupes, coins, updated_streak = perform_card_pull(
+                game_state, config, streak_state, rng
+            )
+            card.duplicates += dupes
+            coin_ledger.add_income(coins, card.id, day)
+            streak_state = updated_streak  # CRITICAL: propagate streak state
+
+        # Step d: Attempt upgrades (greedy loop until exhausted)
+        upgrade_events = attempt_upgrades(game_state, config, coin_ledger)
+
+        # Step e: Record DailySnapshot
+        summary = coin_ledger.daily_summary(day)
+        coins_earned_today = summary["total_income"]
+        coins_spent_today = summary["total_spent"]
+
+        bluestars_earned_today = sum(e.bluestars_earned for e in upgrade_events)
+
+        # Calculate category average levels
+        category_avg_levels = {}
+        for category in [
+            CardCategory.GOLD_SHARED,
+            CardCategory.BLUE_SHARED,
+            CardCategory.UNIQUE,
+        ]:
+            cat_cards = [c for c in game_state.cards if c.category == category]
+            if cat_cards:
+                category_avg_levels[category.value] = sum(
+                    c.level for c in cat_cards
+                ) / len(cat_cards)
+            else:
+                category_avg_levels[category.value] = 0.0
+
+        snapshot = DailySnapshot(
+            day=day,
+            total_bluestars=game_state.total_bluestars,
+            bluestars_earned_today=bluestars_earned_today,
+            coins_balance=coin_ledger.balance,
+            coins_earned_today=coins_earned_today,
+            coins_spent_today=coins_spent_today,
+            card_levels={card.id: card.level for card in game_state.cards},
+            upgrades_today=upgrade_events,
+            category_avg_levels=category_avg_levels,
+            total_unique_unlocked=unlocked_count,
+        )
+        daily_snapshots.append(snapshot)
+
+    # Compute aggregate statistics
+    total_coins_earned = sum(
+        t.amount for t in coin_ledger.transactions if t.source == "income"
+    )
+    total_coins_spent = sum(
+        t.amount for t in coin_ledger.transactions if t.source == "spend"
+    )
+
+    total_upgrades: Dict[str, Any] = {}
+    for snapshot in daily_snapshots:
+        for event in snapshot.upgrades_today:
+            if event.card_id not in total_upgrades:
+                total_upgrades[event.card_id] = 0
+            total_upgrades[event.card_id] += 1
+
+    return SimResult(
+        daily_snapshots=daily_snapshots,
+        total_bluestars=game_state.total_bluestars,
+        total_coins_earned=total_coins_earned,
+        total_coins_spent=total_coins_spent,
+        total_upgrades=total_upgrades,
+    )

@@ -1,0 +1,8 @@
+=== 100-DAY PERFORMANCE TEST ===
+Command: python -c "from simulation.orchestrator import run_simulation; ..."
+Time: 0.12s
+Days: 100
+Total Bluestars: 10370
+Total Coins Earned: 210000
+Total Coins Spent: 209900
+PASS: Time < 30.0s ✓

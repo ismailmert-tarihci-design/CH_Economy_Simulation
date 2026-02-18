@@ -1,0 +1,13 @@
+=== 1-DAY SIMULATION TEST ===
+Config: 1 day, 2 pack types
+Result:
+- Snapshots: 1
+- Day: 1
+- Total Bluestars: 100
+- Coins Balance: 100
+- Cards: 31
+- Unique Unlocked: 8
+- Coins Earned Today: 2100
+- Coins Spent Today: 2000
+- Upgrades Today: 10
+- All values non-negative: ✓

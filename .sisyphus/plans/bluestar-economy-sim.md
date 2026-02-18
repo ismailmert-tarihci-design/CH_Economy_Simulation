@@ -852,7 +852,7 @@ Max Concurrent: 6 (Wave 1)
   - Files: `simulation/drop_algorithm.py, tests/test_drop_algorithm.py`
   - Pre-commit: `pytest tests/test_drop_algorithm.py -v`
 
-- [ ] 8. Card Drop Algorithm — Phase 2: Card Selection
+- [x] 8. Card Drop Algorithm — Phase 2: Card Selection
 
   **What to do**:
   - Add to `simulation/drop_algorithm.py` (same file as Task 7):
@@ -1106,7 +1106,7 @@ Max Concurrent: 6 (Wave 1)
   - Files: `simulation/upgrade_engine.py, tests/test_upgrade_engine.py`
   - Pre-commit: `pytest tests/test_upgrade_engine.py -v`
 
-- [ ] 10. Simulation Orchestrator — Deterministic Mode
+- [x] 10. Simulation Orchestrator — Deterministic Mode
 
   **What to do**:
   - Create `simulation/orchestrator.py`:

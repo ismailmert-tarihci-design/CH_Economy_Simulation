@@ -436,3 +436,208 @@ Created verification files:
 - task-7-gap-adjustment.txt: Gap balancing behavior
 - task-7-streak-penalty.txt: Streak penalty calculations
 
+
+## Task 8: Card Selection Within Category (Phase 2)
+
+### Implementation Summary
+Added 5 functions implementing Phase 2 of the drop algorithm:
+- `select_shared_card()`: Weighted selection from Gold + Blue pools
+- `select_unique_card()`: Top-10 filtering + weighted selection
+- `update_card_streak()`: Color/hero streak tracking
+- `compute_duplicates_received()`: Percentile-based duplicate calculation
+- `perform_card_pull()`: Full orchestration (Phase 1 → Phase 2 → duplicates → coins)
+
+### Key Patterns
+
+**Weighted Selection Formula:**
+```python
+base_weight = 1.0 / (card.level + 1)
+final_weight = base_weight * (0.6 ** streak)
+```
+
+**Dict Keys for Streaks:**
+- Color streaks: Use `card.category.value` (e.g., "GOLD_SHARED", "BLUE_SHARED")
+- Hero streaks: Use `card.id` (e.g., "hero_1")
+
+**Random.choices() for MC mode:**
+```python
+rng.choices(cards, weights=weights, k=1)[0]
+```
+
+**Deterministic mode (rng=None):**
+```python
+max_idx = weights.index(max(weights))
+return cards[max_idx]
+```
+
+### Critical Edge Cases
+
+1. **Maxed Cards**: Return 0 duplicates when at max level
+2. **Top-10 Filtering**: Only applies to unique cards, not shared
+3. **Streak Reset**: When selecting a card, increment its streak and reset ALL others in same category
+4. **0-indexed Tables**: All cost/range tables use level-1 as index
+
+### Test Coverage
+21 total tests (11 Phase 1 + 10 Phase 2):
+- Level weighting distribution (1000 MC runs)
+- Color streak penalty (Gold vs Blue)
+- Hero streak penalty (unique cards)
+- Deterministic vs MC mode
+- Maxed card edge case
+- Percentile range midpoint calculation
+- Full pull integration
+- Streak update logic (gold/blue/hero)
+
+### Integration Points
+- Imports `compute_coin_income()` from coin_economy module
+- Returns tuple: `(Card, duplicates, coins, updated_streak_state)`
+- Orchestrator can chain calls by passing updated_streak_state
+
+### Performance Notes
+- Weighted selection is O(n) where n = number of cards in category
+- Top-10 filtering reduces unique candidate pool from 100+ to 10
+- Sorting by level is O(n log n) but runs once per pull
+
+
+## Task 10: Simulation Orchestrator
+
+### Implementation Patterns
+
+**Daily Loop Order (CRITICAL)**
+Exact sequence matters for correctness:
+1. Check unlock schedule → add new unique cards if needed
+2. Process packs for day → returns list[CardPull]
+3. Sequential card pulls with streak propagation → MUST pass updated_streak_state to next call
+4. Attempt upgrades (greedy loop until exhausted)
+5. Record DailySnapshot with 10 fields
+
+**Streak State Propagation (CRITICAL)**
+```python
+for card_pull in card_pulls:
+    card, dupes, coins, updated_streak = perform_card_pull(game_state, config, streak_state, rng)
+    streak_state = updated_streak  # MUST propagate for next iteration
+```
+Forgetting this breaks the streak penalty system across pulls within a single day.
+
+**Initial State Setup**
+- 9 Gold Shared cards (gold_1 to gold_9)
+- 14 Blue Shared cards (blue_1 to blue_14)
+- Initial unique cards from day 1 unlock schedule (hero_1 to hero_N)
+- All cards start at level 1, 0 duplicates
+- CoinLedger starts at 0 balance
+- StreakState all zeroes
+
+**Unlock Schedule Logic**
+```python
+unlocked_count = get_unlocked_unique_count(day, config.unique_unlock_schedule)
+current_unique_count = len([c for c in game_state.cards if c.category == CardCategory.UNIQUE])
+if unlocked_count > current_unique_count:
+    # Add new unique cards (hero_{i} for i in range(current+1, unlocked+1))
+```
+
+### Integration Discoveries
+
+**API Signature Gotcha**
+- `get_unlocked_unique_count(day, schedule)` — day FIRST, schedule SECOND
+- Task spec example showed it backwards — corrected during implementation
+- All other engine functions matched their documented signatures
+
+**CardPull is Metadata Only**
+- CardPull contains pack_name + pull_index (no card reference)
+- Actual card selection happens in `perform_card_pull()`
+- This is lightweight by design for Monte Carlo runs
+
+**DailySnapshot Field Calculations**
+```python
+summary = coin_ledger.daily_summary(day)
+coins_earned_today = summary["total_income"]
+coins_spent_today = summary["total_spent"]
+
+bluestars_earned_today = sum(e.bluestars_earned for e in upgrade_events)
+
+category_avg_levels = {}
+for category in [CardCategory.GOLD_SHARED, CardCategory.BLUE_SHARED, CardCategory.UNIQUE]:
+    cat_cards = [c for c in game_state.cards if c.category == category]
+    if cat_cards:
+        category_avg_levels[category.value] = sum(c.level for c in cat_cards) / len(cat_cards)
+    else:
+        category_avg_levels[category.value] = 0.0
+```
+
+**Aggregate Statistics**
+- total_bluestars: Direct from game_state.total_bluestars
+- total_coins_earned: Sum all income transactions across all days
+- total_coins_spent: Sum all spend transactions across all days
+- total_upgrades: Dict mapping card_id → count of upgrades
+
+### Performance Notes
+
+**100-Day Simulation: 0.12 seconds**
+- Target was < 30 seconds — achieved 250× faster
+- Deterministic mode (rng=None) has minimal overhead
+- No performance bottlenecks detected
+- Full test suite (149 tests) completes in 0.53 seconds
+
+**Scaling Characteristics**
+- Linear time complexity: O(days × pulls_per_day × cards)
+- Daily upgrade loop: O(cards) for candidate scan, repeats until exhausted
+- Snapshot recording: O(cards) for category averages
+- No expensive operations (no sorting in hot path, no deep copies)
+
+### Test Coverage
+
+**8 Tests Implemented (7 required + 1 bonus)**
+1. test_oneday_simulation: Validates all snapshot fields non-negative ✓
+2. test_duplicates_accumulate: Verifies card levels increase over days ✓
+3. test_upgrades_fire: Confirms upgrades execute when resources available ✓
+4. test_unlock_schedule: Validates {1:8, 5:2} schedule adds cards on correct days ✓
+5. test_bluestar_accounting: Ensures total = sum of daily earnings ✓
+6. test_coin_balance: Verifies balance = income - spent ✓
+7. test_performance_100days: Confirms < 30s (actual: 0.12s) ✓
+8. test_initial_state_setup: Validates card counts (9+14+8) ✓
+
+**Key Test Patterns**
+- Use full_config fixture with all required tables
+- Deterministic mode (rng=None) for reproducible assertions
+- Performance tests use time.time() for elapsed measurement
+- Unlock schedule test checks multiple days (1, 4, 5, 6) to verify persistence
+
+### Architecture Quality
+
+**File Size: 253 lines**
+- Target: < 200 lines (missed by 53 lines due to detailed field calculations)
+- Still well under 300 hard limit
+- Could be reduced by extracting snapshot calculation to helper function
+
+**Dependencies**
+- Imports from 5 engine modules (pack_system, drop_algorithm, upgrade_engine, coin_economy, progression)
+- All module integrations work correctly on first try (after API signature fix)
+
+**No Regressions**
+- All 141 existing tests still pass ✓
+- Total test count: 149 (8 new orchestrator tests added)
+- LSP diagnostics: Only warnings (type hints, deprecations) — no errors
+
+### Critical Learnings for Next Tasks
+
+**For Monte Carlo (Task 11)**
+- Pass `rng=Random(seed)` instead of `rng=None` for stochastic mode
+- All engine modules already support rng parameter
+- Orchestrator signature ready: `run_simulation(config, rng=Optional[Random])`
+
+**For Dashboard (Tasks 14-15)**
+- DailySnapshot has all 10 fields needed for visualization
+- SimResult aggregates are ready for summary cards
+- category_avg_levels dict ready for progression charts
+
+**Streak State Critical Pattern**
+- Within a day: Propagate streak_state across sequential pulls
+- Across days: streak_state persists in orchestrator scope
+- Forgetting this breaks weighted selection algorithm
+
+### Evidence Files Created
+
+- `.sisyphus/evidence/task-10-oneday.txt`: 1-day snapshot validation
+- `.sisyphus/evidence/task-10-performance.txt`: 100-day timing (0.12s)
+- `.sisyphus/evidence/task-10-unlock-schedule.txt`: Unlock schedule verification
+
