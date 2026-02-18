@@ -1,0 +1,4 @@
+118:@st.cache_data(ttl=3600, max_entries=10)
+133:@st.cache_data(ttl=3600, max_entries=10)
+119:def _run_cached_simulation(config_hash: str, config: SimConfig):
+134:def _run_cached_mc(config_hash: str, config: SimConfig, num_runs: int):
