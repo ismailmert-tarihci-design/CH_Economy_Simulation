@@ -33,12 +33,13 @@ def render_config_editor(config: SimConfig) -> None:
             key="init_stars",
         )
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
         [
             "📦 Pack Configuration",
             "⬆️ Upgrade Tables",
             "💰 Card Economy",
             "📈 Progression & Schedule",
+            "🎲 Drop Algorithm",
             "👤 Profiles",
         ]
     )
@@ -52,6 +53,8 @@ def render_config_editor(config: SimConfig) -> None:
     with tab4:
         _render_progression_schedule(config)
     with tab5:
+        _render_drop_algorithm(config)
+    with tab6:
         _render_profiles(config)
 
 
@@ -385,6 +388,93 @@ def _render_progression_schedule(config: SimConfig) -> None:
         defaults = load_defaults()
         config.progression_mapping = defaults.progression_mapping
         config.unique_unlock_schedule = defaults.unique_unlock_schedule
+        st.rerun()
+
+
+def _render_drop_algorithm(config: SimConfig) -> None:
+    st.subheader("Drop Algorithm Parameters")
+    st.caption("Controls the card drop rarity decision and selection weights.")
+
+    st.markdown("**Base Drop Rates**")
+    col_shared, col_unique = st.columns(2)
+    with col_shared:
+        config.base_shared_rate = st.number_input(
+            "Base Shared Rate",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(config.base_shared_rate),
+            step=0.05,
+            format="%.2f",
+            key="base_shared_rate",
+        )
+    with col_unique:
+        config.base_unique_rate = st.number_input(
+            "Base Unique Rate",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(config.base_unique_rate),
+            step=0.05,
+            format="%.2f",
+            key="base_unique_rate",
+        )
+
+    st.divider()
+    st.markdown("**Streak Decay Rates**")
+    st.caption("Lower values = stronger penalty for consecutive same-type drops.")
+    col_sd_shared, col_sd_unique = st.columns(2)
+    with col_sd_shared:
+        config.streak_decay_shared = st.number_input(
+            "Streak Decay (Shared)",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(config.streak_decay_shared),
+            step=0.05,
+            format="%.2f",
+            key="streak_decay_shared",
+        )
+    with col_sd_unique:
+        config.streak_decay_unique = st.number_input(
+            "Streak Decay (Unique)",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(config.streak_decay_unique),
+            step=0.05,
+            format="%.2f",
+            key="streak_decay_unique",
+        )
+
+    st.divider()
+    st.markdown("**Gap Balancing & Candidate Pool**")
+    col_gap, col_pool = st.columns(2)
+    with col_gap:
+        config.gap_base = st.number_input(
+            "Gap Base",
+            min_value=1.0,
+            max_value=5.0,
+            value=float(config.gap_base),
+            step=0.1,
+            format="%.1f",
+            key="gap_base",
+            help="Exponential base for progression gap balancing. Higher = stronger catch-up.",
+        )
+    with col_pool:
+        config.unique_candidate_pool = st.number_input(
+            "Unique Candidate Pool",
+            min_value=1,
+            max_value=50,
+            value=int(config.unique_candidate_pool),
+            step=1,
+            key="unique_candidate_pool",
+            help="Top-N lowest-level unique cards considered for selection.",
+        )
+
+    if st.button("🔄 Restore Drop Algorithm Defaults", key="restore_drop_algo"):
+        config.base_shared_rate = 0.70
+        config.base_unique_rate = 0.30
+        config.streak_decay_shared = 0.6
+        config.streak_decay_unique = 0.3
+        config.gap_base = 1.5
+        config.unique_candidate_pool = 10
         st.rerun()
 
 
