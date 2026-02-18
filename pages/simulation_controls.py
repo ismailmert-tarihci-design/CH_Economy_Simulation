@@ -68,7 +68,7 @@ def render_simulation_controls(config: SimConfig) -> None:
 
     st.divider()
 
-    if st.button("▶️ Run Simulation", type="primary", use_container_width=True):
+    if st.button("▶️ Run Simulation", type="primary", width="stretch"):
         config.num_days = num_days
         config_hash = hashlib.md5(config.model_dump_json().encode()).hexdigest()
 
@@ -97,7 +97,7 @@ def render_simulation_controls(config: SimConfig) -> None:
     st.subheader("📋 Share Configuration")
     st.caption("Generate a shareable URL containing your current configuration")
 
-    if st.button("Generate Shareable URL", use_container_width=True):
+    if st.button("Generate Shareable URL", width="stretch"):
         try:
             encoded = encode_config(config)
             base_url = st.context.headers.get("host", "localhost:8501")

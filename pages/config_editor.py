@@ -57,7 +57,7 @@ def _render_pack_config(config: SimConfig) -> None:
     edited_avg = st.data_editor(
         pack_avg_df,
         column_config={
-            "Pack Name": st.column_config.TextColumn("Pack Name", disabled=True),
+            "Pack Name": st.column_config.TextColumn("Pack Name"),
             "20-Day Average": st.column_config.NumberColumn(
                 "20-Day Average",
                 min_value=0.0,
@@ -68,12 +68,11 @@ def _render_pack_config(config: SimConfig) -> None:
             ),
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         key="pack_averages_editor",
     )
 
-    for row in edited_avg.itertuples():
-        config.pack_averages[row._1] = row._2
+    config.pack_averages = {row._1: row._2 for row in edited_avg.itertuples()}
 
     st.divider()
     st.subheader("Card Types Tables by Pack")
@@ -107,7 +106,8 @@ def _render_pack_config(config: SimConfig) -> None:
                     ),
                 },
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
+                num_rows="dynamic",
                 key=f"card_types_{pack.name}",
             )
 
@@ -161,7 +161,7 @@ def _render_upgrade_tables(config: SimConfig) -> None:
             ),
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         height=400,
         key=f"upgrade_table_{category.value}",
     )
@@ -225,7 +225,7 @@ def _render_card_economy(config: SimConfig) -> None:
             ),
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         height=300,
         key=f"dup_range_{dup_category.value}",
     )
@@ -260,7 +260,7 @@ def _render_card_economy(config: SimConfig) -> None:
             ),
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         height=300,
         key=f"coin_per_dup_{coin_category.value}",
     )
@@ -296,7 +296,7 @@ def _render_progression_schedule(config: SimConfig) -> None:
             ),
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         key="progression_mapping_editor",
     )
 
@@ -327,7 +327,7 @@ def _render_progression_schedule(config: SimConfig) -> None:
             ),
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         num_rows="dynamic",
         key="unique_unlock_schedule_editor",
     )

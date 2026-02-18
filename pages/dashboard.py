@@ -75,7 +75,7 @@ def _render_bluestar_chart(result: Any, mode: str) -> None:
         hovermode="x unified",
         template="plotly_white",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_card_progression_chart(result: Any, mode: str) -> None:
@@ -149,7 +149,7 @@ def _render_card_progression_chart(result: Any, mode: str) -> None:
         hovermode="x unified",
         template="plotly_white",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_coin_flow_chart(result: Any, mode: str) -> None:
@@ -209,7 +209,7 @@ def _render_coin_flow_chart(result: Any, mode: str) -> None:
         hovermode="x unified",
         template="plotly_white",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_pack_roi_chart(result: Any, mode: str) -> None:
@@ -237,7 +237,7 @@ def _render_pack_roi_chart(result: Any, mode: str) -> None:
         yaxis=dict(title="Effective Bluestars per Pack"),
         template="plotly_white",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.caption(
         "📊 Methodology: Bluestars attributed proportionally based on pack opening frequency."
     )
