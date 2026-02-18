@@ -1,0 +1,30 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e4]:
+      - button "Deploy" [ref=e6] [cursor=pointer]:
+        - generic [ref=e8]: Deploy
+      - button [ref=e10] [cursor=pointer]:
+        - img [ref=e11]
+  - generic [ref=e14]:
+    - button [ref=e17] [cursor=pointer]:
+      - img [ref=e18]
+    - generic [ref=e24]:
+      - button [ref=e52] [cursor=pointer]:
+        - img [ref=e53]
+      - list [ref=e27]:
+        - listitem [ref=e28]:
+          - link "app" [ref=e30] [cursor=pointer]:
+            - /url: http://localhost:8501/app
+            - generic [ref=e31]: app
+        - listitem [ref=e32]:
+          - link "config editor" [active] [ref=e34] [cursor=pointer]:
+            - /url: http://localhost:8501/config_editor
+            - generic [ref=e35]: config editor
+        - listitem [ref=e36]:
+          - link "dashboard" [ref=e38] [cursor=pointer]:
+            - /url: http://localhost:8501/dashboard
+            - generic [ref=e39]: dashboard
+        - listitem [ref=e40]:
+          - link "simulation controls" [ref=e42] [cursor=pointer]:
+            - /url: http://localhost:8501/simulation_controls
+            - generic [ref=e43]: simulation controls
