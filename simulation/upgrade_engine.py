@@ -175,10 +175,8 @@ def _execute_upgrade(
     dupe_cost = upgrade_table.duplicate_costs[card.level - 1]
     coin_cost = upgrade_table.coin_costs[card.level - 1]
 
-    # Get reward for reaching NEW level
-    # bluestar_rewards[i] is reward for reaching level i+1
-    # card.level is still old, so this indexes to new_level - 1
-    bluestar_reward = upgrade_table.bluestar_rewards[card.level]
+    # Get reward for this upgrade step (same indexing as costs)
+    bluestar_reward = upgrade_table.bluestar_rewards[card.level - 1]
 
     # Deduct resources
     card.duplicates -= dupe_cost

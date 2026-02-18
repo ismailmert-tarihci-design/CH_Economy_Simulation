@@ -281,12 +281,10 @@ class TestProcessPacksMC:
             packs=[PackConfig(name="basic", card_types_table={0: 1})],
         )
 
-        np.random.seed(123)
-        rng1 = Random()
+        rng1 = Random(123)
         pulls1 = process_packs_for_day(game_state, config, rng=rng1)
 
-        np.random.seed(123)
-        rng2 = Random()
+        rng2 = Random(123)
         pulls2 = process_packs_for_day(game_state, config, rng=rng2)
 
         assert len(pulls1) == len(pulls2)

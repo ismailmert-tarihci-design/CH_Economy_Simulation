@@ -83,11 +83,12 @@ def process_packs_for_day(
 
         # Determine number of packs to open
         if rng is None:
-            # Deterministic: round to nearest integer
             num_packs = round(daily_avg)
         else:
-            # MC: Use Poisson distribution
-            num_packs = int(np.random.poisson(daily_avg))
+            # MC: Poisson sampling seeded from the passed RNG for reproducibility
+            poisson_seed = rng.randint(0, 2**31 - 1)
+            local_gen = np.random.Generator(np.random.PCG64(poisson_seed))
+            num_packs = int(local_gen.poisson(daily_avg))
 
         # Generate pulls for each pack
         for pack_index in range(num_packs):
