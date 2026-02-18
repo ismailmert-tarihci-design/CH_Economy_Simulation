@@ -1,0 +1,40 @@
+{
+  "packs": [
+    {
+      "name": "Pack1",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    },
+    {
+      "name": "Pack2",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    },
+    {
+      "name": "Pack3",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    },
+    {
+      "name": "Pack4",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    },
+    {
+      "name": "Pack5",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    },
+    {
+      "name": "Pack6",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    },
+    {
+      "name": "Pack7",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    },
+    {
+      "name": "Pack8",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    },
+    {
+      "name": "Pack9",
+      "card_types_table": {"31": 3, "40": 4, "50": 5}
+    }
+  ]
+}
