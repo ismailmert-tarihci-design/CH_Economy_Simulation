@@ -24,6 +24,7 @@ from simulation.models import (
 )
 from simulation.pack_system import process_packs_for_day
 from simulation.progression import get_unlocked_unique_count
+from simulation.pull_logger import PullLogger
 from simulation.upgrade_engine import UpgradeEvent, attempt_upgrades
 
 
@@ -154,6 +155,7 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
     """
     game_state, coin_ledger, streak_state = create_initial_state(config)
     daily_snapshots: List[DailySnapshot] = []
+    pull_logger = PullLogger()
 
     for day in range(1, config.num_days + 1):
         game_state.day = day
@@ -185,17 +187,32 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
         # After each pull, attempt upgrades immediately (a typical player
         # would try upgrades after every pull, not wait until end of day).
         upgrade_events: List[UpgradeEvent] = []
-        for card_pull in card_pulls:
+        pull_index = 0
+        for _card_pull in card_pulls:
+            pull_index += 1
             card, dupes, coins, updated_streak = perform_card_pull(
                 game_state, config, streak_state, rng
             )
+            level_before = card.level
             card.duplicates += dupes
             coin_ledger.add_income(coins, card.id, day)
             streak_state = updated_streak  # CRITICAL: propagate streak state
 
-            # Attempt upgrades after each pull (greedy loop until exhausted)
             pull_upgrades = attempt_upgrades(game_state, config, coin_ledger)
             upgrade_events.extend(pull_upgrades)
+
+            pull_logger.log_pull(
+                day=day,
+                pull_index=pull_index,
+                card_id=card.id,
+                card_name=card.name,
+                card_category=card.category.value,
+                card_level_before=level_before,
+                duplicates_received=dupes,
+                duplicates_total_after=card.duplicates,
+                coins_earned=coins,
+                upgrades=pull_upgrades,
+            )
 
         # Step e: Record DailySnapshot
         summary = coin_ledger.daily_summary(day)
@@ -254,4 +271,5 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
         total_coins_earned=total_coins_earned,
         total_coins_spent=total_coins_spent,
         total_upgrades=total_upgrades,
+        pull_logs=pull_logger.events,
     )

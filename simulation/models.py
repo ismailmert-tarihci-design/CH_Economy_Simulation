@@ -174,3 +174,4 @@ class SimResult(BaseModel):
     total_coins_earned: int
     total_coins_spent: int
     total_upgrades: Dict[str, Any] = Field(default_factory=dict)
+    pull_logs: List[Any] = Field(default_factory=list)
