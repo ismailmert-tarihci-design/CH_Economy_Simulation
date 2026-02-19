@@ -36,7 +36,7 @@ elif "config" not in st.session_state:
 st.sidebar.title("🌌 Navigation")
 page = st.sidebar.radio(
     "Select a page:",
-    ["⚙️ Configuration", "▶️ Simulation", "📊 Dashboard"],
+    ["⚙️ Configuration", "▶️ Simulation", "📊 Dashboard", "📋 Pull Logs"],
     index=0,
 )
 
@@ -55,3 +55,8 @@ elif page == "📊 Dashboard":
     from pages.dashboard import render_dashboard
 
     render_dashboard()
+
+elif page == "📋 Pull Logs":
+    from pages.pull_log_viewer import render_pull_log_viewer
+
+    render_pull_log_viewer()
