@@ -324,8 +324,8 @@ class TestSimConfig:
             daily_pack_schedule=[],
             num_days=30,
         )
-        assert config.base_shared_rate == 0.70
-        assert config.base_unique_rate == 0.30
+        assert config.base_shared_rate == 0.40
+        assert config.base_unique_rate == 0.60
         assert config.max_shared_level == 100
         assert config.max_unique_level == 10
         assert config.mc_runs is None

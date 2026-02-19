@@ -109,6 +109,8 @@ class DailyAccumulators:
         self.bluestar_accumulators = [WelfordAccumulator() for _ in range(num_days)]
         self.coin_balance_accumulators = [WelfordAccumulator() for _ in range(num_days)]
         self.category_level_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        self.pull_count_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        self.pack_count_accumulators: Dict[str, List[WelfordAccumulator]] = {}
 
     def update_from_snapshot(self, day_index: int, snapshot: DailySnapshot) -> None:
         """
@@ -131,6 +133,22 @@ class DailyAccumulators:
                     WelfordAccumulator() for _ in range(self.num_days)
                 ]
             self.category_level_accumulators[category_name][day_index].update(avg_level)
+
+        # Update pull count accumulators
+        for card_type, count in snapshot.pull_counts_by_type.items():
+            if card_type not in self.pull_count_accumulators:
+                self.pull_count_accumulators[card_type] = [
+                    WelfordAccumulator() for _ in range(self.num_days)
+                ]
+            self.pull_count_accumulators[card_type][day_index].update(float(count))
+
+        # Update pack count accumulators
+        for pack_name, count in snapshot.pack_counts_by_type.items():
+            if pack_name not in self.pack_count_accumulators:
+                self.pack_count_accumulators[pack_name] = [
+                    WelfordAccumulator() for _ in range(self.num_days)
+                ]
+            self.pack_count_accumulators[pack_name][day_index].update(float(count))
 
     def finalize(self) -> Dict[str, Any]:
         """
@@ -169,6 +187,28 @@ class DailyAccumulators:
                 acc.result()[1] for acc in accumulators
             ]
 
+        # Extract pull count stats
+        result["pull_count_means"] = {}
+        result["pull_count_stds"] = {}
+        for card_type, accumulators in self.pull_count_accumulators.items():
+            result["pull_count_means"][card_type] = [
+                acc.result()[0] for acc in accumulators
+            ]
+            result["pull_count_stds"][card_type] = [
+                acc.result()[1] for acc in accumulators
+            ]
+
+        # Extract pack count stats
+        result["pack_count_means"] = {}
+        result["pack_count_stds"] = {}
+        for pack_name, accumulators in self.pack_count_accumulators.items():
+            result["pack_count_means"][pack_name] = [
+                acc.result()[0] for acc in accumulators
+            ]
+            result["pack_count_stds"][pack_name] = [
+                acc.result()[1] for acc in accumulators
+            ]
+
         return result
 
 
@@ -177,14 +217,18 @@ class MCResult:
     """Results from Monte Carlo simulation runs."""
 
     num_runs: int
-    bluestar_stats: WelfordAccumulator  # Stats for final bluestar totals
-    daily_bluestar_means: List[float]  # Length = num_days
+    bluestar_stats: WelfordAccumulator
+    daily_bluestar_means: List[float]
     daily_bluestar_stds: List[float]
     daily_coin_balance_means: List[float]
     daily_coin_balance_stds: List[float]
-    daily_category_level_means: Dict[str, List[float]]  # category → list of means
+    daily_category_level_means: Dict[str, List[float]]
     daily_category_level_stds: Dict[str, List[float]]
-    completion_time: float  # Seconds
+    daily_pull_count_means: Dict[str, List[float]]
+    daily_pull_count_stds: Dict[str, List[float]]
+    daily_pack_count_means: Dict[str, List[float]]
+    daily_pack_count_stds: Dict[str, List[float]]
+    completion_time: float
 
 
 def run_monte_carlo(config: SimConfig, num_runs: int = 100) -> MCResult:
@@ -256,5 +300,9 @@ def run_monte_carlo(config: SimConfig, num_runs: int = 100) -> MCResult:
         daily_coin_balance_stds=daily_stats["coin_balance_stds"],
         daily_category_level_means=daily_stats["category_level_means"],
         daily_category_level_stds=daily_stats["category_level_stds"],
+        daily_pull_count_means=daily_stats["pull_count_means"],
+        daily_pull_count_stds=daily_stats["pull_count_stds"],
+        daily_pack_count_means=daily_stats["pack_count_means"],
+        daily_pack_count_stds=daily_stats["pack_count_stds"],
         completion_time=completion_time,
     )

@@ -289,12 +289,12 @@ def test_unique_streak_penalty(base_config, zero_streak):
     Test 5: Unique streak penalty should reduce unique probability.
 
     Setup:
-    - Balanced progression (Gap=0)
+    - Near-balanced progression (shared=50, unique=5, slight negative gap)
     - streak_unique=3
 
-    Expected: ProbUnique < 0.05
-    Formula: 0.3 * (0.3^3) = 0.3 * 0.027 = 0.0081
-    After normalization: ~0.011
+    Expected: ProbUnique < 0.15 (significantly below no-streak unique rate)
+    With linear ratio: raw_ratio ≈ 0.34, unique_weight ≈ 0.66
+    After streak decay: 0.66 * 0.3^3 ≈ 0.018 → prob_unique ≈ 0.05-0.10
     """
     cards = [
         Card(id="g1", name="Gold1", category=CardCategory.GOLD_SHARED, level=50),
@@ -327,8 +327,8 @@ def test_unique_streak_penalty(base_config, zero_streak):
     )
 
     prob_unique = unique_count / num_rolls
-    assert prob_unique < 0.05, (
-        f"Expected ProbUnique < 0.05 with streak_unique=3, got {prob_unique:.3f}"
+    assert prob_unique < 0.15, (
+        f"Expected ProbUnique < 0.15 with streak_unique=3, got {prob_unique:.3f}"
     )
 
 

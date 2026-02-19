@@ -294,6 +294,8 @@ def test_daily_accumulators():
         upgrades_today=[],
         category_avg_levels={"GOLD_SHARED": 5.0, "BLUE_SHARED": 3.0, "UNIQUE": 2.0},
         total_unique_unlocked=8,
+        pull_counts_by_type={},
+        pack_counts_by_type={},
     )
 
     snapshot2 = DailySnapshot(
@@ -307,6 +309,8 @@ def test_daily_accumulators():
         upgrades_today=[],
         category_avg_levels={"GOLD_SHARED": 5.5, "BLUE_SHARED": 3.2, "UNIQUE": 2.1},
         total_unique_unlocked=8,
+        pull_counts_by_type={},
+        pack_counts_by_type={},
     )
 
     accumulators.update_from_snapshot(0, snapshot1)

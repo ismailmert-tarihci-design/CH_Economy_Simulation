@@ -1,8 +1,10 @@
 """
 Phase 1 of Card Drop Algorithm: Rarity Decision (Shared vs Unique).
 
-Implements the 5-step weighted algorithm with progression gap balancing
-and streak penalties as specified in the Revamp Master Doc.
+Implements the linear-ratio algorithm matching the Excel formula:
+  rawRatio = base_shared_rate + gap_tiers * gap_scale
+  finalRatio = clamp(rawRatio, ratio_floor, ratio_ceiling)
+with streak penalties applied as multiplicative weight modifiers.
 """
 
 from random import Random
@@ -12,7 +14,6 @@ from simulation.models import Card, CardCategory, GameState, SimConfig, StreakSt
 from simulation.progression import compute_mapping_aware_score
 
 # Legacy constants kept for backward compatibility (tests, external imports).
-# The simulation reads these values from SimConfig fields instead.
 STREAK_DECAY_SHARED = 0.6
 STREAK_DECAY_UNIQUE = 0.3
 GAP_BASE = 1.5
@@ -27,12 +28,13 @@ def decide_rarity(
     """
     Phase 1: Decide whether to drop a Shared or Unique card.
 
-    Implements 5-step algorithm:
-    1. Compute progression scores (SShared, SUnique)
-    2. Apply gap adjustment (exponential balancing)
-    3. Apply streak penalties (exponential decay)
-    4. Normalize probabilities
-    5. Roll weighted random (or deterministic if rng=None)
+    Uses the linear-ratio approach matching the Excel formula:
+    1. Compute progression scores on shared scale [0,1]
+    2. Convert to tier-based gap (0.1 on [0,1] = 1 tier)
+    3. Compute shared ratio: base_shared_rate + gap * gap_scale
+    4. Clamp to [ratio_floor, ratio_ceiling]; force 1.0 if all unique maxed
+    5. Apply streak penalties as multiplicative weight modifiers
+    6. Roll weighted random (or deterministic if rng=None)
 
     Args:
         game_state: Current game state with card collection
@@ -42,15 +44,8 @@ def decide_rarity(
 
     Returns:
         CardCategory.GOLD_SHARED or CardCategory.UNIQUE
-        (Phase 2 will handle Gold vs Blue selection)
-
-    Algorithm Reference:
-        Revamp Master Doc - RARITY DECISION flowchart
     """
-    # Step 1: Compute Progression Scores (mapping-aware)
-    # Both scores projected onto the shared scale [0, 1] using the
-    # progression mapping, so the gap correctly reflects the mapping
-    # relationship between shared and unique card levels.
+    # Step 1: Compute Progression Scores (mapping-aware, on shared [0,1] scale)
     gold_prog = compute_mapping_aware_score(
         game_state.cards, CardCategory.GOLD_SHARED, config.progression_mapping
     )
@@ -63,24 +58,35 @@ def decide_rarity(
         game_state.cards, CardCategory.UNIQUE, config.progression_mapping
     )
 
-    # Step 2: Gap Adjustment (mapping-aware)
-    # Gap = SUnique - SShared (both on shared scale)
-    # Scaled gap amplifies the difference for meaningful exponential effect
+    # Step 2: Check if all unique cards are maxed → shared only
+    unique_cards = [c for c in game_state.cards if c.category == CardCategory.UNIQUE]
+    all_unique_maxed = len(unique_cards) > 0 and all(
+        c.level >= config.max_unique_level for c in unique_cards
+    )
+
+    if all_unique_maxed:
+        return CardCategory.GOLD_SHARED
+
+    # Step 3: Linear ratio (matches Excel formula)
+    # gap on [0,1] scale: positive = unique ahead, negative = shared ahead
+    # gap_scale converts [0,1] gap to ratio shift
+    # e.g. gap=0.1 (1 tier), gap_scale=5.0 → shift of 0.5
     gap = s_unique - s_shared
-    scaled_gap = gap * config.gap_scale
-    w_shared = config.base_shared_rate * (config.gap_base**scaled_gap)
-    w_unique = config.base_unique_rate * (config.gap_base ** (-scaled_gap))
+    raw_ratio = config.base_shared_rate + gap * config.gap_scale
 
-    # Step 3: Streak Penalty
-    # FinalShared = WShared * (streak_decay_shared ^ streak_shared)
-    # FinalUnique = WUnique * (streak_decay_unique ^ streak_unique)
-    final_shared = w_shared * (config.streak_decay_shared**streak_state.streak_shared)
-    final_unique = w_unique * (config.streak_decay_unique**streak_state.streak_unique)
+    # Clamp to [floor, ceiling]
+    ratio = max(config.ratio_floor, min(config.ratio_ceiling, raw_ratio))
 
-    # Step 4: Normalize
-    total = final_shared + final_unique
-    prob_shared = final_shared / total
-    # prob_unique = final_unique / total  # Not needed for roll
+    # Step 4: Apply streak penalties as multiplicative weights, then normalize
+    w_shared = ratio * (config.streak_decay_shared**streak_state.streak_shared)
+    w_unique = (1.0 - ratio) * (config.streak_decay_unique**streak_state.streak_unique)
+
+    # Normalize
+    total = w_shared + w_unique
+    if total == 0:
+        prob_shared = 0.5
+    else:
+        prob_shared = w_shared / total
 
     # Step 5: Roll
     if rng is None:

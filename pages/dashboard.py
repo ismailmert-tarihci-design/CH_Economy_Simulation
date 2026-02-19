@@ -9,6 +9,8 @@ from pages.dashboard_charts import (
     add_category_ci,
     add_coin_balance_ci,
     render_kpi_row,
+    render_pack_counts_chart,
+    render_pull_counts_chart,
     render_unique_unlocked_chart,
     render_upgrades_chart,
 )
@@ -31,6 +33,9 @@ def render_dashboard() -> None:
     if mode == "deterministic":
         _render_upgrades_and_unlocked(result)
     _render_coin_flow_chart(result, mode)
+    st.divider()
+    render_pull_counts_chart(result, mode)
+    render_pack_counts_chart(result, mode)
 
 
 def _render_upgrades_and_unlocked(result: Any) -> None:

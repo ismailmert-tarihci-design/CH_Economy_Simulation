@@ -140,10 +140,12 @@ class SimConfig(BaseModel):
     initial_bluestars: int = Field(default=0)
     mc_runs: Optional[int] = None
     base_shared_rate: float = Field(
-        default=0.70, description="Base rate for shared cards"
+        default=0.40,
+        description="Center ratio for shared cards when progression is balanced (Excel: 0.4)",
     )
     base_unique_rate: float = Field(
-        default=0.30, description="Base rate for unique cards"
+        default=0.60,
+        description="Center ratio for unique cards when progression is balanced (1 - base_shared_rate)",
     )
     streak_decay_shared: float = Field(
         default=0.6, description="Streak decay rate for shared card drops"
@@ -151,12 +153,19 @@ class SimConfig(BaseModel):
     streak_decay_unique: float = Field(
         default=0.3, description="Streak decay rate for unique card drops"
     )
-    gap_base: float = Field(
-        default=1.5, description="Exponential base for progression gap balancing"
-    )
     gap_scale: float = Field(
-        default=10.0,
-        description="Multiplier applied to the gap before exponentiation (amplifies the nudge strength)",
+        default=5.0,
+        description="How much 1 tier of gap shifts the shared ratio. "
+        "Maps to Excel formula: rawRatio = base_shared_rate + gap_tiers * gap_scale. "
+        "Gap is on [0,1] shared scale; 0.1 = 1 tier. gap_scale=5.0 means 1 tier shifts ratio by 0.5.",
+    )
+    ratio_floor: float = Field(
+        default=0.05,
+        description="Minimum shared pull ratio (prevents complete starvation of either type)",
+    )
+    ratio_ceiling: float = Field(
+        default=0.95,
+        description="Maximum shared pull ratio (prevents complete starvation of either type)",
     )
     unique_candidate_pool: int = Field(
         default=10,

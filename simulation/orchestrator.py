@@ -42,6 +42,10 @@ class DailySnapshot:
     upgrades_today: List[UpgradeEvent]
     category_avg_levels: Dict[str, float]
     total_unique_unlocked: int
+    pull_counts_by_type: Dict[
+        str, int
+    ]  # e.g. {"GOLD_SHARED": 12, "BLUE_SHARED": 8, "UNIQUE": 5}
+    pack_counts_by_type: Dict[str, int]  # e.g. {"StandardPackT1": 2, "HeroPack": 1}
 
 
 def create_initial_state(
@@ -183,10 +187,20 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
         day_pack_counts = _get_day_pack_counts(config, day)
         card_pulls = process_packs_for_day(game_state, config, rng, day_pack_counts)
 
+        # Track pack counts opened today (actual counts after deterministic/MC resolution)
+        pack_counts_today: Dict[str, int] = {}
+        for cp in card_pulls:
+            pack_counts_today[cp.pack_name] = pack_counts_today.get(cp.pack_name, 0) + 1
+
         # Step c: For each CardPull (SEQUENTIAL - ORDER MATTERS)
         # After each pull, attempt upgrades immediately (a typical player
         # would try upgrades after every pull, not wait until end of day).
         upgrade_events: List[UpgradeEvent] = []
+        pull_counts_today: Dict[str, int] = {
+            "GOLD_SHARED": 0,
+            "BLUE_SHARED": 0,
+            "UNIQUE": 0,
+        }
         pull_index = 0
         for _card_pull in card_pulls:
             pull_index += 1
@@ -197,6 +211,10 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
             card.duplicates += dupes
             coin_ledger.add_income(coins, card.id, day)
             streak_state = updated_streak  # CRITICAL: propagate streak state
+
+            pull_counts_today[card.category.value] = (
+                pull_counts_today.get(card.category.value, 0) + 1
+            )
 
             pull_upgrades = attempt_upgrades(game_state, config, coin_ledger)
             upgrade_events.extend(pull_upgrades)
@@ -247,6 +265,8 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
             upgrades_today=upgrade_events,
             category_avg_levels=category_avg_levels,
             total_unique_unlocked=unlocked_count,
+            pull_counts_by_type=pull_counts_today,
+            pack_counts_by_type=pack_counts_today,
         )
         daily_snapshots.append(snapshot)
 
