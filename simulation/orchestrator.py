@@ -4,9 +4,8 @@ Simulation orchestrator for the Bluestar Economy Simulator.
 Main integration module that orchestrates the daily loop:
 1. Check unique unlock schedule
 2. Process packs for the day
-3. Perform card pulls (sequential with streak propagation)
-4. Attempt upgrades (greedy loop)
-5. Record daily snapshot
+3. For each card pull: perform pull, then attempt upgrades immediately
+4. Record daily snapshot
 """
 
 from dataclasses import dataclass
@@ -51,8 +50,8 @@ def create_initial_state(
     Create initial game state for simulation.
 
     Sets up:
-    - 9 Gold Shared cards (level 1, 0 dupes)
-    - 14 Blue Shared cards (level 1, 0 dupes)
+    - Gold Shared cards (count from config.num_gold_cards)
+    - Blue Shared cards (count from config.num_blue_cards)
     - Initial unique cards based on day 1 unlock schedule
 
     Args:
@@ -63,8 +62,8 @@ def create_initial_state(
     """
     cards = []
 
-    # 9 Gold Shared cards
-    for i in range(1, 10):
+    # Gold Shared cards (configurable count)
+    for i in range(1, config.num_gold_cards + 1):
         cards.append(
             Card(
                 id=f"gold_{i}",
@@ -75,8 +74,8 @@ def create_initial_state(
             )
         )
 
-    # 14 Blue Shared cards
-    for i in range(1, 15):
+    # Blue Shared cards (configurable count)
+    for i in range(1, config.num_blue_cards + 1):
         cards.append(
             Card(
                 id=f"blue_{i}",
@@ -141,9 +140,10 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
     Daily loop order (CRITICAL):
     1. Check unique unlock schedule
     2. Process packs for day
-    3. For each card pull (sequential with streak propagation)
-    4. Attempt upgrades (greedy loop)
-    5. Record daily snapshot
+    3. For each card pull (sequential with streak propagation):
+       a. Perform card pull
+       b. Attempt upgrades immediately (greedy loop)
+    4. Record daily snapshot
 
     Args:
         config: Simulation configuration
@@ -182,6 +182,9 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
         card_pulls = process_packs_for_day(game_state, config, rng, day_pack_counts)
 
         # Step c: For each CardPull (SEQUENTIAL - ORDER MATTERS)
+        # After each pull, attempt upgrades immediately (a typical player
+        # would try upgrades after every pull, not wait until end of day).
+        upgrade_events: List[UpgradeEvent] = []
         for card_pull in card_pulls:
             card, dupes, coins, updated_streak = perform_card_pull(
                 game_state, config, streak_state, rng
@@ -190,8 +193,9 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
             coin_ledger.add_income(coins, card.id, day)
             streak_state = updated_streak  # CRITICAL: propagate streak state
 
-        # Step d: Attempt upgrades (greedy loop until exhausted)
-        upgrade_events = attempt_upgrades(game_state, config, coin_ledger)
+            # Attempt upgrades after each pull (greedy loop until exhausted)
+            pull_upgrades = attempt_upgrades(game_state, config, coin_ledger)
+            upgrade_events.extend(pull_upgrades)
 
         # Step e: Record DailySnapshot
         summary = coin_ledger.daily_summary(day)

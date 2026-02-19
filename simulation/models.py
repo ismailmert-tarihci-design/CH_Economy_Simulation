@@ -148,6 +148,12 @@ class SimConfig(BaseModel):
         default=10,
         description="Top-N lowest-level unique cards considered for selection",
     )
+    num_gold_cards: int = Field(
+        default=9, description="Number of Gold Shared cards in the collection"
+    )
+    num_blue_cards: int = Field(
+        default=14, description="Number of Blue Shared cards in the collection"
+    )
     max_shared_level: int = Field(
         default=100, description="Maximum level for shared cards"
     )

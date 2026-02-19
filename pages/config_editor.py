@@ -33,6 +33,26 @@ def render_config_editor(config: SimConfig) -> None:
             key="init_stars",
         )
 
+    col_gold, col_blue = st.columns(2)
+    with col_gold:
+        config.num_gold_cards = st.number_input(
+            "Gold Shared Cards",
+            min_value=1,
+            max_value=50,
+            value=config.num_gold_cards,
+            step=1,
+            key="num_gold_cards",
+        )
+    with col_blue:
+        config.num_blue_cards = st.number_input(
+            "Blue Shared Cards",
+            min_value=1,
+            max_value=50,
+            value=config.num_blue_cards,
+            step=1,
+            key="num_blue_cards",
+        )
+
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
         [
             "📦 Pack Configuration",

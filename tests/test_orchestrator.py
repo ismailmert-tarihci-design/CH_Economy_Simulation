@@ -133,7 +133,10 @@ def test_oneday_simulation(full_config):
     assert snapshot.coins_balance >= 0
     assert snapshot.coins_earned_today >= 0
     assert snapshot.coins_spent_today >= 0
-    assert len(snapshot.card_levels) == 23 + 8
+    assert (
+        len(snapshot.card_levels)
+        == full_config.num_gold_cards + full_config.num_blue_cards + 8
+    )
     assert snapshot.total_unique_unlocked == 8
     assert "GOLD_SHARED" in snapshot.category_avg_levels
     assert "BLUE_SHARED" in snapshot.category_avg_levels
@@ -238,8 +241,8 @@ def test_initial_state_setup(full_config):
     blue_cards = [c for c in game_state.cards if c.category == CardCategory.BLUE_SHARED]
     unique_cards = [c for c in game_state.cards if c.category == CardCategory.UNIQUE]
 
-    assert len(gold_cards) == 9
-    assert len(blue_cards) == 14
+    assert len(gold_cards) == full_config.num_gold_cards
+    assert len(blue_cards) == full_config.num_blue_cards
     assert len(unique_cards) == 8
 
     assert all(c.level == 1 for c in game_state.cards)
