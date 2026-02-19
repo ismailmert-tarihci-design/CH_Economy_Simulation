@@ -72,6 +72,10 @@ def render_simulation_controls(config: SimConfig) -> None:
         config.num_days = num_days
         config_hash = hashlib.md5(config.model_dump_json().encode()).hexdigest()
 
+        # Clear cache to ensure fresh results with updated config
+        _run_cached_simulation.clear()
+        _run_cached_mc.clear()
+
         if mode == "Deterministic":
             with st.spinner("Running deterministic simulation..."):
                 result = _run_cached_simulation(config_hash, config)
