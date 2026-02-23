@@ -44,12 +44,14 @@ def _render_summary(pull_logs: list) -> None:
     total_upgrades = sum(len(p.upgrades) for p in pull_logs)
     unique_cards = set(p.card_id for p in pull_logs)
     max_day = max(p.day for p in pull_logs) if pull_logs else 0
+    total_bluestars = sum(p.bluestars_earned for p in pull_logs)
 
-    cols = st.columns(4)
+    cols = st.columns(5)
     cols[0].metric("Total Pulls", f"{total_pulls:,}")
     cols[1].metric("Total Upgrades", f"{total_upgrades:,}")
     cols[2].metric("Cards Seen", len(unique_cards))
     cols[3].metric("Days Simulated", max_day)
+    cols[4].metric("Total Bluestars", f"{total_bluestars:,}")
 
 
 def _render_chronological(pull_logs: list) -> None:
@@ -87,7 +89,8 @@ def _render_chronological(pull_logs: list) -> None:
         upgrade_str = ""
         if p.upgrades:
             parts = [
-                f"{u.card_id} L{u.old_level}\u2192{u.new_level}" for u in p.upgrades
+                f"{u.card_id} L{u.old_level}\u2192{u.new_level} (+{u.bluestars_earned}⭐)"
+                for u in p.upgrades
             ]
             upgrade_str = "; ".join(parts)
 
@@ -95,12 +98,14 @@ def _render_chronological(pull_logs: list) -> None:
             {
                 "Day": p.day,
                 "Pull#": p.pull_index,
+                "Pack": p.pack_name,
                 "Card": p.card_name,
                 "Category": p.card_category,
                 "Level": p.card_level_before,
                 "Dupes": f"+{p.duplicates_received}",
                 "Total Dupes": p.duplicates_total_after,
                 "Coins": p.coins_earned,
+                "Bluestars": p.bluestars_earned,
                 "Upgrades": upgrade_str,
             }
         )
@@ -187,17 +192,22 @@ def _render_card_detail(pulls: list) -> None:
         upgrade_str = ""
         card_upgrades = [u for u in p.upgrades if u.card_id == p.card_id]
         if card_upgrades:
-            parts = [f"L{u.old_level}\u2192{u.new_level}" for u in card_upgrades]
+            parts = [
+                f"L{u.old_level}\u2192{u.new_level} (+{u.bluestars_earned}⭐)"
+                for u in card_upgrades
+            ]
             upgrade_str = "; ".join(parts)
 
         rows.append(
             {
                 "Day": p.day,
                 "Pull#": p.pull_index,
+                "Pack": p.pack_name,
                 "Level": p.card_level_before,
                 "Dupes": f"+{p.duplicates_received}",
                 "Total Dupes": p.duplicates_total_after,
                 "Coins": p.coins_earned,
+                "Bluestars": p.bluestars_earned,
                 "Upgrade": upgrade_str,
             }
         )

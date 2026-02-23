@@ -23,6 +23,8 @@ class PullEvent:
     duplicates_received: int
     duplicates_total_after: int  # total dupes on card after this pull
     coins_earned: int
+    pack_name: str  # which pack this pull came from
+    bluestars_earned: int  # total bluestars from upgrades after this pull
     upgrades: list[UpgradeEvent] = field(default_factory=list)
 
 
@@ -44,6 +46,8 @@ class PullLogger:
         duplicates_received: int,
         duplicates_total_after: int,
         coins_earned: int,
+        pack_name: str,
+        bluestars_earned: int,
         upgrades: list[UpgradeEvent],
     ) -> None:
         self.events.append(
@@ -57,6 +61,8 @@ class PullLogger:
                 duplicates_received=duplicates_received,
                 duplicates_total_after=duplicates_total_after,
                 coins_earned=coins_earned,
+                pack_name=pack_name,
+                bluestars_earned=bluestars_earned,
                 upgrades=upgrades,
             )
         )

@@ -229,6 +229,8 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
                 duplicates_received=dupes,
                 duplicates_total_after=card.duplicates,
                 coins_earned=coins,
+                pack_name=_card_pull.pack_name,
+                bluestars_earned=sum(u.bluestars_earned for u in pull_upgrades),
                 upgrades=pull_upgrades,
             )
 
