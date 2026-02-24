@@ -40,6 +40,7 @@ page = st.sidebar.radio(
         "⚙️ Configuration",
         "▶️ Simulation",
         "📊 Dashboard",
+        "💾 Saved Results",
         "📋 Pull Logs",
         "📖 Documentation",
     ],
@@ -80,6 +81,11 @@ elif page == "📋 Pull Logs":
     from pages.pull_log_viewer import render_pull_log_viewer
 
     render_pull_log_viewer()
+
+elif page == "💾 Saved Results":
+    from pages.results_manager import render_saved_results_manager
+
+    render_saved_results_manager()
 
 elif page == "📖 Documentation":
     from pages.documentation import render_documentation

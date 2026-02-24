@@ -186,3 +186,18 @@ class SimResult(BaseModel):
     total_coins_spent: int
     total_upgrades: Dict[str, Any] = Field(default_factory=dict)
     pull_logs: List[Any] = Field(default_factory=list)
+
+
+class SavedResult(BaseModel):
+    """A saved simulation result with its configuration and metadata."""
+
+    name: str = Field(description="User-provided name for this saved result")
+    timestamp: str = Field(description="ISO format timestamp when saved")
+    description: str = Field(default="", description="Optional description")
+    sim_mode: str = Field(description="'deterministic' or 'monte_carlo'")
+    result: Dict[str, Any] = Field(description="Serialized SimResult or MCResult")
+    config: Dict[str, Any] = Field(description="Serialized SimConfig used for this run")
+    num_days: int = Field(description="Number of days simulated")
+    num_runs: int = Field(
+        default=1, description="Number of MC runs (1 for deterministic)"
+    )

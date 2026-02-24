@@ -205,3 +205,72 @@ def delete_profile(name: str) -> None:
     path = profiles_dir / f"{name}.json"
     if path.exists():
         path.unlink()
+
+
+def _get_results_dir() -> Path:
+    current_dir = Path(__file__).parent.parent
+    return current_dir / "data" / "results"
+
+
+def list_saved_results() -> list[dict]:
+    """List all saved results with their metadata."""
+    results_dir = _get_results_dir()
+    if not results_dir.exists():
+        return []
+
+    results = []
+    for path in sorted(
+        results_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
+    ):
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            results.append(
+                {
+                    "filename": path.stem,
+                    "name": data.get("name", path.stem),
+                    "timestamp": data.get("timestamp", ""),
+                    "description": data.get("description", ""),
+                    "sim_mode": data.get("sim_mode", "unknown"),
+                    "num_days": data.get("num_days", 0),
+                    "num_runs": data.get("num_runs", 1),
+                }
+            )
+        except Exception:
+            continue
+    return results
+
+
+def save_result(result_data: dict) -> str:
+    """Save a simulation result. Returns the filename."""
+    results_dir = _get_results_dir()
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create filename from name + timestamp
+    safe_name = "".join(
+        c if c.isalnum() or c in "-_" else "_" for c in result_data["name"]
+    )
+    timestamp = result_data["timestamp"].replace(":", "-").replace("T", "_")
+    filename = f"{safe_name}_{timestamp}.json"
+
+    path = results_dir / filename
+    with open(path, "w") as f:
+        json.dump(result_data, f, indent=2)
+
+    return filename
+
+
+def load_result(filename: str) -> dict:
+    """Load a saved simulation result."""
+    results_dir = _get_results_dir()
+    path = results_dir / f"{filename}.json"
+    with open(path) as f:
+        return json.load(f)
+
+
+def delete_result(filename: str) -> None:
+    """Delete a saved simulation result."""
+    results_dir = _get_results_dir()
+    path = results_dir / f"{filename}.json"
+    if path.exists():
+        path.unlink()

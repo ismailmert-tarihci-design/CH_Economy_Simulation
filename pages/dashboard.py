@@ -27,6 +27,36 @@ def render_dashboard() -> None:
     st.title("Simulation Dashboard")
 
     render_kpi_row(result, mode)
+
+    col_save, col_spacer = st.columns([1, 4])
+    with col_save:
+        if st.button("💾 Save This Result", use_container_width=True):
+            st.session_state.show_save_dialog = True
+
+    if st.session_state.get("show_save_dialog", False):
+        with st.container(border=True):
+            st.markdown("**Save Simulation Result**")
+            save_name = st.text_input(
+                "Name",
+                value=f"Sim_{mode}_{result.total_bluestars if mode == 'deterministic' else 'MC'}",
+            )
+            save_desc = st.text_area("Description (optional)", height=68)
+            col_confirm, col_cancel = st.columns(2)
+            with col_confirm:
+                if st.button("✅ Save", use_container_width=True):
+                    try:
+                        from pages.results_manager import save_current_result
+
+                        filename = save_current_result(save_name, save_desc)
+                        st.session_state.show_save_dialog = False
+                        st.success(f"Saved as {filename}!")
+                    except Exception as e:
+                        st.error(f"Failed to save: {e}")
+            with col_cancel:
+                if st.button("❌ Cancel", use_container_width=True):
+                    st.session_state.show_save_dialog = False
+                    st.rerun()
+
     st.divider()
     _render_bluestar_chart(result, mode)
     _render_card_progression_chart(result, mode)
