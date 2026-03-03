@@ -7,6 +7,7 @@ from pages.config_tabs import (
     render_card_economy,
     render_progression_schedule,
     render_drop_algorithm,
+    render_pet_hero_gear,
     render_profiles,
 )
 from simulation.models import SimConfig
@@ -54,13 +55,14 @@ def render_config_editor(config: SimConfig) -> None:
             key="num_blue_cards",
         )
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
         [
             "📦 Pack Configuration",
             "⬆️ Upgrade Tables",
             "💰 Card Economy",
             "📈 Progression & Schedule",
             "🎲 Drop Algorithm",
+            "🐾 Pet/Hero/Gear",
             "👤 Profiles",
             "📤 Import / Export",
         ]
@@ -77,6 +79,8 @@ def render_config_editor(config: SimConfig) -> None:
     with tab5:
         render_drop_algorithm(config)
     with tab6:
-        render_profiles(config)
+        render_pet_hero_gear(config)
     with tab7:
+        render_profiles(config)
+    with tab8:
         render_config_sharing(config)

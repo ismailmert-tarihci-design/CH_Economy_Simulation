@@ -4,6 +4,7 @@ from typing import Any
 
 import plotly.graph_objects as go
 import streamlit as st
+import pandas as pd
 
 from pages.dashboard_charts import (
     add_category_ci,
@@ -66,6 +67,8 @@ def render_dashboard() -> None:
     st.divider()
     render_pull_counts_chart(result, mode)
     render_pack_counts_chart(result, mode)
+    if mode == "deterministic":
+        _render_pet_hero_gear_events(result)
 
 
 def _render_upgrades_and_unlocked(result: Any) -> None:
@@ -262,3 +265,29 @@ def _render_coin_flow_chart(result: Any, mode: str) -> None:
         template="plotly_white",
     )
     st.plotly_chart(fig, width="stretch")
+
+
+def _render_pet_hero_gear_events(result: Any) -> None:
+    snapshots = result.daily_snapshots
+    pet_count = sum(len(s.pet_events) for s in snapshots)
+    hero_count = sum(len(s.hero_unlock_events) for s in snapshots)
+    gear_count = sum(len(s.gear_events) for s in snapshots)
+
+    st.divider()
+    st.subheader("Pet / Hero / Gear Events")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Pet Events", f"{pet_count:,}")
+    col2.metric("Hero Unlock Events", f"{hero_count:,}")
+    col3.metric("Gear Events", f"{gear_count:,}")
+
+    rows = []
+    for snapshot in snapshots:
+        rows.append(
+            {
+                "Day": snapshot.day,
+                "Pet Events": len(snapshot.pet_events),
+                "Hero Unlock Events": len(snapshot.hero_unlock_events),
+                "Gear Events": len(snapshot.gear_events),
+            }
+        )
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)

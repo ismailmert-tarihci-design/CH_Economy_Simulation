@@ -48,42 +48,30 @@ def _get_defaults_dir() -> Path:
 
 
 def default_pet_config() -> dict[str, Any]:
-    """
-    Create minimal default pet system config placeholder.
-
-    Returns an empty dict as a placeholder. Real pet system schema
-    and config tables will be populated by later tasks.
-
-    Task 5 backward-compatibility: ensures legacy configs without
-    pet_system_config load successfully.
-    """
-    return {}
+    return {
+        "tier_table": load_pet_tier_table().model_dump(mode="json"),
+        "level_table": load_pet_level_table().model_dump(mode="json"),
+        "duplicate_table": load_pet_duplicate_table().model_dump(mode="json"),
+        "build_table": load_pet_build_table().model_dump(mode="json"),
+        "eggs_per_day": [{"day_start": 1, "day_end": 365, "eggs": 2}],
+    }
 
 
 def default_hero_config() -> dict[str, Any]:
-    """
-    Create minimal default hero system config placeholder.
-
-    Returns an empty dict as a placeholder. Real hero system schema
-    and config tables will be populated by later tasks.
-
-    Task 5 backward-compatibility: ensures legacy configs without
-    hero_system_config load successfully.
-    """
-    return {}
+    return {
+        "unlock_rows": [
+            {"day": 1, "hero_id": "hero_alpha", "unique_cards_added": 2},
+            {"day": 7, "hero_id": "hero_beta", "unique_cards_added": 1},
+            {"day": 14, "hero_id": "hero_gamma", "unique_cards_added": 1},
+        ]
+    }
 
 
 def default_gear_config() -> dict[str, Any]:
-    """
-    Create minimal default gear system config placeholder.
-
-    Returns an empty dict as a placeholder. Real gear system schema
-    and config tables will be populated by later tasks.
-
-    Task 5 backward-compatibility: ensures legacy configs without
-    gear_system_config load successfully.
-    """
-    return {}
+    return {
+        "design_income": load_gear_design_income().model_dump(mode="json"),
+        "slot_costs": load_gear_slot_costs().model_dump(mode="json"),
+    }
 
 
 def load_defaults() -> SimConfig:

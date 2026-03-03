@@ -10,7 +10,14 @@ from simulation.config_loader import (
     save_profile,
     delete_profile,
 )
-from simulation.models import CardCategory, CardTypesRange, SimConfig, UserProfile
+from simulation.models import (
+    CardCategory,
+    CardTypesRange,
+    GearDesignIncomeRow,
+    HeroUnlockRow,
+    SimConfig,
+    UserProfile,
+)
 
 
 def render_pack_config(config: SimConfig) -> None:
@@ -482,3 +489,162 @@ def render_profiles(config: SimConfig) -> None:
             st.rerun()
         else:
             st.warning("Enter a profile name.")
+
+
+def render_pet_hero_gear(config: SimConfig) -> None:
+    st.subheader("Pet System")
+    if config.pet_system_config is None:
+        st.warning("Pet system config is missing.")
+    else:
+        pet_config = config.pet_system_config
+        eggs_rows = pet_config.eggs_per_day or [
+            {"day_start": 1, "day_end": 365, "eggs": 2}
+        ]
+        eggs_df = pd.DataFrame(eggs_rows)
+        edited_eggs = st.data_editor(
+            eggs_df,
+            column_config={
+                "day_start": st.column_config.NumberColumn(
+                    "Day Start", min_value=1, step=1, format="%d", required=True
+                ),
+                "day_end": st.column_config.NumberColumn(
+                    "Day End", min_value=1, step=1, format="%d", required=True
+                ),
+                "eggs": st.column_config.NumberColumn(
+                    "Eggs / Day", min_value=0, step=1, format="%d", required=True
+                ),
+            },
+            hide_index=True,
+            width="stretch",
+            num_rows="dynamic",
+            key="pet_eggs_per_day",
+        )
+        pet_config.eggs_per_day = [
+            {
+                "day_start": int(row.day_start),
+                "day_end": int(row.day_end),
+                "eggs": int(row.eggs),
+            }
+            for row in edited_eggs.itertuples()
+        ]
+        col_a, col_b, col_c, col_d = st.columns(4)
+        col_a.metric(
+            "Tier Rows",
+            len(pet_config.tier_table.tiers if pet_config.tier_table else []),
+        )
+        col_b.metric(
+            "Level Rows",
+            len(pet_config.level_table.levels if pet_config.level_table else []),
+        )
+        col_c.metric(
+            "Duplicate Rows",
+            len(
+                pet_config.duplicate_table.duplicates
+                if pet_config.duplicate_table
+                else []
+            ),
+        )
+        col_d.metric(
+            "Build Rows",
+            len(pet_config.build_table.builds if pet_config.build_table else []),
+        )
+
+    st.divider()
+    st.subheader("Hero System")
+    if config.hero_system_config is None:
+        st.warning("Hero system config is missing.")
+    else:
+        hero_config = config.hero_system_config
+        hero_rows = hero_config.unlock_rows or []
+        hero_df = pd.DataFrame(
+            [
+                {
+                    "day": row.day,
+                    "hero_id": row.hero_id,
+                    "unique_cards_added": row.unique_cards_added,
+                }
+                for row in hero_rows
+            ]
+        )
+        edited_hero = st.data_editor(
+            hero_df,
+            column_config={
+                "day": st.column_config.NumberColumn(
+                    "Day", min_value=1, step=1, format="%d", required=True
+                ),
+                "hero_id": st.column_config.TextColumn("Hero ID", required=True),
+                "unique_cards_added": st.column_config.NumberColumn(
+                    "Unique Cards Added",
+                    min_value=0,
+                    step=1,
+                    format="%d",
+                    required=True,
+                ),
+            },
+            hide_index=True,
+            width="stretch",
+            num_rows="dynamic",
+            key="hero_unlock_rows",
+        )
+        hero_config.unlock_rows = [
+            HeroUnlockRow(
+                day=int(row.day),
+                hero_id=str(row.hero_id),
+                unique_cards_added=int(row.unique_cards_added),
+            )
+            for row in edited_hero.itertuples()
+        ]
+
+    st.divider()
+    st.subheader("Gear System")
+    if config.gear_system_config is None:
+        st.warning("Gear system config is missing.")
+    else:
+        gear_config = config.gear_system_config
+        if gear_config.design_income is None:
+            st.warning("Gear design income table is missing.")
+        else:
+            income_df = pd.DataFrame(
+                [
+                    {
+                        "day_start": row.day_start,
+                        "day_end": row.day_end,
+                        "designs_per_day": row.designs_per_day,
+                    }
+                    for row in gear_config.design_income.income_table
+                ]
+            )
+            edited_income = st.data_editor(
+                income_df,
+                column_config={
+                    "day_start": st.column_config.NumberColumn(
+                        "Day Start", min_value=1, step=1, format="%d", required=True
+                    ),
+                    "day_end": st.column_config.NumberColumn(
+                        "Day End", min_value=1, step=1, format="%d", required=True
+                    ),
+                    "designs_per_day": st.column_config.NumberColumn(
+                        "Designs / Day", min_value=0, step=1, format="%d", required=True
+                    ),
+                },
+                hide_index=True,
+                width="stretch",
+                num_rows="dynamic",
+                key="gear_income_rows",
+            )
+            gear_config.design_income.income_table = [
+                GearDesignIncomeRow(
+                    day_start=int(row.day_start),
+                    day_end=int(row.day_end),
+                    designs_per_day=int(row.designs_per_day),
+                )
+                for row in edited_income.itertuples()
+            ]
+        slot_cost_rows = (
+            gear_config.slot_costs.cost_table
+            if gear_config.slot_costs is not None
+            else []
+        )
+        st.caption(
+            f"Slot cost rows loaded: {len(slot_cost_rows)} (slots 1..6, levels 1..100)"
+        )
