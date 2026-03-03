@@ -8,7 +8,9 @@ Main integration module that orchestrates the daily loop:
 4. Record daily snapshot
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from dataclasses import asdict
+import importlib
 from random import Random
 from typing import Any, Dict, List, Optional
 
@@ -46,6 +48,9 @@ class DailySnapshot:
         str, int
     ]  # e.g. {"GOLD_SHARED": 12, "BLUE_SHARED": 8, "UNIQUE": 5}
     pack_counts_by_type: Dict[str, int]  # e.g. {"StandardPackT1": 2, "HeroPack": 1}
+    pet_events: List[Dict[str, Any]] = field(default_factory=list)
+    hero_unlock_events: List[Dict[str, Any]] = field(default_factory=list)
+    gear_events: List[Dict[str, Any]] = field(default_factory=list)
 
 
 def create_initial_state(
@@ -138,6 +143,29 @@ def _get_day_pack_counts(config: SimConfig, day: int) -> dict[str, float]:
     return schedule[index]
 
 
+def _get_eggs_for_day(config: SimConfig, day: int) -> int:
+    pet_cfg = config.pet_system_config
+    if pet_cfg is None or not pet_cfg.eggs_per_day:
+        return 0
+    for row in pet_cfg.eggs_per_day:
+        day_start = int(row.get("day_start", 0))
+        day_end = int(row.get("day_end", 0))
+        eggs = int(row.get("eggs", 0))
+        if day_start <= day <= day_end:
+            return eggs
+    return 0
+
+
+def _get_designs_for_day(config: SimConfig, day: int) -> int:
+    gear_cfg = config.gear_system_config
+    if gear_cfg is None or gear_cfg.design_income is None:
+        return 0
+    for row in gear_cfg.design_income.income_table:
+        if row.day_start <= day <= row.day_end:
+            return row.designs_per_day
+    return 0
+
+
 def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult:
     """
     Main deterministic simulation loop.
@@ -158,6 +186,9 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
         SimResult with daily snapshots and aggregate statistics
     """
     game_state, coin_ledger, streak_state = create_initial_state(config)
+    hero_system = importlib.import_module("simulation.hero_system")
+    pet_system = importlib.import_module("simulation.pet_system")
+    gear_system = importlib.import_module("simulation.gear_system")
     daily_snapshots: List[DailySnapshot] = []
     pull_logger = PullLogger()
 
@@ -186,6 +217,41 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
         # Step b: Process packs
         day_pack_counts = _get_day_pack_counts(config, day)
         card_pulls = process_packs_for_day(game_state, config, rng, day_pack_counts)
+
+        hero_unlock_events = hero_system.process_hero_unlocks(game_state, config, day)
+
+        eggs_today = _get_eggs_for_day(config, day)
+        pet_summon_events = []
+        if eggs_today > 0:
+            if (
+                config.pet_system_config is None
+                or config.pet_system_config.tier_table is None
+            ):
+                raise ValueError("Missing pet_system_config.tier_table")
+            pet_summon_events = pet_system.process_pet_summons(
+                game_state,
+                config,
+                eggs_to_consume=eggs_today,
+                rng=rng,
+            )
+
+        pet_upgrade_events, _ = pet_system.attempt_pet_upgrades(
+            game_state,
+            config,
+            spirit_stones_available=0,
+        )
+
+        gear_events = []
+        if (
+            config.gear_system_config is not None
+            and config.gear_system_config.slot_costs is not None
+        ):
+            allocation = gear_system.allocate_designs(
+                _get_designs_for_day(config, day), day
+            )
+            gear_events = gear_system.attempt_gear_upgrades(
+                game_state, config, allocation
+            )
 
         # Track pack counts opened today (actual counts after deterministic/MC resolution)
         pack_counts_today: Dict[str, int] = {}
@@ -269,6 +335,11 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
             total_unique_unlocked=unlocked_count,
             pull_counts_by_type=pull_counts_today,
             pack_counts_by_type=pack_counts_today,
+            pet_events=[
+                asdict(event) for event in (pet_summon_events + pet_upgrade_events)
+            ],
+            hero_unlock_events=[asdict(event) for event in hero_unlock_events],
+            gear_events=[asdict(event) for event in gear_events],
         )
         daily_snapshots.append(snapshot)
 

@@ -252,3 +252,20 @@ def test_initial_state_setup(full_config):
     assert coin_ledger.balance == 0
     assert streak_state.streak_shared == 0
     assert streak_state.streak_unique == 0
+
+
+def test_snapshot_includes_pet_hero_gear_event_fields(full_config):
+    result = run_simulation(full_config, rng=None)
+    snapshot = result.daily_snapshots[0]
+
+    assert hasattr(snapshot, "pet_events")
+    assert hasattr(snapshot, "hero_unlock_events")
+    assert hasattr(snapshot, "gear_events")
+
+    assert isinstance(snapshot.pet_events, list)
+    assert isinstance(snapshot.hero_unlock_events, list)
+    assert isinstance(snapshot.gear_events, list)
+
+    assert snapshot.pet_events == []
+    assert snapshot.hero_unlock_events == []
+    assert snapshot.gear_events == []

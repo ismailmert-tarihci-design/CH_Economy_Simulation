@@ -15,7 +15,21 @@ from random import Random
 import pytest
 
 from simulation.config_loader import load_defaults
+from simulation.config_loader import (
+    load_gear_design_income,
+    load_gear_slot_costs,
+    load_pet_build_table,
+    load_pet_duplicate_table,
+    load_pet_level_table,
+    load_pet_tier_table,
+)
 from simulation.monte_carlo import run_monte_carlo
+from simulation.models import (
+    GearSystemConfig,
+    HeroSystemConfig,
+    HeroUnlockRow,
+    PetSystemConfig,
+)
 from simulation.orchestrator import run_simulation
 from simulation.url_config import decode_config, encode_config
 
@@ -300,3 +314,75 @@ def test_unique_unlock_schedule_integration(default_config):
         assert unlocked_counts[i] >= unlocked_counts[i - 1], (
             f"Day {i + 1}: Unique unlock count decreased"
         )
+
+
+def _enable_pet_hero_gear(config):
+    config.pet_system_config = PetSystemConfig(
+        tier_table=load_pet_tier_table(),
+        level_table=load_pet_level_table(),
+        duplicate_table=load_pet_duplicate_table(),
+        build_table=load_pet_build_table(),
+        eggs_per_day=[{"day_start": 1, "day_end": config.num_days, "eggs": 2}],
+    )
+    config.hero_system_config = HeroSystemConfig(
+        unlock_rows=[
+            HeroUnlockRow(day=1, hero_id="hero_alpha", unique_cards_added=2),
+            HeroUnlockRow(day=2, hero_id="hero_beta", unique_cards_added=1),
+            HeroUnlockRow(day=2, hero_id="hero_beta", unique_cards_added=3),
+        ]
+    )
+    config.gear_system_config = GearSystemConfig(
+        design_income=load_gear_design_income(),
+        slot_costs=load_gear_slot_costs(),
+    )
+
+
+def test_pet_hero_gear_deterministic_replay(default_config):
+    config = default_config
+    config.num_days = 10
+    _enable_pet_hero_gear(config)
+
+    result_a = run_simulation(config, rng=Random(101))
+    result_b = run_simulation(config, rng=Random(101))
+
+    assert result_a.total_bluestars == result_b.total_bluestars
+    assert result_a.total_coins_earned == result_b.total_coins_earned
+    assert result_a.total_coins_spent == result_b.total_coins_spent
+    for snap_a, snap_b in zip(result_a.daily_snapshots, result_b.daily_snapshots):
+        assert snap_a.pet_events == snap_b.pet_events
+        assert snap_a.hero_unlock_events == snap_b.hero_unlock_events
+        assert snap_a.gear_events == snap_b.gear_events
+
+
+def test_pet_hero_gear_seed_change_changes_outputs(default_config):
+    config = default_config
+    config.num_days = 10
+    _enable_pet_hero_gear(config)
+
+    result_a = run_simulation(config, rng=Random(101))
+    result_b = run_simulation(config, rng=Random(202))
+
+    assert result_a.total_bluestars >= 0
+    assert result_b.total_bluestars >= 0
+    assert any(
+        snap_a.pet_events != snap_b.pet_events
+        or snap_a.hero_unlock_events != snap_b.hero_unlock_events
+        or snap_a.gear_events != snap_b.gear_events
+        for snap_a, snap_b in zip(result_a.daily_snapshots, result_b.daily_snapshots)
+    )
+
+
+def test_no_power_fields_present_in_new_events(default_config):
+    config = default_config
+    config.num_days = 3
+    _enable_pet_hero_gear(config)
+
+    result = run_simulation(config, rng=Random(77))
+    for snapshot in result.daily_snapshots:
+        for event in (
+            snapshot.pet_events + snapshot.hero_unlock_events + snapshot.gear_events
+        ):
+            keys = set(event.keys())
+            assert "power" not in keys
+            assert "combat_power" not in keys
+            assert "dps" not in keys
