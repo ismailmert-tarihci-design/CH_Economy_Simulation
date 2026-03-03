@@ -1,0 +1,36 @@
+{
+  "builds": [
+    {
+      "build_level": 1,
+      "spirit_stones_cost": 10
+    },
+    {
+      "build_level": 2,
+      "spirit_stones_cost": 25
+    },
+    {
+      "build_level": 3,
+      "spirit_stones_cost": 50
+    },
+    {
+      "build_level": 4,
+      "spirit_stones_cost": 100
+    },
+    {
+      "build_level": 5,
+      "spirit_stones_cost": 200
+    },
+    {
+      "build_level": 6,
+      "spirit_stones_cost": 400
+    },
+    {
+      "build_level": 7,
+      "spirit_stones_cost": 800
+    },
+    {
+      "build_level": 8,
+      "spirit_stones_cost": 1600
+    }
+  ]
+}

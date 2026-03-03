@@ -1,0 +1,3004 @@
+{
+  "cost_table": [
+    {
+      "slot_id": 1,
+      "level": 1,
+      "design_cost": 10
+    },
+    {
+      "slot_id": 1,
+      "level": 2,
+      "design_cost": 20
+    },
+    {
+      "slot_id": 1,
+      "level": 3,
+      "design_cost": 30
+    },
+    {
+      "slot_id": 1,
+      "level": 4,
+      "design_cost": 40
+    },
+    {
+      "slot_id": 1,
+      "level": 5,
+      "design_cost": 50
+    },
+    {
+      "slot_id": 1,
+      "level": 6,
+      "design_cost": 60
+    },
+    {
+      "slot_id": 1,
+      "level": 7,
+      "design_cost": 70
+    },
+    {
+      "slot_id": 1,
+      "level": 8,
+      "design_cost": 80
+    },
+    {
+      "slot_id": 1,
+      "level": 9,
+      "design_cost": 90
+    },
+    {
+      "slot_id": 1,
+      "level": 10,
+      "design_cost": 100
+    },
+    {
+      "slot_id": 1,
+      "level": 11,
+      "design_cost": 110
+    },
+    {
+      "slot_id": 1,
+      "level": 12,
+      "design_cost": 120
+    },
+    {
+      "slot_id": 1,
+      "level": 13,
+      "design_cost": 130
+    },
+    {
+      "slot_id": 1,
+      "level": 14,
+      "design_cost": 140
+    },
+    {
+      "slot_id": 1,
+      "level": 15,
+      "design_cost": 150
+    },
+    {
+      "slot_id": 1,
+      "level": 16,
+      "design_cost": 160
+    },
+    {
+      "slot_id": 1,
+      "level": 17,
+      "design_cost": 170
+    },
+    {
+      "slot_id": 1,
+      "level": 18,
+      "design_cost": 180
+    },
+    {
+      "slot_id": 1,
+      "level": 19,
+      "design_cost": 190
+    },
+    {
+      "slot_id": 1,
+      "level": 20,
+      "design_cost": 200
+    },
+    {
+      "slot_id": 1,
+      "level": 21,
+      "design_cost": 210
+    },
+    {
+      "slot_id": 1,
+      "level": 22,
+      "design_cost": 220
+    },
+    {
+      "slot_id": 1,
+      "level": 23,
+      "design_cost": 230
+    },
+    {
+      "slot_id": 1,
+      "level": 24,
+      "design_cost": 240
+    },
+    {
+      "slot_id": 1,
+      "level": 25,
+      "design_cost": 250
+    },
+    {
+      "slot_id": 1,
+      "level": 26,
+      "design_cost": 260
+    },
+    {
+      "slot_id": 1,
+      "level": 27,
+      "design_cost": 270
+    },
+    {
+      "slot_id": 1,
+      "level": 28,
+      "design_cost": 280
+    },
+    {
+      "slot_id": 1,
+      "level": 29,
+      "design_cost": 290
+    },
+    {
+      "slot_id": 1,
+      "level": 30,
+      "design_cost": 300
+    },
+    {
+      "slot_id": 1,
+      "level": 31,
+      "design_cost": 310
+    },
+    {
+      "slot_id": 1,
+      "level": 32,
+      "design_cost": 320
+    },
+    {
+      "slot_id": 1,
+      "level": 33,
+      "design_cost": 330
+    },
+    {
+      "slot_id": 1,
+      "level": 34,
+      "design_cost": 340
+    },
+    {
+      "slot_id": 1,
+      "level": 35,
+      "design_cost": 350
+    },
+    {
+      "slot_id": 1,
+      "level": 36,
+      "design_cost": 360
+    },
+    {
+      "slot_id": 1,
+      "level": 37,
+      "design_cost": 370
+    },
+    {
+      "slot_id": 1,
+      "level": 38,
+      "design_cost": 380
+    },
+    {
+      "slot_id": 1,
+      "level": 39,
+      "design_cost": 390
+    },
+    {
+      "slot_id": 1,
+      "level": 40,
+      "design_cost": 400
+    },
+    {
+      "slot_id": 1,
+      "level": 41,
+      "design_cost": 410
+    },
+    {
+      "slot_id": 1,
+      "level": 42,
+      "design_cost": 420
+    },
+    {
+      "slot_id": 1,
+      "level": 43,
+      "design_cost": 430
+    },
+    {
+      "slot_id": 1,
+      "level": 44,
+      "design_cost": 440
+    },
+    {
+      "slot_id": 1,
+      "level": 45,
+      "design_cost": 450
+    },
+    {
+      "slot_id": 1,
+      "level": 46,
+      "design_cost": 460
+    },
+    {
+      "slot_id": 1,
+      "level": 47,
+      "design_cost": 470
+    },
+    {
+      "slot_id": 1,
+      "level": 48,
+      "design_cost": 480
+    },
+    {
+      "slot_id": 1,
+      "level": 49,
+      "design_cost": 490
+    },
+    {
+      "slot_id": 1,
+      "level": 50,
+      "design_cost": 500
+    },
+    {
+      "slot_id": 1,
+      "level": 51,
+      "design_cost": 510
+    },
+    {
+      "slot_id": 1,
+      "level": 52,
+      "design_cost": 520
+    },
+    {
+      "slot_id": 1,
+      "level": 53,
+      "design_cost": 530
+    },
+    {
+      "slot_id": 1,
+      "level": 54,
+      "design_cost": 540
+    },
+    {
+      "slot_id": 1,
+      "level": 55,
+      "design_cost": 550
+    },
+    {
+      "slot_id": 1,
+      "level": 56,
+      "design_cost": 560
+    },
+    {
+      "slot_id": 1,
+      "level": 57,
+      "design_cost": 570
+    },
+    {
+      "slot_id": 1,
+      "level": 58,
+      "design_cost": 580
+    },
+    {
+      "slot_id": 1,
+      "level": 59,
+      "design_cost": 590
+    },
+    {
+      "slot_id": 1,
+      "level": 60,
+      "design_cost": 600
+    },
+    {
+      "slot_id": 1,
+      "level": 61,
+      "design_cost": 610
+    },
+    {
+      "slot_id": 1,
+      "level": 62,
+      "design_cost": 620
+    },
+    {
+      "slot_id": 1,
+      "level": 63,
+      "design_cost": 630
+    },
+    {
+      "slot_id": 1,
+      "level": 64,
+      "design_cost": 640
+    },
+    {
+      "slot_id": 1,
+      "level": 65,
+      "design_cost": 650
+    },
+    {
+      "slot_id": 1,
+      "level": 66,
+      "design_cost": 660
+    },
+    {
+      "slot_id": 1,
+      "level": 67,
+      "design_cost": 670
+    },
+    {
+      "slot_id": 1,
+      "level": 68,
+      "design_cost": 680
+    },
+    {
+      "slot_id": 1,
+      "level": 69,
+      "design_cost": 690
+    },
+    {
+      "slot_id": 1,
+      "level": 70,
+      "design_cost": 700
+    },
+    {
+      "slot_id": 1,
+      "level": 71,
+      "design_cost": 710
+    },
+    {
+      "slot_id": 1,
+      "level": 72,
+      "design_cost": 720
+    },
+    {
+      "slot_id": 1,
+      "level": 73,
+      "design_cost": 730
+    },
+    {
+      "slot_id": 1,
+      "level": 74,
+      "design_cost": 740
+    },
+    {
+      "slot_id": 1,
+      "level": 75,
+      "design_cost": 750
+    },
+    {
+      "slot_id": 1,
+      "level": 76,
+      "design_cost": 760
+    },
+    {
+      "slot_id": 1,
+      "level": 77,
+      "design_cost": 770
+    },
+    {
+      "slot_id": 1,
+      "level": 78,
+      "design_cost": 780
+    },
+    {
+      "slot_id": 1,
+      "level": 79,
+      "design_cost": 790
+    },
+    {
+      "slot_id": 1,
+      "level": 80,
+      "design_cost": 800
+    },
+    {
+      "slot_id": 1,
+      "level": 81,
+      "design_cost": 810
+    },
+    {
+      "slot_id": 1,
+      "level": 82,
+      "design_cost": 820
+    },
+    {
+      "slot_id": 1,
+      "level": 83,
+      "design_cost": 830
+    },
+    {
+      "slot_id": 1,
+      "level": 84,
+      "design_cost": 840
+    },
+    {
+      "slot_id": 1,
+      "level": 85,
+      "design_cost": 850
+    },
+    {
+      "slot_id": 1,
+      "level": 86,
+      "design_cost": 860
+    },
+    {
+      "slot_id": 1,
+      "level": 87,
+      "design_cost": 870
+    },
+    {
+      "slot_id": 1,
+      "level": 88,
+      "design_cost": 880
+    },
+    {
+      "slot_id": 1,
+      "level": 89,
+      "design_cost": 890
+    },
+    {
+      "slot_id": 1,
+      "level": 90,
+      "design_cost": 900
+    },
+    {
+      "slot_id": 1,
+      "level": 91,
+      "design_cost": 910
+    },
+    {
+      "slot_id": 1,
+      "level": 92,
+      "design_cost": 920
+    },
+    {
+      "slot_id": 1,
+      "level": 93,
+      "design_cost": 930
+    },
+    {
+      "slot_id": 1,
+      "level": 94,
+      "design_cost": 940
+    },
+    {
+      "slot_id": 1,
+      "level": 95,
+      "design_cost": 950
+    },
+    {
+      "slot_id": 1,
+      "level": 96,
+      "design_cost": 960
+    },
+    {
+      "slot_id": 1,
+      "level": 97,
+      "design_cost": 970
+    },
+    {
+      "slot_id": 1,
+      "level": 98,
+      "design_cost": 980
+    },
+    {
+      "slot_id": 1,
+      "level": 99,
+      "design_cost": 990
+    },
+    {
+      "slot_id": 1,
+      "level": 100,
+      "design_cost": 1000
+    },
+    {
+      "slot_id": 2,
+      "level": 1,
+      "design_cost": 10
+    },
+    {
+      "slot_id": 2,
+      "level": 2,
+      "design_cost": 20
+    },
+    {
+      "slot_id": 2,
+      "level": 3,
+      "design_cost": 30
+    },
+    {
+      "slot_id": 2,
+      "level": 4,
+      "design_cost": 40
+    },
+    {
+      "slot_id": 2,
+      "level": 5,
+      "design_cost": 50
+    },
+    {
+      "slot_id": 2,
+      "level": 6,
+      "design_cost": 60
+    },
+    {
+      "slot_id": 2,
+      "level": 7,
+      "design_cost": 70
+    },
+    {
+      "slot_id": 2,
+      "level": 8,
+      "design_cost": 80
+    },
+    {
+      "slot_id": 2,
+      "level": 9,
+      "design_cost": 90
+    },
+    {
+      "slot_id": 2,
+      "level": 10,
+      "design_cost": 100
+    },
+    {
+      "slot_id": 2,
+      "level": 11,
+      "design_cost": 110
+    },
+    {
+      "slot_id": 2,
+      "level": 12,
+      "design_cost": 120
+    },
+    {
+      "slot_id": 2,
+      "level": 13,
+      "design_cost": 130
+    },
+    {
+      "slot_id": 2,
+      "level": 14,
+      "design_cost": 140
+    },
+    {
+      "slot_id": 2,
+      "level": 15,
+      "design_cost": 150
+    },
+    {
+      "slot_id": 2,
+      "level": 16,
+      "design_cost": 160
+    },
+    {
+      "slot_id": 2,
+      "level": 17,
+      "design_cost": 170
+    },
+    {
+      "slot_id": 2,
+      "level": 18,
+      "design_cost": 180
+    },
+    {
+      "slot_id": 2,
+      "level": 19,
+      "design_cost": 190
+    },
+    {
+      "slot_id": 2,
+      "level": 20,
+      "design_cost": 200
+    },
+    {
+      "slot_id": 2,
+      "level": 21,
+      "design_cost": 210
+    },
+    {
+      "slot_id": 2,
+      "level": 22,
+      "design_cost": 220
+    },
+    {
+      "slot_id": 2,
+      "level": 23,
+      "design_cost": 230
+    },
+    {
+      "slot_id": 2,
+      "level": 24,
+      "design_cost": 240
+    },
+    {
+      "slot_id": 2,
+      "level": 25,
+      "design_cost": 250
+    },
+    {
+      "slot_id": 2,
+      "level": 26,
+      "design_cost": 260
+    },
+    {
+      "slot_id": 2,
+      "level": 27,
+      "design_cost": 270
+    },
+    {
+      "slot_id": 2,
+      "level": 28,
+      "design_cost": 280
+    },
+    {
+      "slot_id": 2,
+      "level": 29,
+      "design_cost": 290
+    },
+    {
+      "slot_id": 2,
+      "level": 30,
+      "design_cost": 300
+    },
+    {
+      "slot_id": 2,
+      "level": 31,
+      "design_cost": 310
+    },
+    {
+      "slot_id": 2,
+      "level": 32,
+      "design_cost": 320
+    },
+    {
+      "slot_id": 2,
+      "level": 33,
+      "design_cost": 330
+    },
+    {
+      "slot_id": 2,
+      "level": 34,
+      "design_cost": 340
+    },
+    {
+      "slot_id": 2,
+      "level": 35,
+      "design_cost": 350
+    },
+    {
+      "slot_id": 2,
+      "level": 36,
+      "design_cost": 360
+    },
+    {
+      "slot_id": 2,
+      "level": 37,
+      "design_cost": 370
+    },
+    {
+      "slot_id": 2,
+      "level": 38,
+      "design_cost": 380
+    },
+    {
+      "slot_id": 2,
+      "level": 39,
+      "design_cost": 390
+    },
+    {
+      "slot_id": 2,
+      "level": 40,
+      "design_cost": 400
+    },
+    {
+      "slot_id": 2,
+      "level": 41,
+      "design_cost": 410
+    },
+    {
+      "slot_id": 2,
+      "level": 42,
+      "design_cost": 420
+    },
+    {
+      "slot_id": 2,
+      "level": 43,
+      "design_cost": 430
+    },
+    {
+      "slot_id": 2,
+      "level": 44,
+      "design_cost": 440
+    },
+    {
+      "slot_id": 2,
+      "level": 45,
+      "design_cost": 450
+    },
+    {
+      "slot_id": 2,
+      "level": 46,
+      "design_cost": 460
+    },
+    {
+      "slot_id": 2,
+      "level": 47,
+      "design_cost": 470
+    },
+    {
+      "slot_id": 2,
+      "level": 48,
+      "design_cost": 480
+    },
+    {
+      "slot_id": 2,
+      "level": 49,
+      "design_cost": 490
+    },
+    {
+      "slot_id": 2,
+      "level": 50,
+      "design_cost": 500
+    },
+    {
+      "slot_id": 2,
+      "level": 51,
+      "design_cost": 510
+    },
+    {
+      "slot_id": 2,
+      "level": 52,
+      "design_cost": 520
+    },
+    {
+      "slot_id": 2,
+      "level": 53,
+      "design_cost": 530
+    },
+    {
+      "slot_id": 2,
+      "level": 54,
+      "design_cost": 540
+    },
+    {
+      "slot_id": 2,
+      "level": 55,
+      "design_cost": 550
+    },
+    {
+      "slot_id": 2,
+      "level": 56,
+      "design_cost": 560
+    },
+    {
+      "slot_id": 2,
+      "level": 57,
+      "design_cost": 570
+    },
+    {
+      "slot_id": 2,
+      "level": 58,
+      "design_cost": 580
+    },
+    {
+      "slot_id": 2,
+      "level": 59,
+      "design_cost": 590
+    },
+    {
+      "slot_id": 2,
+      "level": 60,
+      "design_cost": 600
+    },
+    {
+      "slot_id": 2,
+      "level": 61,
+      "design_cost": 610
+    },
+    {
+      "slot_id": 2,
+      "level": 62,
+      "design_cost": 620
+    },
+    {
+      "slot_id": 2,
+      "level": 63,
+      "design_cost": 630
+    },
+    {
+      "slot_id": 2,
+      "level": 64,
+      "design_cost": 640
+    },
+    {
+      "slot_id": 2,
+      "level": 65,
+      "design_cost": 650
+    },
+    {
+      "slot_id": 2,
+      "level": 66,
+      "design_cost": 660
+    },
+    {
+      "slot_id": 2,
+      "level": 67,
+      "design_cost": 670
+    },
+    {
+      "slot_id": 2,
+      "level": 68,
+      "design_cost": 680
+    },
+    {
+      "slot_id": 2,
+      "level": 69,
+      "design_cost": 690
+    },
+    {
+      "slot_id": 2,
+      "level": 70,
+      "design_cost": 700
+    },
+    {
+      "slot_id": 2,
+      "level": 71,
+      "design_cost": 710
+    },
+    {
+      "slot_id": 2,
+      "level": 72,
+      "design_cost": 720
+    },
+    {
+      "slot_id": 2,
+      "level": 73,
+      "design_cost": 730
+    },
+    {
+      "slot_id": 2,
+      "level": 74,
+      "design_cost": 740
+    },
+    {
+      "slot_id": 2,
+      "level": 75,
+      "design_cost": 750
+    },
+    {
+      "slot_id": 2,
+      "level": 76,
+      "design_cost": 760
+    },
+    {
+      "slot_id": 2,
+      "level": 77,
+      "design_cost": 770
+    },
+    {
+      "slot_id": 2,
+      "level": 78,
+      "design_cost": 780
+    },
+    {
+      "slot_id": 2,
+      "level": 79,
+      "design_cost": 790
+    },
+    {
+      "slot_id": 2,
+      "level": 80,
+      "design_cost": 800
+    },
+    {
+      "slot_id": 2,
+      "level": 81,
+      "design_cost": 810
+    },
+    {
+      "slot_id": 2,
+      "level": 82,
+      "design_cost": 820
+    },
+    {
+      "slot_id": 2,
+      "level": 83,
+      "design_cost": 830
+    },
+    {
+      "slot_id": 2,
+      "level": 84,
+      "design_cost": 840
+    },
+    {
+      "slot_id": 2,
+      "level": 85,
+      "design_cost": 850
+    },
+    {
+      "slot_id": 2,
+      "level": 86,
+      "design_cost": 860
+    },
+    {
+      "slot_id": 2,
+      "level": 87,
+      "design_cost": 870
+    },
+    {
+      "slot_id": 2,
+      "level": 88,
+      "design_cost": 880
+    },
+    {
+      "slot_id": 2,
+      "level": 89,
+      "design_cost": 890
+    },
+    {
+      "slot_id": 2,
+      "level": 90,
+      "design_cost": 900
+    },
+    {
+      "slot_id": 2,
+      "level": 91,
+      "design_cost": 910
+    },
+    {
+      "slot_id": 2,
+      "level": 92,
+      "design_cost": 920
+    },
+    {
+      "slot_id": 2,
+      "level": 93,
+      "design_cost": 930
+    },
+    {
+      "slot_id": 2,
+      "level": 94,
+      "design_cost": 940
+    },
+    {
+      "slot_id": 2,
+      "level": 95,
+      "design_cost": 950
+    },
+    {
+      "slot_id": 2,
+      "level": 96,
+      "design_cost": 960
+    },
+    {
+      "slot_id": 2,
+      "level": 97,
+      "design_cost": 970
+    },
+    {
+      "slot_id": 2,
+      "level": 98,
+      "design_cost": 980
+    },
+    {
+      "slot_id": 2,
+      "level": 99,
+      "design_cost": 990
+    },
+    {
+      "slot_id": 2,
+      "level": 100,
+      "design_cost": 1000
+    },
+    {
+      "slot_id": 3,
+      "level": 1,
+      "design_cost": 10
+    },
+    {
+      "slot_id": 3,
+      "level": 2,
+      "design_cost": 20
+    },
+    {
+      "slot_id": 3,
+      "level": 3,
+      "design_cost": 30
+    },
+    {
+      "slot_id": 3,
+      "level": 4,
+      "design_cost": 40
+    },
+    {
+      "slot_id": 3,
+      "level": 5,
+      "design_cost": 50
+    },
+    {
+      "slot_id": 3,
+      "level": 6,
+      "design_cost": 60
+    },
+    {
+      "slot_id": 3,
+      "level": 7,
+      "design_cost": 70
+    },
+    {
+      "slot_id": 3,
+      "level": 8,
+      "design_cost": 80
+    },
+    {
+      "slot_id": 3,
+      "level": 9,
+      "design_cost": 90
+    },
+    {
+      "slot_id": 3,
+      "level": 10,
+      "design_cost": 100
+    },
+    {
+      "slot_id": 3,
+      "level": 11,
+      "design_cost": 110
+    },
+    {
+      "slot_id": 3,
+      "level": 12,
+      "design_cost": 120
+    },
+    {
+      "slot_id": 3,
+      "level": 13,
+      "design_cost": 130
+    },
+    {
+      "slot_id": 3,
+      "level": 14,
+      "design_cost": 140
+    },
+    {
+      "slot_id": 3,
+      "level": 15,
+      "design_cost": 150
+    },
+    {
+      "slot_id": 3,
+      "level": 16,
+      "design_cost": 160
+    },
+    {
+      "slot_id": 3,
+      "level": 17,
+      "design_cost": 170
+    },
+    {
+      "slot_id": 3,
+      "level": 18,
+      "design_cost": 180
+    },
+    {
+      "slot_id": 3,
+      "level": 19,
+      "design_cost": 190
+    },
+    {
+      "slot_id": 3,
+      "level": 20,
+      "design_cost": 200
+    },
+    {
+      "slot_id": 3,
+      "level": 21,
+      "design_cost": 210
+    },
+    {
+      "slot_id": 3,
+      "level": 22,
+      "design_cost": 220
+    },
+    {
+      "slot_id": 3,
+      "level": 23,
+      "design_cost": 230
+    },
+    {
+      "slot_id": 3,
+      "level": 24,
+      "design_cost": 240
+    },
+    {
+      "slot_id": 3,
+      "level": 25,
+      "design_cost": 250
+    },
+    {
+      "slot_id": 3,
+      "level": 26,
+      "design_cost": 260
+    },
+    {
+      "slot_id": 3,
+      "level": 27,
+      "design_cost": 270
+    },
+    {
+      "slot_id": 3,
+      "level": 28,
+      "design_cost": 280
+    },
+    {
+      "slot_id": 3,
+      "level": 29,
+      "design_cost": 290
+    },
+    {
+      "slot_id": 3,
+      "level": 30,
+      "design_cost": 300
+    },
+    {
+      "slot_id": 3,
+      "level": 31,
+      "design_cost": 310
+    },
+    {
+      "slot_id": 3,
+      "level": 32,
+      "design_cost": 320
+    },
+    {
+      "slot_id": 3,
+      "level": 33,
+      "design_cost": 330
+    },
+    {
+      "slot_id": 3,
+      "level": 34,
+      "design_cost": 340
+    },
+    {
+      "slot_id": 3,
+      "level": 35,
+      "design_cost": 350
+    },
+    {
+      "slot_id": 3,
+      "level": 36,
+      "design_cost": 360
+    },
+    {
+      "slot_id": 3,
+      "level": 37,
+      "design_cost": 370
+    },
+    {
+      "slot_id": 3,
+      "level": 38,
+      "design_cost": 380
+    },
+    {
+      "slot_id": 3,
+      "level": 39,
+      "design_cost": 390
+    },
+    {
+      "slot_id": 3,
+      "level": 40,
+      "design_cost": 400
+    },
+    {
+      "slot_id": 3,
+      "level": 41,
+      "design_cost": 410
+    },
+    {
+      "slot_id": 3,
+      "level": 42,
+      "design_cost": 420
+    },
+    {
+      "slot_id": 3,
+      "level": 43,
+      "design_cost": 430
+    },
+    {
+      "slot_id": 3,
+      "level": 44,
+      "design_cost": 440
+    },
+    {
+      "slot_id": 3,
+      "level": 45,
+      "design_cost": 450
+    },
+    {
+      "slot_id": 3,
+      "level": 46,
+      "design_cost": 460
+    },
+    {
+      "slot_id": 3,
+      "level": 47,
+      "design_cost": 470
+    },
+    {
+      "slot_id": 3,
+      "level": 48,
+      "design_cost": 480
+    },
+    {
+      "slot_id": 3,
+      "level": 49,
+      "design_cost": 490
+    },
+    {
+      "slot_id": 3,
+      "level": 50,
+      "design_cost": 500
+    },
+    {
+      "slot_id": 3,
+      "level": 51,
+      "design_cost": 510
+    },
+    {
+      "slot_id": 3,
+      "level": 52,
+      "design_cost": 520
+    },
+    {
+      "slot_id": 3,
+      "level": 53,
+      "design_cost": 530
+    },
+    {
+      "slot_id": 3,
+      "level": 54,
+      "design_cost": 540
+    },
+    {
+      "slot_id": 3,
+      "level": 55,
+      "design_cost": 550
+    },
+    {
+      "slot_id": 3,
+      "level": 56,
+      "design_cost": 560
+    },
+    {
+      "slot_id": 3,
+      "level": 57,
+      "design_cost": 570
+    },
+    {
+      "slot_id": 3,
+      "level": 58,
+      "design_cost": 580
+    },
+    {
+      "slot_id": 3,
+      "level": 59,
+      "design_cost": 590
+    },
+    {
+      "slot_id": 3,
+      "level": 60,
+      "design_cost": 600
+    },
+    {
+      "slot_id": 3,
+      "level": 61,
+      "design_cost": 610
+    },
+    {
+      "slot_id": 3,
+      "level": 62,
+      "design_cost": 620
+    },
+    {
+      "slot_id": 3,
+      "level": 63,
+      "design_cost": 630
+    },
+    {
+      "slot_id": 3,
+      "level": 64,
+      "design_cost": 640
+    },
+    {
+      "slot_id": 3,
+      "level": 65,
+      "design_cost": 650
+    },
+    {
+      "slot_id": 3,
+      "level": 66,
+      "design_cost": 660
+    },
+    {
+      "slot_id": 3,
+      "level": 67,
+      "design_cost": 670
+    },
+    {
+      "slot_id": 3,
+      "level": 68,
+      "design_cost": 680
+    },
+    {
+      "slot_id": 3,
+      "level": 69,
+      "design_cost": 690
+    },
+    {
+      "slot_id": 3,
+      "level": 70,
+      "design_cost": 700
+    },
+    {
+      "slot_id": 3,
+      "level": 71,
+      "design_cost": 710
+    },
+    {
+      "slot_id": 3,
+      "level": 72,
+      "design_cost": 720
+    },
+    {
+      "slot_id": 3,
+      "level": 73,
+      "design_cost": 730
+    },
+    {
+      "slot_id": 3,
+      "level": 74,
+      "design_cost": 740
+    },
+    {
+      "slot_id": 3,
+      "level": 75,
+      "design_cost": 750
+    },
+    {
+      "slot_id": 3,
+      "level": 76,
+      "design_cost": 760
+    },
+    {
+      "slot_id": 3,
+      "level": 77,
+      "design_cost": 770
+    },
+    {
+      "slot_id": 3,
+      "level": 78,
+      "design_cost": 780
+    },
+    {
+      "slot_id": 3,
+      "level": 79,
+      "design_cost": 790
+    },
+    {
+      "slot_id": 3,
+      "level": 80,
+      "design_cost": 800
+    },
+    {
+      "slot_id": 3,
+      "level": 81,
+      "design_cost": 810
+    },
+    {
+      "slot_id": 3,
+      "level": 82,
+      "design_cost": 820
+    },
+    {
+      "slot_id": 3,
+      "level": 83,
+      "design_cost": 830
+    },
+    {
+      "slot_id": 3,
+      "level": 84,
+      "design_cost": 840
+    },
+    {
+      "slot_id": 3,
+      "level": 85,
+      "design_cost": 850
+    },
+    {
+      "slot_id": 3,
+      "level": 86,
+      "design_cost": 860
+    },
+    {
+      "slot_id": 3,
+      "level": 87,
+      "design_cost": 870
+    },
+    {
+      "slot_id": 3,
+      "level": 88,
+      "design_cost": 880
+    },
+    {
+      "slot_id": 3,
+      "level": 89,
+      "design_cost": 890
+    },
+    {
+      "slot_id": 3,
+      "level": 90,
+      "design_cost": 900
+    },
+    {
+      "slot_id": 3,
+      "level": 91,
+      "design_cost": 910
+    },
+    {
+      "slot_id": 3,
+      "level": 92,
+      "design_cost": 920
+    },
+    {
+      "slot_id": 3,
+      "level": 93,
+      "design_cost": 930
+    },
+    {
+      "slot_id": 3,
+      "level": 94,
+      "design_cost": 940
+    },
+    {
+      "slot_id": 3,
+      "level": 95,
+      "design_cost": 950
+    },
+    {
+      "slot_id": 3,
+      "level": 96,
+      "design_cost": 960
+    },
+    {
+      "slot_id": 3,
+      "level": 97,
+      "design_cost": 970
+    },
+    {
+      "slot_id": 3,
+      "level": 98,
+      "design_cost": 980
+    },
+    {
+      "slot_id": 3,
+      "level": 99,
+      "design_cost": 990
+    },
+    {
+      "slot_id": 3,
+      "level": 100,
+      "design_cost": 1000
+    },
+    {
+      "slot_id": 4,
+      "level": 1,
+      "design_cost": 10
+    },
+    {
+      "slot_id": 4,
+      "level": 2,
+      "design_cost": 20
+    },
+    {
+      "slot_id": 4,
+      "level": 3,
+      "design_cost": 30
+    },
+    {
+      "slot_id": 4,
+      "level": 4,
+      "design_cost": 40
+    },
+    {
+      "slot_id": 4,
+      "level": 5,
+      "design_cost": 50
+    },
+    {
+      "slot_id": 4,
+      "level": 6,
+      "design_cost": 60
+    },
+    {
+      "slot_id": 4,
+      "level": 7,
+      "design_cost": 70
+    },
+    {
+      "slot_id": 4,
+      "level": 8,
+      "design_cost": 80
+    },
+    {
+      "slot_id": 4,
+      "level": 9,
+      "design_cost": 90
+    },
+    {
+      "slot_id": 4,
+      "level": 10,
+      "design_cost": 100
+    },
+    {
+      "slot_id": 4,
+      "level": 11,
+      "design_cost": 110
+    },
+    {
+      "slot_id": 4,
+      "level": 12,
+      "design_cost": 120
+    },
+    {
+      "slot_id": 4,
+      "level": 13,
+      "design_cost": 130
+    },
+    {
+      "slot_id": 4,
+      "level": 14,
+      "design_cost": 140
+    },
+    {
+      "slot_id": 4,
+      "level": 15,
+      "design_cost": 150
+    },
+    {
+      "slot_id": 4,
+      "level": 16,
+      "design_cost": 160
+    },
+    {
+      "slot_id": 4,
+      "level": 17,
+      "design_cost": 170
+    },
+    {
+      "slot_id": 4,
+      "level": 18,
+      "design_cost": 180
+    },
+    {
+      "slot_id": 4,
+      "level": 19,
+      "design_cost": 190
+    },
+    {
+      "slot_id": 4,
+      "level": 20,
+      "design_cost": 200
+    },
+    {
+      "slot_id": 4,
+      "level": 21,
+      "design_cost": 210
+    },
+    {
+      "slot_id": 4,
+      "level": 22,
+      "design_cost": 220
+    },
+    {
+      "slot_id": 4,
+      "level": 23,
+      "design_cost": 230
+    },
+    {
+      "slot_id": 4,
+      "level": 24,
+      "design_cost": 240
+    },
+    {
+      "slot_id": 4,
+      "level": 25,
+      "design_cost": 250
+    },
+    {
+      "slot_id": 4,
+      "level": 26,
+      "design_cost": 260
+    },
+    {
+      "slot_id": 4,
+      "level": 27,
+      "design_cost": 270
+    },
+    {
+      "slot_id": 4,
+      "level": 28,
+      "design_cost": 280
+    },
+    {
+      "slot_id": 4,
+      "level": 29,
+      "design_cost": 290
+    },
+    {
+      "slot_id": 4,
+      "level": 30,
+      "design_cost": 300
+    },
+    {
+      "slot_id": 4,
+      "level": 31,
+      "design_cost": 310
+    },
+    {
+      "slot_id": 4,
+      "level": 32,
+      "design_cost": 320
+    },
+    {
+      "slot_id": 4,
+      "level": 33,
+      "design_cost": 330
+    },
+    {
+      "slot_id": 4,
+      "level": 34,
+      "design_cost": 340
+    },
+    {
+      "slot_id": 4,
+      "level": 35,
+      "design_cost": 350
+    },
+    {
+      "slot_id": 4,
+      "level": 36,
+      "design_cost": 360
+    },
+    {
+      "slot_id": 4,
+      "level": 37,
+      "design_cost": 370
+    },
+    {
+      "slot_id": 4,
+      "level": 38,
+      "design_cost": 380
+    },
+    {
+      "slot_id": 4,
+      "level": 39,
+      "design_cost": 390
+    },
+    {
+      "slot_id": 4,
+      "level": 40,
+      "design_cost": 400
+    },
+    {
+      "slot_id": 4,
+      "level": 41,
+      "design_cost": 410
+    },
+    {
+      "slot_id": 4,
+      "level": 42,
+      "design_cost": 420
+    },
+    {
+      "slot_id": 4,
+      "level": 43,
+      "design_cost": 430
+    },
+    {
+      "slot_id": 4,
+      "level": 44,
+      "design_cost": 440
+    },
+    {
+      "slot_id": 4,
+      "level": 45,
+      "design_cost": 450
+    },
+    {
+      "slot_id": 4,
+      "level": 46,
+      "design_cost": 460
+    },
+    {
+      "slot_id": 4,
+      "level": 47,
+      "design_cost": 470
+    },
+    {
+      "slot_id": 4,
+      "level": 48,
+      "design_cost": 480
+    },
+    {
+      "slot_id": 4,
+      "level": 49,
+      "design_cost": 490
+    },
+    {
+      "slot_id": 4,
+      "level": 50,
+      "design_cost": 500
+    },
+    {
+      "slot_id": 4,
+      "level": 51,
+      "design_cost": 510
+    },
+    {
+      "slot_id": 4,
+      "level": 52,
+      "design_cost": 520
+    },
+    {
+      "slot_id": 4,
+      "level": 53,
+      "design_cost": 530
+    },
+    {
+      "slot_id": 4,
+      "level": 54,
+      "design_cost": 540
+    },
+    {
+      "slot_id": 4,
+      "level": 55,
+      "design_cost": 550
+    },
+    {
+      "slot_id": 4,
+      "level": 56,
+      "design_cost": 560
+    },
+    {
+      "slot_id": 4,
+      "level": 57,
+      "design_cost": 570
+    },
+    {
+      "slot_id": 4,
+      "level": 58,
+      "design_cost": 580
+    },
+    {
+      "slot_id": 4,
+      "level": 59,
+      "design_cost": 590
+    },
+    {
+      "slot_id": 4,
+      "level": 60,
+      "design_cost": 600
+    },
+    {
+      "slot_id": 4,
+      "level": 61,
+      "design_cost": 610
+    },
+    {
+      "slot_id": 4,
+      "level": 62,
+      "design_cost": 620
+    },
+    {
+      "slot_id": 4,
+      "level": 63,
+      "design_cost": 630
+    },
+    {
+      "slot_id": 4,
+      "level": 64,
+      "design_cost": 640
+    },
+    {
+      "slot_id": 4,
+      "level": 65,
+      "design_cost": 650
+    },
+    {
+      "slot_id": 4,
+      "level": 66,
+      "design_cost": 660
+    },
+    {
+      "slot_id": 4,
+      "level": 67,
+      "design_cost": 670
+    },
+    {
+      "slot_id": 4,
+      "level": 68,
+      "design_cost": 680
+    },
+    {
+      "slot_id": 4,
+      "level": 69,
+      "design_cost": 690
+    },
+    {
+      "slot_id": 4,
+      "level": 70,
+      "design_cost": 700
+    },
+    {
+      "slot_id": 4,
+      "level": 71,
+      "design_cost": 710
+    },
+    {
+      "slot_id": 4,
+      "level": 72,
+      "design_cost": 720
+    },
+    {
+      "slot_id": 4,
+      "level": 73,
+      "design_cost": 730
+    },
+    {
+      "slot_id": 4,
+      "level": 74,
+      "design_cost": 740
+    },
+    {
+      "slot_id": 4,
+      "level": 75,
+      "design_cost": 750
+    },
+    {
+      "slot_id": 4,
+      "level": 76,
+      "design_cost": 760
+    },
+    {
+      "slot_id": 4,
+      "level": 77,
+      "design_cost": 770
+    },
+    {
+      "slot_id": 4,
+      "level": 78,
+      "design_cost": 780
+    },
+    {
+      "slot_id": 4,
+      "level": 79,
+      "design_cost": 790
+    },
+    {
+      "slot_id": 4,
+      "level": 80,
+      "design_cost": 800
+    },
+    {
+      "slot_id": 4,
+      "level": 81,
+      "design_cost": 810
+    },
+    {
+      "slot_id": 4,
+      "level": 82,
+      "design_cost": 820
+    },
+    {
+      "slot_id": 4,
+      "level": 83,
+      "design_cost": 830
+    },
+    {
+      "slot_id": 4,
+      "level": 84,
+      "design_cost": 840
+    },
+    {
+      "slot_id": 4,
+      "level": 85,
+      "design_cost": 850
+    },
+    {
+      "slot_id": 4,
+      "level": 86,
+      "design_cost": 860
+    },
+    {
+      "slot_id": 4,
+      "level": 87,
+      "design_cost": 870
+    },
+    {
+      "slot_id": 4,
+      "level": 88,
+      "design_cost": 880
+    },
+    {
+      "slot_id": 4,
+      "level": 89,
+      "design_cost": 890
+    },
+    {
+      "slot_id": 4,
+      "level": 90,
+      "design_cost": 900
+    },
+    {
+      "slot_id": 4,
+      "level": 91,
+      "design_cost": 910
+    },
+    {
+      "slot_id": 4,
+      "level": 92,
+      "design_cost": 920
+    },
+    {
+      "slot_id": 4,
+      "level": 93,
+      "design_cost": 930
+    },
+    {
+      "slot_id": 4,
+      "level": 94,
+      "design_cost": 940
+    },
+    {
+      "slot_id": 4,
+      "level": 95,
+      "design_cost": 950
+    },
+    {
+      "slot_id": 4,
+      "level": 96,
+      "design_cost": 960
+    },
+    {
+      "slot_id": 4,
+      "level": 97,
+      "design_cost": 970
+    },
+    {
+      "slot_id": 4,
+      "level": 98,
+      "design_cost": 980
+    },
+    {
+      "slot_id": 4,
+      "level": 99,
+      "design_cost": 990
+    },
+    {
+      "slot_id": 4,
+      "level": 100,
+      "design_cost": 1000
+    },
+    {
+      "slot_id": 5,
+      "level": 1,
+      "design_cost": 10
+    },
+    {
+      "slot_id": 5,
+      "level": 2,
+      "design_cost": 20
+    },
+    {
+      "slot_id": 5,
+      "level": 3,
+      "design_cost": 30
+    },
+    {
+      "slot_id": 5,
+      "level": 4,
+      "design_cost": 40
+    },
+    {
+      "slot_id": 5,
+      "level": 5,
+      "design_cost": 50
+    },
+    {
+      "slot_id": 5,
+      "level": 6,
+      "design_cost": 60
+    },
+    {
+      "slot_id": 5,
+      "level": 7,
+      "design_cost": 70
+    },
+    {
+      "slot_id": 5,
+      "level": 8,
+      "design_cost": 80
+    },
+    {
+      "slot_id": 5,
+      "level": 9,
+      "design_cost": 90
+    },
+    {
+      "slot_id": 5,
+      "level": 10,
+      "design_cost": 100
+    },
+    {
+      "slot_id": 5,
+      "level": 11,
+      "design_cost": 110
+    },
+    {
+      "slot_id": 5,
+      "level": 12,
+      "design_cost": 120
+    },
+    {
+      "slot_id": 5,
+      "level": 13,
+      "design_cost": 130
+    },
+    {
+      "slot_id": 5,
+      "level": 14,
+      "design_cost": 140
+    },
+    {
+      "slot_id": 5,
+      "level": 15,
+      "design_cost": 150
+    },
+    {
+      "slot_id": 5,
+      "level": 16,
+      "design_cost": 160
+    },
+    {
+      "slot_id": 5,
+      "level": 17,
+      "design_cost": 170
+    },
+    {
+      "slot_id": 5,
+      "level": 18,
+      "design_cost": 180
+    },
+    {
+      "slot_id": 5,
+      "level": 19,
+      "design_cost": 190
+    },
+    {
+      "slot_id": 5,
+      "level": 20,
+      "design_cost": 200
+    },
+    {
+      "slot_id": 5,
+      "level": 21,
+      "design_cost": 210
+    },
+    {
+      "slot_id": 5,
+      "level": 22,
+      "design_cost": 220
+    },
+    {
+      "slot_id": 5,
+      "level": 23,
+      "design_cost": 230
+    },
+    {
+      "slot_id": 5,
+      "level": 24,
+      "design_cost": 240
+    },
+    {
+      "slot_id": 5,
+      "level": 25,
+      "design_cost": 250
+    },
+    {
+      "slot_id": 5,
+      "level": 26,
+      "design_cost": 260
+    },
+    {
+      "slot_id": 5,
+      "level": 27,
+      "design_cost": 270
+    },
+    {
+      "slot_id": 5,
+      "level": 28,
+      "design_cost": 280
+    },
+    {
+      "slot_id": 5,
+      "level": 29,
+      "design_cost": 290
+    },
+    {
+      "slot_id": 5,
+      "level": 30,
+      "design_cost": 300
+    },
+    {
+      "slot_id": 5,
+      "level": 31,
+      "design_cost": 310
+    },
+    {
+      "slot_id": 5,
+      "level": 32,
+      "design_cost": 320
+    },
+    {
+      "slot_id": 5,
+      "level": 33,
+      "design_cost": 330
+    },
+    {
+      "slot_id": 5,
+      "level": 34,
+      "design_cost": 340
+    },
+    {
+      "slot_id": 5,
+      "level": 35,
+      "design_cost": 350
+    },
+    {
+      "slot_id": 5,
+      "level": 36,
+      "design_cost": 360
+    },
+    {
+      "slot_id": 5,
+      "level": 37,
+      "design_cost": 370
+    },
+    {
+      "slot_id": 5,
+      "level": 38,
+      "design_cost": 380
+    },
+    {
+      "slot_id": 5,
+      "level": 39,
+      "design_cost": 390
+    },
+    {
+      "slot_id": 5,
+      "level": 40,
+      "design_cost": 400
+    },
+    {
+      "slot_id": 5,
+      "level": 41,
+      "design_cost": 410
+    },
+    {
+      "slot_id": 5,
+      "level": 42,
+      "design_cost": 420
+    },
+    {
+      "slot_id": 5,
+      "level": 43,
+      "design_cost": 430
+    },
+    {
+      "slot_id": 5,
+      "level": 44,
+      "design_cost": 440
+    },
+    {
+      "slot_id": 5,
+      "level": 45,
+      "design_cost": 450
+    },
+    {
+      "slot_id": 5,
+      "level": 46,
+      "design_cost": 460
+    },
+    {
+      "slot_id": 5,
+      "level": 47,
+      "design_cost": 470
+    },
+    {
+      "slot_id": 5,
+      "level": 48,
+      "design_cost": 480
+    },
+    {
+      "slot_id": 5,
+      "level": 49,
+      "design_cost": 490
+    },
+    {
+      "slot_id": 5,
+      "level": 50,
+      "design_cost": 500
+    },
+    {
+      "slot_id": 5,
+      "level": 51,
+      "design_cost": 510
+    },
+    {
+      "slot_id": 5,
+      "level": 52,
+      "design_cost": 520
+    },
+    {
+      "slot_id": 5,
+      "level": 53,
+      "design_cost": 530
+    },
+    {
+      "slot_id": 5,
+      "level": 54,
+      "design_cost": 540
+    },
+    {
+      "slot_id": 5,
+      "level": 55,
+      "design_cost": 550
+    },
+    {
+      "slot_id": 5,
+      "level": 56,
+      "design_cost": 560
+    },
+    {
+      "slot_id": 5,
+      "level": 57,
+      "design_cost": 570
+    },
+    {
+      "slot_id": 5,
+      "level": 58,
+      "design_cost": 580
+    },
+    {
+      "slot_id": 5,
+      "level": 59,
+      "design_cost": 590
+    },
+    {
+      "slot_id": 5,
+      "level": 60,
+      "design_cost": 600
+    },
+    {
+      "slot_id": 5,
+      "level": 61,
+      "design_cost": 610
+    },
+    {
+      "slot_id": 5,
+      "level": 62,
+      "design_cost": 620
+    },
+    {
+      "slot_id": 5,
+      "level": 63,
+      "design_cost": 630
+    },
+    {
+      "slot_id": 5,
+      "level": 64,
+      "design_cost": 640
+    },
+    {
+      "slot_id": 5,
+      "level": 65,
+      "design_cost": 650
+    },
+    {
+      "slot_id": 5,
+      "level": 66,
+      "design_cost": 660
+    },
+    {
+      "slot_id": 5,
+      "level": 67,
+      "design_cost": 670
+    },
+    {
+      "slot_id": 5,
+      "level": 68,
+      "design_cost": 680
+    },
+    {
+      "slot_id": 5,
+      "level": 69,
+      "design_cost": 690
+    },
+    {
+      "slot_id": 5,
+      "level": 70,
+      "design_cost": 700
+    },
+    {
+      "slot_id": 5,
+      "level": 71,
+      "design_cost": 710
+    },
+    {
+      "slot_id": 5,
+      "level": 72,
+      "design_cost": 720
+    },
+    {
+      "slot_id": 5,
+      "level": 73,
+      "design_cost": 730
+    },
+    {
+      "slot_id": 5,
+      "level": 74,
+      "design_cost": 740
+    },
+    {
+      "slot_id": 5,
+      "level": 75,
+      "design_cost": 750
+    },
+    {
+      "slot_id": 5,
+      "level": 76,
+      "design_cost": 760
+    },
+    {
+      "slot_id": 5,
+      "level": 77,
+      "design_cost": 770
+    },
+    {
+      "slot_id": 5,
+      "level": 78,
+      "design_cost": 780
+    },
+    {
+      "slot_id": 5,
+      "level": 79,
+      "design_cost": 790
+    },
+    {
+      "slot_id": 5,
+      "level": 80,
+      "design_cost": 800
+    },
+    {
+      "slot_id": 5,
+      "level": 81,
+      "design_cost": 810
+    },
+    {
+      "slot_id": 5,
+      "level": 82,
+      "design_cost": 820
+    },
+    {
+      "slot_id": 5,
+      "level": 83,
+      "design_cost": 830
+    },
+    {
+      "slot_id": 5,
+      "level": 84,
+      "design_cost": 840
+    },
+    {
+      "slot_id": 5,
+      "level": 85,
+      "design_cost": 850
+    },
+    {
+      "slot_id": 5,
+      "level": 86,
+      "design_cost": 860
+    },
+    {
+      "slot_id": 5,
+      "level": 87,
+      "design_cost": 870
+    },
+    {
+      "slot_id": 5,
+      "level": 88,
+      "design_cost": 880
+    },
+    {
+      "slot_id": 5,
+      "level": 89,
+      "design_cost": 890
+    },
+    {
+      "slot_id": 5,
+      "level": 90,
+      "design_cost": 900
+    },
+    {
+      "slot_id": 5,
+      "level": 91,
+      "design_cost": 910
+    },
+    {
+      "slot_id": 5,
+      "level": 92,
+      "design_cost": 920
+    },
+    {
+      "slot_id": 5,
+      "level": 93,
+      "design_cost": 930
+    },
+    {
+      "slot_id": 5,
+      "level": 94,
+      "design_cost": 940
+    },
+    {
+      "slot_id": 5,
+      "level": 95,
+      "design_cost": 950
+    },
+    {
+      "slot_id": 5,
+      "level": 96,
+      "design_cost": 960
+    },
+    {
+      "slot_id": 5,
+      "level": 97,
+      "design_cost": 970
+    },
+    {
+      "slot_id": 5,
+      "level": 98,
+      "design_cost": 980
+    },
+    {
+      "slot_id": 5,
+      "level": 99,
+      "design_cost": 990
+    },
+    {
+      "slot_id": 5,
+      "level": 100,
+      "design_cost": 1000
+    },
+    {
+      "slot_id": 6,
+      "level": 1,
+      "design_cost": 10
+    },
+    {
+      "slot_id": 6,
+      "level": 2,
+      "design_cost": 20
+    },
+    {
+      "slot_id": 6,
+      "level": 3,
+      "design_cost": 30
+    },
+    {
+      "slot_id": 6,
+      "level": 4,
+      "design_cost": 40
+    },
+    {
+      "slot_id": 6,
+      "level": 5,
+      "design_cost": 50
+    },
+    {
+      "slot_id": 6,
+      "level": 6,
+      "design_cost": 60
+    },
+    {
+      "slot_id": 6,
+      "level": 7,
+      "design_cost": 70
+    },
+    {
+      "slot_id": 6,
+      "level": 8,
+      "design_cost": 80
+    },
+    {
+      "slot_id": 6,
+      "level": 9,
+      "design_cost": 90
+    },
+    {
+      "slot_id": 6,
+      "level": 10,
+      "design_cost": 100
+    },
+    {
+      "slot_id": 6,
+      "level": 11,
+      "design_cost": 110
+    },
+    {
+      "slot_id": 6,
+      "level": 12,
+      "design_cost": 120
+    },
+    {
+      "slot_id": 6,
+      "level": 13,
+      "design_cost": 130
+    },
+    {
+      "slot_id": 6,
+      "level": 14,
+      "design_cost": 140
+    },
+    {
+      "slot_id": 6,
+      "level": 15,
+      "design_cost": 150
+    },
+    {
+      "slot_id": 6,
+      "level": 16,
+      "design_cost": 160
+    },
+    {
+      "slot_id": 6,
+      "level": 17,
+      "design_cost": 170
+    },
+    {
+      "slot_id": 6,
+      "level": 18,
+      "design_cost": 180
+    },
+    {
+      "slot_id": 6,
+      "level": 19,
+      "design_cost": 190
+    },
+    {
+      "slot_id": 6,
+      "level": 20,
+      "design_cost": 200
+    },
+    {
+      "slot_id": 6,
+      "level": 21,
+      "design_cost": 210
+    },
+    {
+      "slot_id": 6,
+      "level": 22,
+      "design_cost": 220
+    },
+    {
+      "slot_id": 6,
+      "level": 23,
+      "design_cost": 230
+    },
+    {
+      "slot_id": 6,
+      "level": 24,
+      "design_cost": 240
+    },
+    {
+      "slot_id": 6,
+      "level": 25,
+      "design_cost": 250
+    },
+    {
+      "slot_id": 6,
+      "level": 26,
+      "design_cost": 260
+    },
+    {
+      "slot_id": 6,
+      "level": 27,
+      "design_cost": 270
+    },
+    {
+      "slot_id": 6,
+      "level": 28,
+      "design_cost": 280
+    },
+    {
+      "slot_id": 6,
+      "level": 29,
+      "design_cost": 290
+    },
+    {
+      "slot_id": 6,
+      "level": 30,
+      "design_cost": 300
+    },
+    {
+      "slot_id": 6,
+      "level": 31,
+      "design_cost": 310
+    },
+    {
+      "slot_id": 6,
+      "level": 32,
+      "design_cost": 320
+    },
+    {
+      "slot_id": 6,
+      "level": 33,
+      "design_cost": 330
+    },
+    {
+      "slot_id": 6,
+      "level": 34,
+      "design_cost": 340
+    },
+    {
+      "slot_id": 6,
+      "level": 35,
+      "design_cost": 350
+    },
+    {
+      "slot_id": 6,
+      "level": 36,
+      "design_cost": 360
+    },
+    {
+      "slot_id": 6,
+      "level": 37,
+      "design_cost": 370
+    },
+    {
+      "slot_id": 6,
+      "level": 38,
+      "design_cost": 380
+    },
+    {
+      "slot_id": 6,
+      "level": 39,
+      "design_cost": 390
+    },
+    {
+      "slot_id": 6,
+      "level": 40,
+      "design_cost": 400
+    },
+    {
+      "slot_id": 6,
+      "level": 41,
+      "design_cost": 410
+    },
+    {
+      "slot_id": 6,
+      "level": 42,
+      "design_cost": 420
+    },
+    {
+      "slot_id": 6,
+      "level": 43,
+      "design_cost": 430
+    },
+    {
+      "slot_id": 6,
+      "level": 44,
+      "design_cost": 440
+    },
+    {
+      "slot_id": 6,
+      "level": 45,
+      "design_cost": 450
+    },
+    {
+      "slot_id": 6,
+      "level": 46,
+      "design_cost": 460
+    },
+    {
+      "slot_id": 6,
+      "level": 47,
+      "design_cost": 470
+    },
+    {
+      "slot_id": 6,
+      "level": 48,
+      "design_cost": 480
+    },
+    {
+      "slot_id": 6,
+      "level": 49,
+      "design_cost": 490
+    },
+    {
+      "slot_id": 6,
+      "level": 50,
+      "design_cost": 500
+    },
+    {
+      "slot_id": 6,
+      "level": 51,
+      "design_cost": 510
+    },
+    {
+      "slot_id": 6,
+      "level": 52,
+      "design_cost": 520
+    },
+    {
+      "slot_id": 6,
+      "level": 53,
+      "design_cost": 530
+    },
+    {
+      "slot_id": 6,
+      "level": 54,
+      "design_cost": 540
+    },
+    {
+      "slot_id": 6,
+      "level": 55,
+      "design_cost": 550
+    },
+    {
+      "slot_id": 6,
+      "level": 56,
+      "design_cost": 560
+    },
+    {
+      "slot_id": 6,
+      "level": 57,
+      "design_cost": 570
+    },
+    {
+      "slot_id": 6,
+      "level": 58,
+      "design_cost": 580
+    },
+    {
+      "slot_id": 6,
+      "level": 59,
+      "design_cost": 590
+    },
+    {
+      "slot_id": 6,
+      "level": 60,
+      "design_cost": 600
+    },
+    {
+      "slot_id": 6,
+      "level": 61,
+      "design_cost": 610
+    },
+    {
+      "slot_id": 6,
+      "level": 62,
+      "design_cost": 620
+    },
+    {
+      "slot_id": 6,
+      "level": 63,
+      "design_cost": 630
+    },
+    {
+      "slot_id": 6,
+      "level": 64,
+      "design_cost": 640
+    },
+    {
+      "slot_id": 6,
+      "level": 65,
+      "design_cost": 650
+    },
+    {
+      "slot_id": 6,
+      "level": 66,
+      "design_cost": 660
+    },
+    {
+      "slot_id": 6,
+      "level": 67,
+      "design_cost": 670
+    },
+    {
+      "slot_id": 6,
+      "level": 68,
+      "design_cost": 680
+    },
+    {
+      "slot_id": 6,
+      "level": 69,
+      "design_cost": 690
+    },
+    {
+      "slot_id": 6,
+      "level": 70,
+      "design_cost": 700
+    },
+    {
+      "slot_id": 6,
+      "level": 71,
+      "design_cost": 710
+    },
+    {
+      "slot_id": 6,
+      "level": 72,
+      "design_cost": 720
+    },
+    {
+      "slot_id": 6,
+      "level": 73,
+      "design_cost": 730
+    },
+    {
+      "slot_id": 6,
+      "level": 74,
+      "design_cost": 740
+    },
+    {
+      "slot_id": 6,
+      "level": 75,
+      "design_cost": 750
+    },
+    {
+      "slot_id": 6,
+      "level": 76,
+      "design_cost": 760
+    },
+    {
+      "slot_id": 6,
+      "level": 77,
+      "design_cost": 770
+    },
+    {
+      "slot_id": 6,
+      "level": 78,
+      "design_cost": 780
+    },
+    {
+      "slot_id": 6,
+      "level": 79,
+      "design_cost": 790
+    },
+    {
+      "slot_id": 6,
+      "level": 80,
+      "design_cost": 800
+    },
+    {
+      "slot_id": 6,
+      "level": 81,
+      "design_cost": 810
+    },
+    {
+      "slot_id": 6,
+      "level": 82,
+      "design_cost": 820
+    },
+    {
+      "slot_id": 6,
+      "level": 83,
+      "design_cost": 830
+    },
+    {
+      "slot_id": 6,
+      "level": 84,
+      "design_cost": 840
+    },
+    {
+      "slot_id": 6,
+      "level": 85,
+      "design_cost": 850
+    },
+    {
+      "slot_id": 6,
+      "level": 86,
+      "design_cost": 860
+    },
+    {
+      "slot_id": 6,
+      "level": 87,
+      "design_cost": 870
+    },
+    {
+      "slot_id": 6,
+      "level": 88,
+      "design_cost": 880
+    },
+    {
+      "slot_id": 6,
+      "level": 89,
+      "design_cost": 890
+    },
+    {
+      "slot_id": 6,
+      "level": 90,
+      "design_cost": 900
+    },
+    {
+      "slot_id": 6,
+      "level": 91,
+      "design_cost": 910
+    },
+    {
+      "slot_id": 6,
+      "level": 92,
+      "design_cost": 920
+    },
+    {
+      "slot_id": 6,
+      "level": 93,
+      "design_cost": 930
+    },
+    {
+      "slot_id": 6,
+      "level": 94,
+      "design_cost": 940
+    },
+    {
+      "slot_id": 6,
+      "level": 95,
+      "design_cost": 950
+    },
+    {
+      "slot_id": 6,
+      "level": 96,
+      "design_cost": 960
+    },
+    {
+      "slot_id": 6,
+      "level": 97,
+      "design_cost": 970
+    },
+    {
+      "slot_id": 6,
+      "level": 98,
+      "design_cost": 980
+    },
+    {
+      "slot_id": 6,
+      "level": 99,
+      "design_cost": 990
+    },
+    {
+      "slot_id": 6,
+      "level": 100,
+      "design_cost": 1000
+    }
+  ]
+}

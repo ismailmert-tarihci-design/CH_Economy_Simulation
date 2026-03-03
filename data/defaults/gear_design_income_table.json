@@ -1,0 +1,8 @@
+{
+  "income_table": [
+    {"day_start": 1, "day_end": 10, "designs_per_day": 5},
+    {"day_start": 11, "day_end": 30, "designs_per_day": 10},
+    {"day_start": 31, "day_end": 60, "designs_per_day": 15},
+    {"day_start": 61, "day_end": 100, "designs_per_day": 20}
+  ]
+}

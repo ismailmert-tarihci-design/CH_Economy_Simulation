@@ -1,0 +1,3504 @@
+{
+  "levels": [
+    {
+      "rarity": "Common",
+      "level": 1,
+      "resource_required": 10
+    },
+    {
+      "rarity": "Great",
+      "level": 1,
+      "resource_required": 15
+    },
+    {
+      "rarity": "Rare",
+      "level": 1,
+      "resource_required": 20
+    },
+    {
+      "rarity": "Epic",
+      "level": 1,
+      "resource_required": 30
+    },
+    {
+      "rarity": "Legendary",
+      "level": 1,
+      "resource_required": 45
+    },
+    {
+      "rarity": "Mythic",
+      "level": 1,
+      "resource_required": 60
+    },
+    {
+      "rarity": "Immortal",
+      "level": 1,
+      "resource_required": 80
+    },
+    {
+      "rarity": "Common",
+      "level": 2,
+      "resource_required": 15
+    },
+    {
+      "rarity": "Great",
+      "level": 2,
+      "resource_required": 22
+    },
+    {
+      "rarity": "Rare",
+      "level": 2,
+      "resource_required": 30
+    },
+    {
+      "rarity": "Epic",
+      "level": 2,
+      "resource_required": 45
+    },
+    {
+      "rarity": "Legendary",
+      "level": 2,
+      "resource_required": 67
+    },
+    {
+      "rarity": "Mythic",
+      "level": 2,
+      "resource_required": 90
+    },
+    {
+      "rarity": "Immortal",
+      "level": 2,
+      "resource_required": 120
+    },
+    {
+      "rarity": "Common",
+      "level": 3,
+      "resource_required": 20
+    },
+    {
+      "rarity": "Great",
+      "level": 3,
+      "resource_required": 30
+    },
+    {
+      "rarity": "Rare",
+      "level": 3,
+      "resource_required": 40
+    },
+    {
+      "rarity": "Epic",
+      "level": 3,
+      "resource_required": 60
+    },
+    {
+      "rarity": "Legendary",
+      "level": 3,
+      "resource_required": 90
+    },
+    {
+      "rarity": "Mythic",
+      "level": 3,
+      "resource_required": 120
+    },
+    {
+      "rarity": "Immortal",
+      "level": 3,
+      "resource_required": 160
+    },
+    {
+      "rarity": "Common",
+      "level": 4,
+      "resource_required": 25
+    },
+    {
+      "rarity": "Great",
+      "level": 4,
+      "resource_required": 37
+    },
+    {
+      "rarity": "Rare",
+      "level": 4,
+      "resource_required": 50
+    },
+    {
+      "rarity": "Epic",
+      "level": 4,
+      "resource_required": 75
+    },
+    {
+      "rarity": "Legendary",
+      "level": 4,
+      "resource_required": 112
+    },
+    {
+      "rarity": "Mythic",
+      "level": 4,
+      "resource_required": 150
+    },
+    {
+      "rarity": "Immortal",
+      "level": 4,
+      "resource_required": 200
+    },
+    {
+      "rarity": "Common",
+      "level": 5,
+      "resource_required": 30
+    },
+    {
+      "rarity": "Great",
+      "level": 5,
+      "resource_required": 45
+    },
+    {
+      "rarity": "Rare",
+      "level": 5,
+      "resource_required": 60
+    },
+    {
+      "rarity": "Epic",
+      "level": 5,
+      "resource_required": 90
+    },
+    {
+      "rarity": "Legendary",
+      "level": 5,
+      "resource_required": 135
+    },
+    {
+      "rarity": "Mythic",
+      "level": 5,
+      "resource_required": 180
+    },
+    {
+      "rarity": "Immortal",
+      "level": 5,
+      "resource_required": 240
+    },
+    {
+      "rarity": "Common",
+      "level": 6,
+      "resource_required": 35
+    },
+    {
+      "rarity": "Great",
+      "level": 6,
+      "resource_required": 52
+    },
+    {
+      "rarity": "Rare",
+      "level": 6,
+      "resource_required": 70
+    },
+    {
+      "rarity": "Epic",
+      "level": 6,
+      "resource_required": 105
+    },
+    {
+      "rarity": "Legendary",
+      "level": 6,
+      "resource_required": 157
+    },
+    {
+      "rarity": "Mythic",
+      "level": 6,
+      "resource_required": 210
+    },
+    {
+      "rarity": "Immortal",
+      "level": 6,
+      "resource_required": 280
+    },
+    {
+      "rarity": "Common",
+      "level": 7,
+      "resource_required": 40
+    },
+    {
+      "rarity": "Great",
+      "level": 7,
+      "resource_required": 60
+    },
+    {
+      "rarity": "Rare",
+      "level": 7,
+      "resource_required": 80
+    },
+    {
+      "rarity": "Epic",
+      "level": 7,
+      "resource_required": 120
+    },
+    {
+      "rarity": "Legendary",
+      "level": 7,
+      "resource_required": 180
+    },
+    {
+      "rarity": "Mythic",
+      "level": 7,
+      "resource_required": 240
+    },
+    {
+      "rarity": "Immortal",
+      "level": 7,
+      "resource_required": 320
+    },
+    {
+      "rarity": "Common",
+      "level": 8,
+      "resource_required": 45
+    },
+    {
+      "rarity": "Great",
+      "level": 8,
+      "resource_required": 67
+    },
+    {
+      "rarity": "Rare",
+      "level": 8,
+      "resource_required": 90
+    },
+    {
+      "rarity": "Epic",
+      "level": 8,
+      "resource_required": 135
+    },
+    {
+      "rarity": "Legendary",
+      "level": 8,
+      "resource_required": 202
+    },
+    {
+      "rarity": "Mythic",
+      "level": 8,
+      "resource_required": 270
+    },
+    {
+      "rarity": "Immortal",
+      "level": 8,
+      "resource_required": 360
+    },
+    {
+      "rarity": "Common",
+      "level": 9,
+      "resource_required": 50
+    },
+    {
+      "rarity": "Great",
+      "level": 9,
+      "resource_required": 75
+    },
+    {
+      "rarity": "Rare",
+      "level": 9,
+      "resource_required": 100
+    },
+    {
+      "rarity": "Epic",
+      "level": 9,
+      "resource_required": 150
+    },
+    {
+      "rarity": "Legendary",
+      "level": 9,
+      "resource_required": 225
+    },
+    {
+      "rarity": "Mythic",
+      "level": 9,
+      "resource_required": 300
+    },
+    {
+      "rarity": "Immortal",
+      "level": 9,
+      "resource_required": 400
+    },
+    {
+      "rarity": "Common",
+      "level": 10,
+      "resource_required": 55
+    },
+    {
+      "rarity": "Great",
+      "level": 10,
+      "resource_required": 82
+    },
+    {
+      "rarity": "Rare",
+      "level": 10,
+      "resource_required": 110
+    },
+    {
+      "rarity": "Epic",
+      "level": 10,
+      "resource_required": 165
+    },
+    {
+      "rarity": "Legendary",
+      "level": 10,
+      "resource_required": 247
+    },
+    {
+      "rarity": "Mythic",
+      "level": 10,
+      "resource_required": 330
+    },
+    {
+      "rarity": "Immortal",
+      "level": 10,
+      "resource_required": 440
+    },
+    {
+      "rarity": "Common",
+      "level": 11,
+      "resource_required": 60
+    },
+    {
+      "rarity": "Great",
+      "level": 11,
+      "resource_required": 90
+    },
+    {
+      "rarity": "Rare",
+      "level": 11,
+      "resource_required": 120
+    },
+    {
+      "rarity": "Epic",
+      "level": 11,
+      "resource_required": 180
+    },
+    {
+      "rarity": "Legendary",
+      "level": 11,
+      "resource_required": 270
+    },
+    {
+      "rarity": "Mythic",
+      "level": 11,
+      "resource_required": 360
+    },
+    {
+      "rarity": "Immortal",
+      "level": 11,
+      "resource_required": 480
+    },
+    {
+      "rarity": "Common",
+      "level": 12,
+      "resource_required": 65
+    },
+    {
+      "rarity": "Great",
+      "level": 12,
+      "resource_required": 97
+    },
+    {
+      "rarity": "Rare",
+      "level": 12,
+      "resource_required": 130
+    },
+    {
+      "rarity": "Epic",
+      "level": 12,
+      "resource_required": 195
+    },
+    {
+      "rarity": "Legendary",
+      "level": 12,
+      "resource_required": 292
+    },
+    {
+      "rarity": "Mythic",
+      "level": 12,
+      "resource_required": 390
+    },
+    {
+      "rarity": "Immortal",
+      "level": 12,
+      "resource_required": 520
+    },
+    {
+      "rarity": "Common",
+      "level": 13,
+      "resource_required": 70
+    },
+    {
+      "rarity": "Great",
+      "level": 13,
+      "resource_required": 105
+    },
+    {
+      "rarity": "Rare",
+      "level": 13,
+      "resource_required": 140
+    },
+    {
+      "rarity": "Epic",
+      "level": 13,
+      "resource_required": 210
+    },
+    {
+      "rarity": "Legendary",
+      "level": 13,
+      "resource_required": 315
+    },
+    {
+      "rarity": "Mythic",
+      "level": 13,
+      "resource_required": 420
+    },
+    {
+      "rarity": "Immortal",
+      "level": 13,
+      "resource_required": 560
+    },
+    {
+      "rarity": "Common",
+      "level": 14,
+      "resource_required": 75
+    },
+    {
+      "rarity": "Great",
+      "level": 14,
+      "resource_required": 112
+    },
+    {
+      "rarity": "Rare",
+      "level": 14,
+      "resource_required": 150
+    },
+    {
+      "rarity": "Epic",
+      "level": 14,
+      "resource_required": 225
+    },
+    {
+      "rarity": "Legendary",
+      "level": 14,
+      "resource_required": 337
+    },
+    {
+      "rarity": "Mythic",
+      "level": 14,
+      "resource_required": 450
+    },
+    {
+      "rarity": "Immortal",
+      "level": 14,
+      "resource_required": 600
+    },
+    {
+      "rarity": "Common",
+      "level": 15,
+      "resource_required": 80
+    },
+    {
+      "rarity": "Great",
+      "level": 15,
+      "resource_required": 120
+    },
+    {
+      "rarity": "Rare",
+      "level": 15,
+      "resource_required": 160
+    },
+    {
+      "rarity": "Epic",
+      "level": 15,
+      "resource_required": 240
+    },
+    {
+      "rarity": "Legendary",
+      "level": 15,
+      "resource_required": 360
+    },
+    {
+      "rarity": "Mythic",
+      "level": 15,
+      "resource_required": 480
+    },
+    {
+      "rarity": "Immortal",
+      "level": 15,
+      "resource_required": 640
+    },
+    {
+      "rarity": "Common",
+      "level": 16,
+      "resource_required": 85
+    },
+    {
+      "rarity": "Great",
+      "level": 16,
+      "resource_required": 127
+    },
+    {
+      "rarity": "Rare",
+      "level": 16,
+      "resource_required": 170
+    },
+    {
+      "rarity": "Epic",
+      "level": 16,
+      "resource_required": 255
+    },
+    {
+      "rarity": "Legendary",
+      "level": 16,
+      "resource_required": 382
+    },
+    {
+      "rarity": "Mythic",
+      "level": 16,
+      "resource_required": 510
+    },
+    {
+      "rarity": "Immortal",
+      "level": 16,
+      "resource_required": 680
+    },
+    {
+      "rarity": "Common",
+      "level": 17,
+      "resource_required": 90
+    },
+    {
+      "rarity": "Great",
+      "level": 17,
+      "resource_required": 135
+    },
+    {
+      "rarity": "Rare",
+      "level": 17,
+      "resource_required": 180
+    },
+    {
+      "rarity": "Epic",
+      "level": 17,
+      "resource_required": 270
+    },
+    {
+      "rarity": "Legendary",
+      "level": 17,
+      "resource_required": 405
+    },
+    {
+      "rarity": "Mythic",
+      "level": 17,
+      "resource_required": 540
+    },
+    {
+      "rarity": "Immortal",
+      "level": 17,
+      "resource_required": 720
+    },
+    {
+      "rarity": "Common",
+      "level": 18,
+      "resource_required": 95
+    },
+    {
+      "rarity": "Great",
+      "level": 18,
+      "resource_required": 142
+    },
+    {
+      "rarity": "Rare",
+      "level": 18,
+      "resource_required": 190
+    },
+    {
+      "rarity": "Epic",
+      "level": 18,
+      "resource_required": 285
+    },
+    {
+      "rarity": "Legendary",
+      "level": 18,
+      "resource_required": 427
+    },
+    {
+      "rarity": "Mythic",
+      "level": 18,
+      "resource_required": 570
+    },
+    {
+      "rarity": "Immortal",
+      "level": 18,
+      "resource_required": 760
+    },
+    {
+      "rarity": "Common",
+      "level": 19,
+      "resource_required": 100
+    },
+    {
+      "rarity": "Great",
+      "level": 19,
+      "resource_required": 150
+    },
+    {
+      "rarity": "Rare",
+      "level": 19,
+      "resource_required": 200
+    },
+    {
+      "rarity": "Epic",
+      "level": 19,
+      "resource_required": 300
+    },
+    {
+      "rarity": "Legendary",
+      "level": 19,
+      "resource_required": 450
+    },
+    {
+      "rarity": "Mythic",
+      "level": 19,
+      "resource_required": 600
+    },
+    {
+      "rarity": "Immortal",
+      "level": 19,
+      "resource_required": 800
+    },
+    {
+      "rarity": "Common",
+      "level": 20,
+      "resource_required": 105
+    },
+    {
+      "rarity": "Great",
+      "level": 20,
+      "resource_required": 157
+    },
+    {
+      "rarity": "Rare",
+      "level": 20,
+      "resource_required": 210
+    },
+    {
+      "rarity": "Epic",
+      "level": 20,
+      "resource_required": 315
+    },
+    {
+      "rarity": "Legendary",
+      "level": 20,
+      "resource_required": 472
+    },
+    {
+      "rarity": "Mythic",
+      "level": 20,
+      "resource_required": 630
+    },
+    {
+      "rarity": "Immortal",
+      "level": 20,
+      "resource_required": 840
+    },
+    {
+      "rarity": "Common",
+      "level": 21,
+      "resource_required": 110
+    },
+    {
+      "rarity": "Great",
+      "level": 21,
+      "resource_required": 165
+    },
+    {
+      "rarity": "Rare",
+      "level": 21,
+      "resource_required": 220
+    },
+    {
+      "rarity": "Epic",
+      "level": 21,
+      "resource_required": 330
+    },
+    {
+      "rarity": "Legendary",
+      "level": 21,
+      "resource_required": 495
+    },
+    {
+      "rarity": "Mythic",
+      "level": 21,
+      "resource_required": 660
+    },
+    {
+      "rarity": "Immortal",
+      "level": 21,
+      "resource_required": 880
+    },
+    {
+      "rarity": "Common",
+      "level": 22,
+      "resource_required": 115
+    },
+    {
+      "rarity": "Great",
+      "level": 22,
+      "resource_required": 172
+    },
+    {
+      "rarity": "Rare",
+      "level": 22,
+      "resource_required": 230
+    },
+    {
+      "rarity": "Epic",
+      "level": 22,
+      "resource_required": 345
+    },
+    {
+      "rarity": "Legendary",
+      "level": 22,
+      "resource_required": 517
+    },
+    {
+      "rarity": "Mythic",
+      "level": 22,
+      "resource_required": 690
+    },
+    {
+      "rarity": "Immortal",
+      "level": 22,
+      "resource_required": 920
+    },
+    {
+      "rarity": "Common",
+      "level": 23,
+      "resource_required": 120
+    },
+    {
+      "rarity": "Great",
+      "level": 23,
+      "resource_required": 180
+    },
+    {
+      "rarity": "Rare",
+      "level": 23,
+      "resource_required": 240
+    },
+    {
+      "rarity": "Epic",
+      "level": 23,
+      "resource_required": 360
+    },
+    {
+      "rarity": "Legendary",
+      "level": 23,
+      "resource_required": 540
+    },
+    {
+      "rarity": "Mythic",
+      "level": 23,
+      "resource_required": 720
+    },
+    {
+      "rarity": "Immortal",
+      "level": 23,
+      "resource_required": 960
+    },
+    {
+      "rarity": "Common",
+      "level": 24,
+      "resource_required": 125
+    },
+    {
+      "rarity": "Great",
+      "level": 24,
+      "resource_required": 187
+    },
+    {
+      "rarity": "Rare",
+      "level": 24,
+      "resource_required": 250
+    },
+    {
+      "rarity": "Epic",
+      "level": 24,
+      "resource_required": 375
+    },
+    {
+      "rarity": "Legendary",
+      "level": 24,
+      "resource_required": 562
+    },
+    {
+      "rarity": "Mythic",
+      "level": 24,
+      "resource_required": 750
+    },
+    {
+      "rarity": "Immortal",
+      "level": 24,
+      "resource_required": 1000
+    },
+    {
+      "rarity": "Common",
+      "level": 25,
+      "resource_required": 130
+    },
+    {
+      "rarity": "Great",
+      "level": 25,
+      "resource_required": 195
+    },
+    {
+      "rarity": "Rare",
+      "level": 25,
+      "resource_required": 260
+    },
+    {
+      "rarity": "Epic",
+      "level": 25,
+      "resource_required": 390
+    },
+    {
+      "rarity": "Legendary",
+      "level": 25,
+      "resource_required": 585
+    },
+    {
+      "rarity": "Mythic",
+      "level": 25,
+      "resource_required": 780
+    },
+    {
+      "rarity": "Immortal",
+      "level": 25,
+      "resource_required": 1040
+    },
+    {
+      "rarity": "Common",
+      "level": 26,
+      "resource_required": 135
+    },
+    {
+      "rarity": "Great",
+      "level": 26,
+      "resource_required": 202
+    },
+    {
+      "rarity": "Rare",
+      "level": 26,
+      "resource_required": 270
+    },
+    {
+      "rarity": "Epic",
+      "level": 26,
+      "resource_required": 405
+    },
+    {
+      "rarity": "Legendary",
+      "level": 26,
+      "resource_required": 607
+    },
+    {
+      "rarity": "Mythic",
+      "level": 26,
+      "resource_required": 810
+    },
+    {
+      "rarity": "Immortal",
+      "level": 26,
+      "resource_required": 1080
+    },
+    {
+      "rarity": "Common",
+      "level": 27,
+      "resource_required": 140
+    },
+    {
+      "rarity": "Great",
+      "level": 27,
+      "resource_required": 210
+    },
+    {
+      "rarity": "Rare",
+      "level": 27,
+      "resource_required": 280
+    },
+    {
+      "rarity": "Epic",
+      "level": 27,
+      "resource_required": 420
+    },
+    {
+      "rarity": "Legendary",
+      "level": 27,
+      "resource_required": 630
+    },
+    {
+      "rarity": "Mythic",
+      "level": 27,
+      "resource_required": 840
+    },
+    {
+      "rarity": "Immortal",
+      "level": 27,
+      "resource_required": 1120
+    },
+    {
+      "rarity": "Common",
+      "level": 28,
+      "resource_required": 145
+    },
+    {
+      "rarity": "Great",
+      "level": 28,
+      "resource_required": 217
+    },
+    {
+      "rarity": "Rare",
+      "level": 28,
+      "resource_required": 290
+    },
+    {
+      "rarity": "Epic",
+      "level": 28,
+      "resource_required": 435
+    },
+    {
+      "rarity": "Legendary",
+      "level": 28,
+      "resource_required": 652
+    },
+    {
+      "rarity": "Mythic",
+      "level": 28,
+      "resource_required": 870
+    },
+    {
+      "rarity": "Immortal",
+      "level": 28,
+      "resource_required": 1160
+    },
+    {
+      "rarity": "Common",
+      "level": 29,
+      "resource_required": 150
+    },
+    {
+      "rarity": "Great",
+      "level": 29,
+      "resource_required": 225
+    },
+    {
+      "rarity": "Rare",
+      "level": 29,
+      "resource_required": 300
+    },
+    {
+      "rarity": "Epic",
+      "level": 29,
+      "resource_required": 450
+    },
+    {
+      "rarity": "Legendary",
+      "level": 29,
+      "resource_required": 675
+    },
+    {
+      "rarity": "Mythic",
+      "level": 29,
+      "resource_required": 900
+    },
+    {
+      "rarity": "Immortal",
+      "level": 29,
+      "resource_required": 1200
+    },
+    {
+      "rarity": "Common",
+      "level": 30,
+      "resource_required": 155
+    },
+    {
+      "rarity": "Great",
+      "level": 30,
+      "resource_required": 232
+    },
+    {
+      "rarity": "Rare",
+      "level": 30,
+      "resource_required": 310
+    },
+    {
+      "rarity": "Epic",
+      "level": 30,
+      "resource_required": 465
+    },
+    {
+      "rarity": "Legendary",
+      "level": 30,
+      "resource_required": 697
+    },
+    {
+      "rarity": "Mythic",
+      "level": 30,
+      "resource_required": 930
+    },
+    {
+      "rarity": "Immortal",
+      "level": 30,
+      "resource_required": 1240
+    },
+    {
+      "rarity": "Common",
+      "level": 31,
+      "resource_required": 160
+    },
+    {
+      "rarity": "Great",
+      "level": 31,
+      "resource_required": 240
+    },
+    {
+      "rarity": "Rare",
+      "level": 31,
+      "resource_required": 320
+    },
+    {
+      "rarity": "Epic",
+      "level": 31,
+      "resource_required": 480
+    },
+    {
+      "rarity": "Legendary",
+      "level": 31,
+      "resource_required": 720
+    },
+    {
+      "rarity": "Mythic",
+      "level": 31,
+      "resource_required": 960
+    },
+    {
+      "rarity": "Immortal",
+      "level": 31,
+      "resource_required": 1280
+    },
+    {
+      "rarity": "Common",
+      "level": 32,
+      "resource_required": 165
+    },
+    {
+      "rarity": "Great",
+      "level": 32,
+      "resource_required": 247
+    },
+    {
+      "rarity": "Rare",
+      "level": 32,
+      "resource_required": 330
+    },
+    {
+      "rarity": "Epic",
+      "level": 32,
+      "resource_required": 495
+    },
+    {
+      "rarity": "Legendary",
+      "level": 32,
+      "resource_required": 742
+    },
+    {
+      "rarity": "Mythic",
+      "level": 32,
+      "resource_required": 990
+    },
+    {
+      "rarity": "Immortal",
+      "level": 32,
+      "resource_required": 1320
+    },
+    {
+      "rarity": "Common",
+      "level": 33,
+      "resource_required": 170
+    },
+    {
+      "rarity": "Great",
+      "level": 33,
+      "resource_required": 255
+    },
+    {
+      "rarity": "Rare",
+      "level": 33,
+      "resource_required": 340
+    },
+    {
+      "rarity": "Epic",
+      "level": 33,
+      "resource_required": 510
+    },
+    {
+      "rarity": "Legendary",
+      "level": 33,
+      "resource_required": 765
+    },
+    {
+      "rarity": "Mythic",
+      "level": 33,
+      "resource_required": 1020
+    },
+    {
+      "rarity": "Immortal",
+      "level": 33,
+      "resource_required": 1360
+    },
+    {
+      "rarity": "Common",
+      "level": 34,
+      "resource_required": 175
+    },
+    {
+      "rarity": "Great",
+      "level": 34,
+      "resource_required": 262
+    },
+    {
+      "rarity": "Rare",
+      "level": 34,
+      "resource_required": 350
+    },
+    {
+      "rarity": "Epic",
+      "level": 34,
+      "resource_required": 525
+    },
+    {
+      "rarity": "Legendary",
+      "level": 34,
+      "resource_required": 787
+    },
+    {
+      "rarity": "Mythic",
+      "level": 34,
+      "resource_required": 1050
+    },
+    {
+      "rarity": "Immortal",
+      "level": 34,
+      "resource_required": 1400
+    },
+    {
+      "rarity": "Common",
+      "level": 35,
+      "resource_required": 180
+    },
+    {
+      "rarity": "Great",
+      "level": 35,
+      "resource_required": 270
+    },
+    {
+      "rarity": "Rare",
+      "level": 35,
+      "resource_required": 360
+    },
+    {
+      "rarity": "Epic",
+      "level": 35,
+      "resource_required": 540
+    },
+    {
+      "rarity": "Legendary",
+      "level": 35,
+      "resource_required": 810
+    },
+    {
+      "rarity": "Mythic",
+      "level": 35,
+      "resource_required": 1080
+    },
+    {
+      "rarity": "Immortal",
+      "level": 35,
+      "resource_required": 1440
+    },
+    {
+      "rarity": "Common",
+      "level": 36,
+      "resource_required": 185
+    },
+    {
+      "rarity": "Great",
+      "level": 36,
+      "resource_required": 277
+    },
+    {
+      "rarity": "Rare",
+      "level": 36,
+      "resource_required": 370
+    },
+    {
+      "rarity": "Epic",
+      "level": 36,
+      "resource_required": 555
+    },
+    {
+      "rarity": "Legendary",
+      "level": 36,
+      "resource_required": 832
+    },
+    {
+      "rarity": "Mythic",
+      "level": 36,
+      "resource_required": 1110
+    },
+    {
+      "rarity": "Immortal",
+      "level": 36,
+      "resource_required": 1480
+    },
+    {
+      "rarity": "Common",
+      "level": 37,
+      "resource_required": 190
+    },
+    {
+      "rarity": "Great",
+      "level": 37,
+      "resource_required": 285
+    },
+    {
+      "rarity": "Rare",
+      "level": 37,
+      "resource_required": 380
+    },
+    {
+      "rarity": "Epic",
+      "level": 37,
+      "resource_required": 570
+    },
+    {
+      "rarity": "Legendary",
+      "level": 37,
+      "resource_required": 855
+    },
+    {
+      "rarity": "Mythic",
+      "level": 37,
+      "resource_required": 1140
+    },
+    {
+      "rarity": "Immortal",
+      "level": 37,
+      "resource_required": 1520
+    },
+    {
+      "rarity": "Common",
+      "level": 38,
+      "resource_required": 195
+    },
+    {
+      "rarity": "Great",
+      "level": 38,
+      "resource_required": 292
+    },
+    {
+      "rarity": "Rare",
+      "level": 38,
+      "resource_required": 390
+    },
+    {
+      "rarity": "Epic",
+      "level": 38,
+      "resource_required": 585
+    },
+    {
+      "rarity": "Legendary",
+      "level": 38,
+      "resource_required": 877
+    },
+    {
+      "rarity": "Mythic",
+      "level": 38,
+      "resource_required": 1170
+    },
+    {
+      "rarity": "Immortal",
+      "level": 38,
+      "resource_required": 1560
+    },
+    {
+      "rarity": "Common",
+      "level": 39,
+      "resource_required": 200
+    },
+    {
+      "rarity": "Great",
+      "level": 39,
+      "resource_required": 300
+    },
+    {
+      "rarity": "Rare",
+      "level": 39,
+      "resource_required": 400
+    },
+    {
+      "rarity": "Epic",
+      "level": 39,
+      "resource_required": 600
+    },
+    {
+      "rarity": "Legendary",
+      "level": 39,
+      "resource_required": 900
+    },
+    {
+      "rarity": "Mythic",
+      "level": 39,
+      "resource_required": 1200
+    },
+    {
+      "rarity": "Immortal",
+      "level": 39,
+      "resource_required": 1600
+    },
+    {
+      "rarity": "Common",
+      "level": 40,
+      "resource_required": 205
+    },
+    {
+      "rarity": "Great",
+      "level": 40,
+      "resource_required": 307
+    },
+    {
+      "rarity": "Rare",
+      "level": 40,
+      "resource_required": 410
+    },
+    {
+      "rarity": "Epic",
+      "level": 40,
+      "resource_required": 615
+    },
+    {
+      "rarity": "Legendary",
+      "level": 40,
+      "resource_required": 922
+    },
+    {
+      "rarity": "Mythic",
+      "level": 40,
+      "resource_required": 1230
+    },
+    {
+      "rarity": "Immortal",
+      "level": 40,
+      "resource_required": 1640
+    },
+    {
+      "rarity": "Common",
+      "level": 41,
+      "resource_required": 210
+    },
+    {
+      "rarity": "Great",
+      "level": 41,
+      "resource_required": 315
+    },
+    {
+      "rarity": "Rare",
+      "level": 41,
+      "resource_required": 420
+    },
+    {
+      "rarity": "Epic",
+      "level": 41,
+      "resource_required": 630
+    },
+    {
+      "rarity": "Legendary",
+      "level": 41,
+      "resource_required": 945
+    },
+    {
+      "rarity": "Mythic",
+      "level": 41,
+      "resource_required": 1260
+    },
+    {
+      "rarity": "Immortal",
+      "level": 41,
+      "resource_required": 1680
+    },
+    {
+      "rarity": "Common",
+      "level": 42,
+      "resource_required": 215
+    },
+    {
+      "rarity": "Great",
+      "level": 42,
+      "resource_required": 322
+    },
+    {
+      "rarity": "Rare",
+      "level": 42,
+      "resource_required": 430
+    },
+    {
+      "rarity": "Epic",
+      "level": 42,
+      "resource_required": 645
+    },
+    {
+      "rarity": "Legendary",
+      "level": 42,
+      "resource_required": 967
+    },
+    {
+      "rarity": "Mythic",
+      "level": 42,
+      "resource_required": 1290
+    },
+    {
+      "rarity": "Immortal",
+      "level": 42,
+      "resource_required": 1720
+    },
+    {
+      "rarity": "Common",
+      "level": 43,
+      "resource_required": 220
+    },
+    {
+      "rarity": "Great",
+      "level": 43,
+      "resource_required": 330
+    },
+    {
+      "rarity": "Rare",
+      "level": 43,
+      "resource_required": 440
+    },
+    {
+      "rarity": "Epic",
+      "level": 43,
+      "resource_required": 660
+    },
+    {
+      "rarity": "Legendary",
+      "level": 43,
+      "resource_required": 990
+    },
+    {
+      "rarity": "Mythic",
+      "level": 43,
+      "resource_required": 1320
+    },
+    {
+      "rarity": "Immortal",
+      "level": 43,
+      "resource_required": 1760
+    },
+    {
+      "rarity": "Common",
+      "level": 44,
+      "resource_required": 225
+    },
+    {
+      "rarity": "Great",
+      "level": 44,
+      "resource_required": 337
+    },
+    {
+      "rarity": "Rare",
+      "level": 44,
+      "resource_required": 450
+    },
+    {
+      "rarity": "Epic",
+      "level": 44,
+      "resource_required": 675
+    },
+    {
+      "rarity": "Legendary",
+      "level": 44,
+      "resource_required": 1012
+    },
+    {
+      "rarity": "Mythic",
+      "level": 44,
+      "resource_required": 1350
+    },
+    {
+      "rarity": "Immortal",
+      "level": 44,
+      "resource_required": 1800
+    },
+    {
+      "rarity": "Common",
+      "level": 45,
+      "resource_required": 230
+    },
+    {
+      "rarity": "Great",
+      "level": 45,
+      "resource_required": 345
+    },
+    {
+      "rarity": "Rare",
+      "level": 45,
+      "resource_required": 460
+    },
+    {
+      "rarity": "Epic",
+      "level": 45,
+      "resource_required": 690
+    },
+    {
+      "rarity": "Legendary",
+      "level": 45,
+      "resource_required": 1035
+    },
+    {
+      "rarity": "Mythic",
+      "level": 45,
+      "resource_required": 1380
+    },
+    {
+      "rarity": "Immortal",
+      "level": 45,
+      "resource_required": 1840
+    },
+    {
+      "rarity": "Common",
+      "level": 46,
+      "resource_required": 235
+    },
+    {
+      "rarity": "Great",
+      "level": 46,
+      "resource_required": 352
+    },
+    {
+      "rarity": "Rare",
+      "level": 46,
+      "resource_required": 470
+    },
+    {
+      "rarity": "Epic",
+      "level": 46,
+      "resource_required": 705
+    },
+    {
+      "rarity": "Legendary",
+      "level": 46,
+      "resource_required": 1057
+    },
+    {
+      "rarity": "Mythic",
+      "level": 46,
+      "resource_required": 1410
+    },
+    {
+      "rarity": "Immortal",
+      "level": 46,
+      "resource_required": 1880
+    },
+    {
+      "rarity": "Common",
+      "level": 47,
+      "resource_required": 240
+    },
+    {
+      "rarity": "Great",
+      "level": 47,
+      "resource_required": 360
+    },
+    {
+      "rarity": "Rare",
+      "level": 47,
+      "resource_required": 480
+    },
+    {
+      "rarity": "Epic",
+      "level": 47,
+      "resource_required": 720
+    },
+    {
+      "rarity": "Legendary",
+      "level": 47,
+      "resource_required": 1080
+    },
+    {
+      "rarity": "Mythic",
+      "level": 47,
+      "resource_required": 1440
+    },
+    {
+      "rarity": "Immortal",
+      "level": 47,
+      "resource_required": 1920
+    },
+    {
+      "rarity": "Common",
+      "level": 48,
+      "resource_required": 245
+    },
+    {
+      "rarity": "Great",
+      "level": 48,
+      "resource_required": 367
+    },
+    {
+      "rarity": "Rare",
+      "level": 48,
+      "resource_required": 490
+    },
+    {
+      "rarity": "Epic",
+      "level": 48,
+      "resource_required": 735
+    },
+    {
+      "rarity": "Legendary",
+      "level": 48,
+      "resource_required": 1102
+    },
+    {
+      "rarity": "Mythic",
+      "level": 48,
+      "resource_required": 1470
+    },
+    {
+      "rarity": "Immortal",
+      "level": 48,
+      "resource_required": 1960
+    },
+    {
+      "rarity": "Common",
+      "level": 49,
+      "resource_required": 250
+    },
+    {
+      "rarity": "Great",
+      "level": 49,
+      "resource_required": 375
+    },
+    {
+      "rarity": "Rare",
+      "level": 49,
+      "resource_required": 500
+    },
+    {
+      "rarity": "Epic",
+      "level": 49,
+      "resource_required": 750
+    },
+    {
+      "rarity": "Legendary",
+      "level": 49,
+      "resource_required": 1125
+    },
+    {
+      "rarity": "Mythic",
+      "level": 49,
+      "resource_required": 1500
+    },
+    {
+      "rarity": "Immortal",
+      "level": 49,
+      "resource_required": 2000
+    },
+    {
+      "rarity": "Common",
+      "level": 50,
+      "resource_required": 255
+    },
+    {
+      "rarity": "Great",
+      "level": 50,
+      "resource_required": 382
+    },
+    {
+      "rarity": "Rare",
+      "level": 50,
+      "resource_required": 510
+    },
+    {
+      "rarity": "Epic",
+      "level": 50,
+      "resource_required": 765
+    },
+    {
+      "rarity": "Legendary",
+      "level": 50,
+      "resource_required": 1147
+    },
+    {
+      "rarity": "Mythic",
+      "level": 50,
+      "resource_required": 1530
+    },
+    {
+      "rarity": "Immortal",
+      "level": 50,
+      "resource_required": 2040
+    },
+    {
+      "rarity": "Common",
+      "level": 51,
+      "resource_required": 260
+    },
+    {
+      "rarity": "Great",
+      "level": 51,
+      "resource_required": 390
+    },
+    {
+      "rarity": "Rare",
+      "level": 51,
+      "resource_required": 520
+    },
+    {
+      "rarity": "Epic",
+      "level": 51,
+      "resource_required": 780
+    },
+    {
+      "rarity": "Legendary",
+      "level": 51,
+      "resource_required": 1170
+    },
+    {
+      "rarity": "Mythic",
+      "level": 51,
+      "resource_required": 1560
+    },
+    {
+      "rarity": "Immortal",
+      "level": 51,
+      "resource_required": 2080
+    },
+    {
+      "rarity": "Common",
+      "level": 52,
+      "resource_required": 265
+    },
+    {
+      "rarity": "Great",
+      "level": 52,
+      "resource_required": 397
+    },
+    {
+      "rarity": "Rare",
+      "level": 52,
+      "resource_required": 530
+    },
+    {
+      "rarity": "Epic",
+      "level": 52,
+      "resource_required": 795
+    },
+    {
+      "rarity": "Legendary",
+      "level": 52,
+      "resource_required": 1192
+    },
+    {
+      "rarity": "Mythic",
+      "level": 52,
+      "resource_required": 1590
+    },
+    {
+      "rarity": "Immortal",
+      "level": 52,
+      "resource_required": 2120
+    },
+    {
+      "rarity": "Common",
+      "level": 53,
+      "resource_required": 270
+    },
+    {
+      "rarity": "Great",
+      "level": 53,
+      "resource_required": 405
+    },
+    {
+      "rarity": "Rare",
+      "level": 53,
+      "resource_required": 540
+    },
+    {
+      "rarity": "Epic",
+      "level": 53,
+      "resource_required": 810
+    },
+    {
+      "rarity": "Legendary",
+      "level": 53,
+      "resource_required": 1215
+    },
+    {
+      "rarity": "Mythic",
+      "level": 53,
+      "resource_required": 1620
+    },
+    {
+      "rarity": "Immortal",
+      "level": 53,
+      "resource_required": 2160
+    },
+    {
+      "rarity": "Common",
+      "level": 54,
+      "resource_required": 275
+    },
+    {
+      "rarity": "Great",
+      "level": 54,
+      "resource_required": 412
+    },
+    {
+      "rarity": "Rare",
+      "level": 54,
+      "resource_required": 550
+    },
+    {
+      "rarity": "Epic",
+      "level": 54,
+      "resource_required": 825
+    },
+    {
+      "rarity": "Legendary",
+      "level": 54,
+      "resource_required": 1237
+    },
+    {
+      "rarity": "Mythic",
+      "level": 54,
+      "resource_required": 1650
+    },
+    {
+      "rarity": "Immortal",
+      "level": 54,
+      "resource_required": 2200
+    },
+    {
+      "rarity": "Common",
+      "level": 55,
+      "resource_required": 280
+    },
+    {
+      "rarity": "Great",
+      "level": 55,
+      "resource_required": 420
+    },
+    {
+      "rarity": "Rare",
+      "level": 55,
+      "resource_required": 560
+    },
+    {
+      "rarity": "Epic",
+      "level": 55,
+      "resource_required": 840
+    },
+    {
+      "rarity": "Legendary",
+      "level": 55,
+      "resource_required": 1260
+    },
+    {
+      "rarity": "Mythic",
+      "level": 55,
+      "resource_required": 1680
+    },
+    {
+      "rarity": "Immortal",
+      "level": 55,
+      "resource_required": 2240
+    },
+    {
+      "rarity": "Common",
+      "level": 56,
+      "resource_required": 285
+    },
+    {
+      "rarity": "Great",
+      "level": 56,
+      "resource_required": 427
+    },
+    {
+      "rarity": "Rare",
+      "level": 56,
+      "resource_required": 570
+    },
+    {
+      "rarity": "Epic",
+      "level": 56,
+      "resource_required": 855
+    },
+    {
+      "rarity": "Legendary",
+      "level": 56,
+      "resource_required": 1282
+    },
+    {
+      "rarity": "Mythic",
+      "level": 56,
+      "resource_required": 1710
+    },
+    {
+      "rarity": "Immortal",
+      "level": 56,
+      "resource_required": 2280
+    },
+    {
+      "rarity": "Common",
+      "level": 57,
+      "resource_required": 290
+    },
+    {
+      "rarity": "Great",
+      "level": 57,
+      "resource_required": 435
+    },
+    {
+      "rarity": "Rare",
+      "level": 57,
+      "resource_required": 580
+    },
+    {
+      "rarity": "Epic",
+      "level": 57,
+      "resource_required": 870
+    },
+    {
+      "rarity": "Legendary",
+      "level": 57,
+      "resource_required": 1305
+    },
+    {
+      "rarity": "Mythic",
+      "level": 57,
+      "resource_required": 1740
+    },
+    {
+      "rarity": "Immortal",
+      "level": 57,
+      "resource_required": 2320
+    },
+    {
+      "rarity": "Common",
+      "level": 58,
+      "resource_required": 295
+    },
+    {
+      "rarity": "Great",
+      "level": 58,
+      "resource_required": 442
+    },
+    {
+      "rarity": "Rare",
+      "level": 58,
+      "resource_required": 590
+    },
+    {
+      "rarity": "Epic",
+      "level": 58,
+      "resource_required": 885
+    },
+    {
+      "rarity": "Legendary",
+      "level": 58,
+      "resource_required": 1327
+    },
+    {
+      "rarity": "Mythic",
+      "level": 58,
+      "resource_required": 1770
+    },
+    {
+      "rarity": "Immortal",
+      "level": 58,
+      "resource_required": 2360
+    },
+    {
+      "rarity": "Common",
+      "level": 59,
+      "resource_required": 300
+    },
+    {
+      "rarity": "Great",
+      "level": 59,
+      "resource_required": 450
+    },
+    {
+      "rarity": "Rare",
+      "level": 59,
+      "resource_required": 600
+    },
+    {
+      "rarity": "Epic",
+      "level": 59,
+      "resource_required": 900
+    },
+    {
+      "rarity": "Legendary",
+      "level": 59,
+      "resource_required": 1350
+    },
+    {
+      "rarity": "Mythic",
+      "level": 59,
+      "resource_required": 1800
+    },
+    {
+      "rarity": "Immortal",
+      "level": 59,
+      "resource_required": 2400
+    },
+    {
+      "rarity": "Common",
+      "level": 60,
+      "resource_required": 305
+    },
+    {
+      "rarity": "Great",
+      "level": 60,
+      "resource_required": 457
+    },
+    {
+      "rarity": "Rare",
+      "level": 60,
+      "resource_required": 610
+    },
+    {
+      "rarity": "Epic",
+      "level": 60,
+      "resource_required": 915
+    },
+    {
+      "rarity": "Legendary",
+      "level": 60,
+      "resource_required": 1372
+    },
+    {
+      "rarity": "Mythic",
+      "level": 60,
+      "resource_required": 1830
+    },
+    {
+      "rarity": "Immortal",
+      "level": 60,
+      "resource_required": 2440
+    },
+    {
+      "rarity": "Common",
+      "level": 61,
+      "resource_required": 310
+    },
+    {
+      "rarity": "Great",
+      "level": 61,
+      "resource_required": 465
+    },
+    {
+      "rarity": "Rare",
+      "level": 61,
+      "resource_required": 620
+    },
+    {
+      "rarity": "Epic",
+      "level": 61,
+      "resource_required": 930
+    },
+    {
+      "rarity": "Legendary",
+      "level": 61,
+      "resource_required": 1395
+    },
+    {
+      "rarity": "Mythic",
+      "level": 61,
+      "resource_required": 1860
+    },
+    {
+      "rarity": "Immortal",
+      "level": 61,
+      "resource_required": 2480
+    },
+    {
+      "rarity": "Common",
+      "level": 62,
+      "resource_required": 315
+    },
+    {
+      "rarity": "Great",
+      "level": 62,
+      "resource_required": 472
+    },
+    {
+      "rarity": "Rare",
+      "level": 62,
+      "resource_required": 630
+    },
+    {
+      "rarity": "Epic",
+      "level": 62,
+      "resource_required": 945
+    },
+    {
+      "rarity": "Legendary",
+      "level": 62,
+      "resource_required": 1417
+    },
+    {
+      "rarity": "Mythic",
+      "level": 62,
+      "resource_required": 1890
+    },
+    {
+      "rarity": "Immortal",
+      "level": 62,
+      "resource_required": 2520
+    },
+    {
+      "rarity": "Common",
+      "level": 63,
+      "resource_required": 320
+    },
+    {
+      "rarity": "Great",
+      "level": 63,
+      "resource_required": 480
+    },
+    {
+      "rarity": "Rare",
+      "level": 63,
+      "resource_required": 640
+    },
+    {
+      "rarity": "Epic",
+      "level": 63,
+      "resource_required": 960
+    },
+    {
+      "rarity": "Legendary",
+      "level": 63,
+      "resource_required": 1440
+    },
+    {
+      "rarity": "Mythic",
+      "level": 63,
+      "resource_required": 1920
+    },
+    {
+      "rarity": "Immortal",
+      "level": 63,
+      "resource_required": 2560
+    },
+    {
+      "rarity": "Common",
+      "level": 64,
+      "resource_required": 325
+    },
+    {
+      "rarity": "Great",
+      "level": 64,
+      "resource_required": 487
+    },
+    {
+      "rarity": "Rare",
+      "level": 64,
+      "resource_required": 650
+    },
+    {
+      "rarity": "Epic",
+      "level": 64,
+      "resource_required": 975
+    },
+    {
+      "rarity": "Legendary",
+      "level": 64,
+      "resource_required": 1462
+    },
+    {
+      "rarity": "Mythic",
+      "level": 64,
+      "resource_required": 1950
+    },
+    {
+      "rarity": "Immortal",
+      "level": 64,
+      "resource_required": 2600
+    },
+    {
+      "rarity": "Common",
+      "level": 65,
+      "resource_required": 330
+    },
+    {
+      "rarity": "Great",
+      "level": 65,
+      "resource_required": 495
+    },
+    {
+      "rarity": "Rare",
+      "level": 65,
+      "resource_required": 660
+    },
+    {
+      "rarity": "Epic",
+      "level": 65,
+      "resource_required": 990
+    },
+    {
+      "rarity": "Legendary",
+      "level": 65,
+      "resource_required": 1485
+    },
+    {
+      "rarity": "Mythic",
+      "level": 65,
+      "resource_required": 1980
+    },
+    {
+      "rarity": "Immortal",
+      "level": 65,
+      "resource_required": 2640
+    },
+    {
+      "rarity": "Common",
+      "level": 66,
+      "resource_required": 335
+    },
+    {
+      "rarity": "Great",
+      "level": 66,
+      "resource_required": 502
+    },
+    {
+      "rarity": "Rare",
+      "level": 66,
+      "resource_required": 670
+    },
+    {
+      "rarity": "Epic",
+      "level": 66,
+      "resource_required": 1005
+    },
+    {
+      "rarity": "Legendary",
+      "level": 66,
+      "resource_required": 1507
+    },
+    {
+      "rarity": "Mythic",
+      "level": 66,
+      "resource_required": 2010
+    },
+    {
+      "rarity": "Immortal",
+      "level": 66,
+      "resource_required": 2680
+    },
+    {
+      "rarity": "Common",
+      "level": 67,
+      "resource_required": 340
+    },
+    {
+      "rarity": "Great",
+      "level": 67,
+      "resource_required": 510
+    },
+    {
+      "rarity": "Rare",
+      "level": 67,
+      "resource_required": 680
+    },
+    {
+      "rarity": "Epic",
+      "level": 67,
+      "resource_required": 1020
+    },
+    {
+      "rarity": "Legendary",
+      "level": 67,
+      "resource_required": 1530
+    },
+    {
+      "rarity": "Mythic",
+      "level": 67,
+      "resource_required": 2040
+    },
+    {
+      "rarity": "Immortal",
+      "level": 67,
+      "resource_required": 2720
+    },
+    {
+      "rarity": "Common",
+      "level": 68,
+      "resource_required": 345
+    },
+    {
+      "rarity": "Great",
+      "level": 68,
+      "resource_required": 517
+    },
+    {
+      "rarity": "Rare",
+      "level": 68,
+      "resource_required": 690
+    },
+    {
+      "rarity": "Epic",
+      "level": 68,
+      "resource_required": 1035
+    },
+    {
+      "rarity": "Legendary",
+      "level": 68,
+      "resource_required": 1552
+    },
+    {
+      "rarity": "Mythic",
+      "level": 68,
+      "resource_required": 2070
+    },
+    {
+      "rarity": "Immortal",
+      "level": 68,
+      "resource_required": 2760
+    },
+    {
+      "rarity": "Common",
+      "level": 69,
+      "resource_required": 350
+    },
+    {
+      "rarity": "Great",
+      "level": 69,
+      "resource_required": 525
+    },
+    {
+      "rarity": "Rare",
+      "level": 69,
+      "resource_required": 700
+    },
+    {
+      "rarity": "Epic",
+      "level": 69,
+      "resource_required": 1050
+    },
+    {
+      "rarity": "Legendary",
+      "level": 69,
+      "resource_required": 1575
+    },
+    {
+      "rarity": "Mythic",
+      "level": 69,
+      "resource_required": 2100
+    },
+    {
+      "rarity": "Immortal",
+      "level": 69,
+      "resource_required": 2800
+    },
+    {
+      "rarity": "Common",
+      "level": 70,
+      "resource_required": 355
+    },
+    {
+      "rarity": "Great",
+      "level": 70,
+      "resource_required": 532
+    },
+    {
+      "rarity": "Rare",
+      "level": 70,
+      "resource_required": 710
+    },
+    {
+      "rarity": "Epic",
+      "level": 70,
+      "resource_required": 1065
+    },
+    {
+      "rarity": "Legendary",
+      "level": 70,
+      "resource_required": 1597
+    },
+    {
+      "rarity": "Mythic",
+      "level": 70,
+      "resource_required": 2130
+    },
+    {
+      "rarity": "Immortal",
+      "level": 70,
+      "resource_required": 2840
+    },
+    {
+      "rarity": "Common",
+      "level": 71,
+      "resource_required": 360
+    },
+    {
+      "rarity": "Great",
+      "level": 71,
+      "resource_required": 540
+    },
+    {
+      "rarity": "Rare",
+      "level": 71,
+      "resource_required": 720
+    },
+    {
+      "rarity": "Epic",
+      "level": 71,
+      "resource_required": 1080
+    },
+    {
+      "rarity": "Legendary",
+      "level": 71,
+      "resource_required": 1620
+    },
+    {
+      "rarity": "Mythic",
+      "level": 71,
+      "resource_required": 2160
+    },
+    {
+      "rarity": "Immortal",
+      "level": 71,
+      "resource_required": 2880
+    },
+    {
+      "rarity": "Common",
+      "level": 72,
+      "resource_required": 365
+    },
+    {
+      "rarity": "Great",
+      "level": 72,
+      "resource_required": 547
+    },
+    {
+      "rarity": "Rare",
+      "level": 72,
+      "resource_required": 730
+    },
+    {
+      "rarity": "Epic",
+      "level": 72,
+      "resource_required": 1095
+    },
+    {
+      "rarity": "Legendary",
+      "level": 72,
+      "resource_required": 1642
+    },
+    {
+      "rarity": "Mythic",
+      "level": 72,
+      "resource_required": 2190
+    },
+    {
+      "rarity": "Immortal",
+      "level": 72,
+      "resource_required": 2920
+    },
+    {
+      "rarity": "Common",
+      "level": 73,
+      "resource_required": 370
+    },
+    {
+      "rarity": "Great",
+      "level": 73,
+      "resource_required": 555
+    },
+    {
+      "rarity": "Rare",
+      "level": 73,
+      "resource_required": 740
+    },
+    {
+      "rarity": "Epic",
+      "level": 73,
+      "resource_required": 1110
+    },
+    {
+      "rarity": "Legendary",
+      "level": 73,
+      "resource_required": 1665
+    },
+    {
+      "rarity": "Mythic",
+      "level": 73,
+      "resource_required": 2220
+    },
+    {
+      "rarity": "Immortal",
+      "level": 73,
+      "resource_required": 2960
+    },
+    {
+      "rarity": "Common",
+      "level": 74,
+      "resource_required": 375
+    },
+    {
+      "rarity": "Great",
+      "level": 74,
+      "resource_required": 562
+    },
+    {
+      "rarity": "Rare",
+      "level": 74,
+      "resource_required": 750
+    },
+    {
+      "rarity": "Epic",
+      "level": 74,
+      "resource_required": 1125
+    },
+    {
+      "rarity": "Legendary",
+      "level": 74,
+      "resource_required": 1687
+    },
+    {
+      "rarity": "Mythic",
+      "level": 74,
+      "resource_required": 2250
+    },
+    {
+      "rarity": "Immortal",
+      "level": 74,
+      "resource_required": 3000
+    },
+    {
+      "rarity": "Common",
+      "level": 75,
+      "resource_required": 380
+    },
+    {
+      "rarity": "Great",
+      "level": 75,
+      "resource_required": 570
+    },
+    {
+      "rarity": "Rare",
+      "level": 75,
+      "resource_required": 760
+    },
+    {
+      "rarity": "Epic",
+      "level": 75,
+      "resource_required": 1140
+    },
+    {
+      "rarity": "Legendary",
+      "level": 75,
+      "resource_required": 1710
+    },
+    {
+      "rarity": "Mythic",
+      "level": 75,
+      "resource_required": 2280
+    },
+    {
+      "rarity": "Immortal",
+      "level": 75,
+      "resource_required": 3040
+    },
+    {
+      "rarity": "Common",
+      "level": 76,
+      "resource_required": 385
+    },
+    {
+      "rarity": "Great",
+      "level": 76,
+      "resource_required": 577
+    },
+    {
+      "rarity": "Rare",
+      "level": 76,
+      "resource_required": 770
+    },
+    {
+      "rarity": "Epic",
+      "level": 76,
+      "resource_required": 1155
+    },
+    {
+      "rarity": "Legendary",
+      "level": 76,
+      "resource_required": 1732
+    },
+    {
+      "rarity": "Mythic",
+      "level": 76,
+      "resource_required": 2310
+    },
+    {
+      "rarity": "Immortal",
+      "level": 76,
+      "resource_required": 3080
+    },
+    {
+      "rarity": "Common",
+      "level": 77,
+      "resource_required": 390
+    },
+    {
+      "rarity": "Great",
+      "level": 77,
+      "resource_required": 585
+    },
+    {
+      "rarity": "Rare",
+      "level": 77,
+      "resource_required": 780
+    },
+    {
+      "rarity": "Epic",
+      "level": 77,
+      "resource_required": 1170
+    },
+    {
+      "rarity": "Legendary",
+      "level": 77,
+      "resource_required": 1755
+    },
+    {
+      "rarity": "Mythic",
+      "level": 77,
+      "resource_required": 2340
+    },
+    {
+      "rarity": "Immortal",
+      "level": 77,
+      "resource_required": 3120
+    },
+    {
+      "rarity": "Common",
+      "level": 78,
+      "resource_required": 395
+    },
+    {
+      "rarity": "Great",
+      "level": 78,
+      "resource_required": 592
+    },
+    {
+      "rarity": "Rare",
+      "level": 78,
+      "resource_required": 790
+    },
+    {
+      "rarity": "Epic",
+      "level": 78,
+      "resource_required": 1185
+    },
+    {
+      "rarity": "Legendary",
+      "level": 78,
+      "resource_required": 1777
+    },
+    {
+      "rarity": "Mythic",
+      "level": 78,
+      "resource_required": 2370
+    },
+    {
+      "rarity": "Immortal",
+      "level": 78,
+      "resource_required": 3160
+    },
+    {
+      "rarity": "Common",
+      "level": 79,
+      "resource_required": 400
+    },
+    {
+      "rarity": "Great",
+      "level": 79,
+      "resource_required": 600
+    },
+    {
+      "rarity": "Rare",
+      "level": 79,
+      "resource_required": 800
+    },
+    {
+      "rarity": "Epic",
+      "level": 79,
+      "resource_required": 1200
+    },
+    {
+      "rarity": "Legendary",
+      "level": 79,
+      "resource_required": 1800
+    },
+    {
+      "rarity": "Mythic",
+      "level": 79,
+      "resource_required": 2400
+    },
+    {
+      "rarity": "Immortal",
+      "level": 79,
+      "resource_required": 3200
+    },
+    {
+      "rarity": "Common",
+      "level": 80,
+      "resource_required": 405
+    },
+    {
+      "rarity": "Great",
+      "level": 80,
+      "resource_required": 607
+    },
+    {
+      "rarity": "Rare",
+      "level": 80,
+      "resource_required": 810
+    },
+    {
+      "rarity": "Epic",
+      "level": 80,
+      "resource_required": 1215
+    },
+    {
+      "rarity": "Legendary",
+      "level": 80,
+      "resource_required": 1822
+    },
+    {
+      "rarity": "Mythic",
+      "level": 80,
+      "resource_required": 2430
+    },
+    {
+      "rarity": "Immortal",
+      "level": 80,
+      "resource_required": 3240
+    },
+    {
+      "rarity": "Common",
+      "level": 81,
+      "resource_required": 410
+    },
+    {
+      "rarity": "Great",
+      "level": 81,
+      "resource_required": 615
+    },
+    {
+      "rarity": "Rare",
+      "level": 81,
+      "resource_required": 820
+    },
+    {
+      "rarity": "Epic",
+      "level": 81,
+      "resource_required": 1230
+    },
+    {
+      "rarity": "Legendary",
+      "level": 81,
+      "resource_required": 1845
+    },
+    {
+      "rarity": "Mythic",
+      "level": 81,
+      "resource_required": 2460
+    },
+    {
+      "rarity": "Immortal",
+      "level": 81,
+      "resource_required": 3280
+    },
+    {
+      "rarity": "Common",
+      "level": 82,
+      "resource_required": 415
+    },
+    {
+      "rarity": "Great",
+      "level": 82,
+      "resource_required": 622
+    },
+    {
+      "rarity": "Rare",
+      "level": 82,
+      "resource_required": 830
+    },
+    {
+      "rarity": "Epic",
+      "level": 82,
+      "resource_required": 1245
+    },
+    {
+      "rarity": "Legendary",
+      "level": 82,
+      "resource_required": 1867
+    },
+    {
+      "rarity": "Mythic",
+      "level": 82,
+      "resource_required": 2490
+    },
+    {
+      "rarity": "Immortal",
+      "level": 82,
+      "resource_required": 3320
+    },
+    {
+      "rarity": "Common",
+      "level": 83,
+      "resource_required": 420
+    },
+    {
+      "rarity": "Great",
+      "level": 83,
+      "resource_required": 630
+    },
+    {
+      "rarity": "Rare",
+      "level": 83,
+      "resource_required": 840
+    },
+    {
+      "rarity": "Epic",
+      "level": 83,
+      "resource_required": 1260
+    },
+    {
+      "rarity": "Legendary",
+      "level": 83,
+      "resource_required": 1890
+    },
+    {
+      "rarity": "Mythic",
+      "level": 83,
+      "resource_required": 2520
+    },
+    {
+      "rarity": "Immortal",
+      "level": 83,
+      "resource_required": 3360
+    },
+    {
+      "rarity": "Common",
+      "level": 84,
+      "resource_required": 425
+    },
+    {
+      "rarity": "Great",
+      "level": 84,
+      "resource_required": 637
+    },
+    {
+      "rarity": "Rare",
+      "level": 84,
+      "resource_required": 850
+    },
+    {
+      "rarity": "Epic",
+      "level": 84,
+      "resource_required": 1275
+    },
+    {
+      "rarity": "Legendary",
+      "level": 84,
+      "resource_required": 1912
+    },
+    {
+      "rarity": "Mythic",
+      "level": 84,
+      "resource_required": 2550
+    },
+    {
+      "rarity": "Immortal",
+      "level": 84,
+      "resource_required": 3400
+    },
+    {
+      "rarity": "Common",
+      "level": 85,
+      "resource_required": 430
+    },
+    {
+      "rarity": "Great",
+      "level": 85,
+      "resource_required": 645
+    },
+    {
+      "rarity": "Rare",
+      "level": 85,
+      "resource_required": 860
+    },
+    {
+      "rarity": "Epic",
+      "level": 85,
+      "resource_required": 1290
+    },
+    {
+      "rarity": "Legendary",
+      "level": 85,
+      "resource_required": 1935
+    },
+    {
+      "rarity": "Mythic",
+      "level": 85,
+      "resource_required": 2580
+    },
+    {
+      "rarity": "Immortal",
+      "level": 85,
+      "resource_required": 3440
+    },
+    {
+      "rarity": "Common",
+      "level": 86,
+      "resource_required": 435
+    },
+    {
+      "rarity": "Great",
+      "level": 86,
+      "resource_required": 652
+    },
+    {
+      "rarity": "Rare",
+      "level": 86,
+      "resource_required": 870
+    },
+    {
+      "rarity": "Epic",
+      "level": 86,
+      "resource_required": 1305
+    },
+    {
+      "rarity": "Legendary",
+      "level": 86,
+      "resource_required": 1957
+    },
+    {
+      "rarity": "Mythic",
+      "level": 86,
+      "resource_required": 2610
+    },
+    {
+      "rarity": "Immortal",
+      "level": 86,
+      "resource_required": 3480
+    },
+    {
+      "rarity": "Common",
+      "level": 87,
+      "resource_required": 440
+    },
+    {
+      "rarity": "Great",
+      "level": 87,
+      "resource_required": 660
+    },
+    {
+      "rarity": "Rare",
+      "level": 87,
+      "resource_required": 880
+    },
+    {
+      "rarity": "Epic",
+      "level": 87,
+      "resource_required": 1320
+    },
+    {
+      "rarity": "Legendary",
+      "level": 87,
+      "resource_required": 1980
+    },
+    {
+      "rarity": "Mythic",
+      "level": 87,
+      "resource_required": 2640
+    },
+    {
+      "rarity": "Immortal",
+      "level": 87,
+      "resource_required": 3520
+    },
+    {
+      "rarity": "Common",
+      "level": 88,
+      "resource_required": 445
+    },
+    {
+      "rarity": "Great",
+      "level": 88,
+      "resource_required": 667
+    },
+    {
+      "rarity": "Rare",
+      "level": 88,
+      "resource_required": 890
+    },
+    {
+      "rarity": "Epic",
+      "level": 88,
+      "resource_required": 1335
+    },
+    {
+      "rarity": "Legendary",
+      "level": 88,
+      "resource_required": 2002
+    },
+    {
+      "rarity": "Mythic",
+      "level": 88,
+      "resource_required": 2670
+    },
+    {
+      "rarity": "Immortal",
+      "level": 88,
+      "resource_required": 3560
+    },
+    {
+      "rarity": "Common",
+      "level": 89,
+      "resource_required": 450
+    },
+    {
+      "rarity": "Great",
+      "level": 89,
+      "resource_required": 675
+    },
+    {
+      "rarity": "Rare",
+      "level": 89,
+      "resource_required": 900
+    },
+    {
+      "rarity": "Epic",
+      "level": 89,
+      "resource_required": 1350
+    },
+    {
+      "rarity": "Legendary",
+      "level": 89,
+      "resource_required": 2025
+    },
+    {
+      "rarity": "Mythic",
+      "level": 89,
+      "resource_required": 2700
+    },
+    {
+      "rarity": "Immortal",
+      "level": 89,
+      "resource_required": 3600
+    },
+    {
+      "rarity": "Common",
+      "level": 90,
+      "resource_required": 455
+    },
+    {
+      "rarity": "Great",
+      "level": 90,
+      "resource_required": 682
+    },
+    {
+      "rarity": "Rare",
+      "level": 90,
+      "resource_required": 910
+    },
+    {
+      "rarity": "Epic",
+      "level": 90,
+      "resource_required": 1365
+    },
+    {
+      "rarity": "Legendary",
+      "level": 90,
+      "resource_required": 2047
+    },
+    {
+      "rarity": "Mythic",
+      "level": 90,
+      "resource_required": 2730
+    },
+    {
+      "rarity": "Immortal",
+      "level": 90,
+      "resource_required": 3640
+    },
+    {
+      "rarity": "Common",
+      "level": 91,
+      "resource_required": 460
+    },
+    {
+      "rarity": "Great",
+      "level": 91,
+      "resource_required": 690
+    },
+    {
+      "rarity": "Rare",
+      "level": 91,
+      "resource_required": 920
+    },
+    {
+      "rarity": "Epic",
+      "level": 91,
+      "resource_required": 1380
+    },
+    {
+      "rarity": "Legendary",
+      "level": 91,
+      "resource_required": 2070
+    },
+    {
+      "rarity": "Mythic",
+      "level": 91,
+      "resource_required": 2760
+    },
+    {
+      "rarity": "Immortal",
+      "level": 91,
+      "resource_required": 3680
+    },
+    {
+      "rarity": "Common",
+      "level": 92,
+      "resource_required": 465
+    },
+    {
+      "rarity": "Great",
+      "level": 92,
+      "resource_required": 697
+    },
+    {
+      "rarity": "Rare",
+      "level": 92,
+      "resource_required": 930
+    },
+    {
+      "rarity": "Epic",
+      "level": 92,
+      "resource_required": 1395
+    },
+    {
+      "rarity": "Legendary",
+      "level": 92,
+      "resource_required": 2092
+    },
+    {
+      "rarity": "Mythic",
+      "level": 92,
+      "resource_required": 2790
+    },
+    {
+      "rarity": "Immortal",
+      "level": 92,
+      "resource_required": 3720
+    },
+    {
+      "rarity": "Common",
+      "level": 93,
+      "resource_required": 470
+    },
+    {
+      "rarity": "Great",
+      "level": 93,
+      "resource_required": 705
+    },
+    {
+      "rarity": "Rare",
+      "level": 93,
+      "resource_required": 940
+    },
+    {
+      "rarity": "Epic",
+      "level": 93,
+      "resource_required": 1410
+    },
+    {
+      "rarity": "Legendary",
+      "level": 93,
+      "resource_required": 2115
+    },
+    {
+      "rarity": "Mythic",
+      "level": 93,
+      "resource_required": 2820
+    },
+    {
+      "rarity": "Immortal",
+      "level": 93,
+      "resource_required": 3760
+    },
+    {
+      "rarity": "Common",
+      "level": 94,
+      "resource_required": 475
+    },
+    {
+      "rarity": "Great",
+      "level": 94,
+      "resource_required": 712
+    },
+    {
+      "rarity": "Rare",
+      "level": 94,
+      "resource_required": 950
+    },
+    {
+      "rarity": "Epic",
+      "level": 94,
+      "resource_required": 1425
+    },
+    {
+      "rarity": "Legendary",
+      "level": 94,
+      "resource_required": 2137
+    },
+    {
+      "rarity": "Mythic",
+      "level": 94,
+      "resource_required": 2850
+    },
+    {
+      "rarity": "Immortal",
+      "level": 94,
+      "resource_required": 3800
+    },
+    {
+      "rarity": "Common",
+      "level": 95,
+      "resource_required": 480
+    },
+    {
+      "rarity": "Great",
+      "level": 95,
+      "resource_required": 720
+    },
+    {
+      "rarity": "Rare",
+      "level": 95,
+      "resource_required": 960
+    },
+    {
+      "rarity": "Epic",
+      "level": 95,
+      "resource_required": 1440
+    },
+    {
+      "rarity": "Legendary",
+      "level": 95,
+      "resource_required": 2160
+    },
+    {
+      "rarity": "Mythic",
+      "level": 95,
+      "resource_required": 2880
+    },
+    {
+      "rarity": "Immortal",
+      "level": 95,
+      "resource_required": 3840
+    },
+    {
+      "rarity": "Common",
+      "level": 96,
+      "resource_required": 485
+    },
+    {
+      "rarity": "Great",
+      "level": 96,
+      "resource_required": 727
+    },
+    {
+      "rarity": "Rare",
+      "level": 96,
+      "resource_required": 970
+    },
+    {
+      "rarity": "Epic",
+      "level": 96,
+      "resource_required": 1455
+    },
+    {
+      "rarity": "Legendary",
+      "level": 96,
+      "resource_required": 2182
+    },
+    {
+      "rarity": "Mythic",
+      "level": 96,
+      "resource_required": 2910
+    },
+    {
+      "rarity": "Immortal",
+      "level": 96,
+      "resource_required": 3880
+    },
+    {
+      "rarity": "Common",
+      "level": 97,
+      "resource_required": 490
+    },
+    {
+      "rarity": "Great",
+      "level": 97,
+      "resource_required": 735
+    },
+    {
+      "rarity": "Rare",
+      "level": 97,
+      "resource_required": 980
+    },
+    {
+      "rarity": "Epic",
+      "level": 97,
+      "resource_required": 1470
+    },
+    {
+      "rarity": "Legendary",
+      "level": 97,
+      "resource_required": 2205
+    },
+    {
+      "rarity": "Mythic",
+      "level": 97,
+      "resource_required": 2940
+    },
+    {
+      "rarity": "Immortal",
+      "level": 97,
+      "resource_required": 3920
+    },
+    {
+      "rarity": "Common",
+      "level": 98,
+      "resource_required": 495
+    },
+    {
+      "rarity": "Great",
+      "level": 98,
+      "resource_required": 742
+    },
+    {
+      "rarity": "Rare",
+      "level": 98,
+      "resource_required": 990
+    },
+    {
+      "rarity": "Epic",
+      "level": 98,
+      "resource_required": 1485
+    },
+    {
+      "rarity": "Legendary",
+      "level": 98,
+      "resource_required": 2227
+    },
+    {
+      "rarity": "Mythic",
+      "level": 98,
+      "resource_required": 2970
+    },
+    {
+      "rarity": "Immortal",
+      "level": 98,
+      "resource_required": 3960
+    },
+    {
+      "rarity": "Common",
+      "level": 99,
+      "resource_required": 500
+    },
+    {
+      "rarity": "Great",
+      "level": 99,
+      "resource_required": 750
+    },
+    {
+      "rarity": "Rare",
+      "level": 99,
+      "resource_required": 1000
+    },
+    {
+      "rarity": "Epic",
+      "level": 99,
+      "resource_required": 1500
+    },
+    {
+      "rarity": "Legendary",
+      "level": 99,
+      "resource_required": 2250
+    },
+    {
+      "rarity": "Mythic",
+      "level": 99,
+      "resource_required": 3000
+    },
+    {
+      "rarity": "Immortal",
+      "level": 99,
+      "resource_required": 4000
+    },
+    {
+      "rarity": "Common",
+      "level": 100,
+      "resource_required": 505
+    },
+    {
+      "rarity": "Great",
+      "level": 100,
+      "resource_required": 757
+    },
+    {
+      "rarity": "Rare",
+      "level": 100,
+      "resource_required": 1010
+    },
+    {
+      "rarity": "Epic",
+      "level": 100,
+      "resource_required": 1515
+    },
+    {
+      "rarity": "Legendary",
+      "level": 100,
+      "resource_required": 2272
+    },
+    {
+      "rarity": "Mythic",
+      "level": 100,
+      "resource_required": 3030
+    },
+    {
+      "rarity": "Immortal",
+      "level": 100,
+      "resource_required": 4040
+    }
+  ]
+}

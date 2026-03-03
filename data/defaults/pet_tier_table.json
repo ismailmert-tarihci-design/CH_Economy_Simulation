@@ -1,0 +1,199 @@
+{
+  "tiers": [
+    {
+      "tier": 1,
+      "summons_to_lvl_up": 10,
+      "rarity_probabilities": {
+        "Common": 50.0,
+        "Great": 30.0,
+        "Rare": 12.0,
+        "Epic": 5.0,
+        "Legendary": 2.0,
+        "Mythic": 1.0,
+        "Immortal": 0.0
+      }
+    },
+    {
+      "tier": 2,
+      "summons_to_lvl_up": 15,
+      "rarity_probabilities": {
+        "Common": 45.0,
+        "Great": 32.0,
+        "Rare": 15.0,
+        "Epic": 5.0,
+        "Legendary": 2.0,
+        "Mythic": 1.0,
+        "Immortal": 0.0
+      }
+    },
+    {
+      "tier": 3,
+      "summons_to_lvl_up": 20,
+      "rarity_probabilities": {
+        "Common": 40.0,
+        "Great": 34.0,
+        "Rare": 18.0,
+        "Epic": 5.0,
+        "Legendary": 2.0,
+        "Mythic": 1.0,
+        "Immortal": 0.0
+      }
+    },
+    {
+      "tier": 4,
+      "summons_to_lvl_up": 25,
+      "rarity_probabilities": {
+        "Common": 35.0,
+        "Great": 35.0,
+        "Rare": 20.0,
+        "Epic": 7.0,
+        "Legendary": 2.0,
+        "Mythic": 1.0,
+        "Immortal": 0.0
+      }
+    },
+    {
+      "tier": 5,
+      "summons_to_lvl_up": 30,
+      "rarity_probabilities": {
+        "Common": 30.0,
+        "Great": 36.0,
+        "Rare": 22.0,
+        "Epic": 8.0,
+        "Legendary": 3.0,
+        "Mythic": 1.0,
+        "Immortal": 0.0
+      }
+    },
+    {
+      "tier": 6,
+      "summons_to_lvl_up": 35,
+      "rarity_probabilities": {
+        "Common": 25.0,
+        "Great": 37.0,
+        "Rare": 24.0,
+        "Epic": 9.0,
+        "Legendary": 3.0,
+        "Mythic": 1.5,
+        "Immortal": 0.5
+      }
+    },
+    {
+      "tier": 7,
+      "summons_to_lvl_up": 40,
+      "rarity_probabilities": {
+        "Common": 20.0,
+        "Great": 38.0,
+        "Rare": 26.0,
+        "Epic": 10.0,
+        "Legendary": 3.5,
+        "Mythic": 1.8,
+        "Immortal": 0.7
+      }
+    },
+    {
+      "tier": 8,
+      "summons_to_lvl_up": 45,
+      "rarity_probabilities": {
+        "Common": 18.0,
+        "Great": 37.0,
+        "Rare": 27.0,
+        "Epic": 11.0,
+        "Legendary": 4.0,
+        "Mythic": 2.0,
+        "Immortal": 1.0
+      }
+    },
+    {
+      "tier": 9,
+      "summons_to_lvl_up": 50,
+      "rarity_probabilities": {
+        "Common": 16.0,
+        "Great": 36.0,
+        "Rare": 28.0,
+        "Epic": 12.0,
+        "Legendary": 4.5,
+        "Mythic": 2.3,
+        "Immortal": 1.2
+      }
+    },
+    {
+      "tier": 10,
+      "summons_to_lvl_up": 55,
+      "rarity_probabilities": {
+        "Common": 14.0,
+        "Great": 35.0,
+        "Rare": 29.0,
+        "Epic": 13.0,
+        "Legendary": 5.0,
+        "Mythic": 2.5,
+        "Immortal": 1.5
+      }
+    },
+    {
+      "tier": 11,
+      "summons_to_lvl_up": 60,
+      "rarity_probabilities": {
+        "Common": 12.0,
+        "Great": 33.0,
+        "Rare": 30.0,
+        "Epic": 14.0,
+        "Legendary": 6.0,
+        "Mythic": 3.0,
+        "Immortal": 2.0
+      }
+    },
+    {
+      "tier": 12,
+      "summons_to_lvl_up": 65,
+      "rarity_probabilities": {
+        "Common": 10.0,
+        "Great": 31.0,
+        "Rare": 31.0,
+        "Epic": 15.0,
+        "Legendary": 7.0,
+        "Mythic": 3.5,
+        "Immortal": 2.5
+      }
+    },
+    {
+      "tier": 13,
+      "summons_to_lvl_up": 70,
+      "rarity_probabilities": {
+        "Common": 8.0,
+        "Great": 29.0,
+        "Rare": 32.0,
+        "Epic": 16.0,
+        "Legendary": 8.0,
+        "Mythic": 4.0,
+        "Immortal": 3.0
+      }
+    },
+    {
+      "tier": 14,
+      "summons_to_lvl_up": 75,
+      "rarity_probabilities": {
+        "Common": 6.0,
+        "Great": 27.0,
+        "Rare": 33.0,
+        "Epic": 17.0,
+        "Legendary": 9.0,
+        "Mythic": 5.0,
+        "Immortal": 3.0
+      }
+    },
+    {
+      "tier": 15,
+      "summons_to_lvl_up": 80,
+      "rarity_probabilities": {
+        "Common": 5.0,
+        "Great": 25.0,
+        "Rare": 34.0,
+        "Epic": 18.0,
+        "Legendary": 10.0,
+        "Mythic": 5.5,
+        "Immortal": 2.5
+      }
+    }
+  ]
+}

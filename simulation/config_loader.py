@@ -18,7 +18,25 @@ from simulation.models import (
     ProgressionMapping,
     UserProfile,
     CardCategory,
+    PetTierConfig,
+    PetLevelConfig,
+    PetDuplicateConfig,
+    PetBuildConfig,
+    PetSystemConfig,
+    HeroSystemConfig,
+    GearSystemConfig,
+    HeroUnlockTable,
+    GearDesignIncomeRow,
+    GearSlotCostRow,
+    GearDesignConfig,
+    GearSlotCostConfig,
 )
+
+
+class ConfigValidationError(Exception):
+    """Custom exception for configuration validation errors."""
+
+    pass
 
 
 def _get_defaults_dir() -> Path:
@@ -29,9 +47,53 @@ def _get_defaults_dir() -> Path:
     return defaults_dir
 
 
+def default_pet_config() -> dict[str, Any]:
+    """
+    Create minimal default pet system config placeholder.
+
+    Returns an empty dict as a placeholder. Real pet system schema
+    and config tables will be populated by later tasks.
+
+    Task 5 backward-compatibility: ensures legacy configs without
+    pet_system_config load successfully.
+    """
+    return {}
+
+
+def default_hero_config() -> dict[str, Any]:
+    """
+    Create minimal default hero system config placeholder.
+
+    Returns an empty dict as a placeholder. Real hero system schema
+    and config tables will be populated by later tasks.
+
+    Task 5 backward-compatibility: ensures legacy configs without
+    hero_system_config load successfully.
+    """
+    return {}
+
+
+def default_gear_config() -> dict[str, Any]:
+    """
+    Create minimal default gear system config placeholder.
+
+    Returns an empty dict as a placeholder. Real gear system schema
+    and config tables will be populated by later tasks.
+
+    Task 5 backward-compatibility: ensures legacy configs without
+    gear_system_config load successfully.
+    """
+    return {}
+
+
 def load_defaults() -> SimConfig:
     """
     Load default configuration from JSON files.
+
+    For backward compatibility, attempts to load pet/hero/gear configs
+    from disk. If files don't exist, uses default factory functions.
+    If files exist but are corrupt, raises ConfigValidationError with
+    clear error message.
 
     Returns:
         SimConfig: Configuration object with all default values loaded.
@@ -39,6 +101,7 @@ def load_defaults() -> SimConfig:
     Raises:
         FileNotFoundError: If any required JSON file is missing.
         ValueError: If JSON structure doesn't match expected schema.
+        ConfigValidationError: If new system config sections are corrupt.
     """
     defaults_dir = _get_defaults_dir()
 
@@ -90,6 +153,60 @@ def load_defaults() -> SimConfig:
     with open(defaults_dir / "daily_pack_schedule.json") as f:
         schedule_data = json.load(f)
 
+    # Load pet system config (Task 5: backward compatibility)
+    pet_system_config = None
+    try:
+        pet_config_path = defaults_dir / "pet_config.json"
+        if pet_config_path.exists():
+            with open(pet_config_path) as f:
+                pet_data = json.load(f)
+            pet_system_config = PetSystemConfig(**pet_data)
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(
+            f"Pet system config validation failed: {str(e)} - "
+            "check pet_config.json format"
+        )
+
+    # Use default if file not found (legacy backward compatibility)
+    if pet_system_config is None:
+        pet_system_config = PetSystemConfig(**default_pet_config())
+
+    # Load hero system config (Task 5: backward compatibility)
+    hero_system_config = None
+    try:
+        hero_config_path = defaults_dir / "hero_config.json"
+        if hero_config_path.exists():
+            with open(hero_config_path) as f:
+                hero_data = json.load(f)
+            hero_system_config = HeroSystemConfig(**hero_data)
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(
+            f"Hero system config validation failed: {str(e)} - "
+            "check hero_config.json format"
+        )
+
+    # Use default if file not found (legacy backward compatibility)
+    if hero_system_config is None:
+        hero_system_config = HeroSystemConfig(**default_hero_config())
+
+    # Load gear system config (Task 5: backward compatibility)
+    gear_system_config = None
+    try:
+        gear_config_path = defaults_dir / "gear_config.json"
+        if gear_config_path.exists():
+            with open(gear_config_path) as f:
+                gear_data = json.load(f)
+            gear_system_config = GearSystemConfig(**gear_data)
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(
+            f"Gear system config validation failed: {str(e)} - "
+            "check gear_config.json format"
+        )
+
+    # Use default if file not found (legacy backward compatibility)
+    if gear_system_config is None:
+        gear_system_config = GearSystemConfig(**default_gear_config())
+
     # Create SimConfig
     config = SimConfig(
         packs=packs,
@@ -100,6 +217,9 @@ def load_defaults() -> SimConfig:
         unique_unlock_schedule=unique_unlock_schedule,
         daily_pack_schedule=schedule_data,
         num_days=100,
+        pet_system_config=pet_system_config,
+        hero_system_config=hero_system_config,
+        gear_system_config=gear_system_config,
     )
 
     return config
@@ -212,7 +332,7 @@ def _get_results_dir() -> Path:
     return current_dir / "data" / "results"
 
 
-def list_saved_results() -> list[dict]:
+def list_saved_results() -> list[dict[str, Any]]:
     """List all saved results with their metadata."""
     results_dir = _get_results_dir()
     if not results_dir.exists():
@@ -241,7 +361,7 @@ def list_saved_results() -> list[dict]:
     return results
 
 
-def save_result(result_data: dict) -> str:
+def save_result(result_data: dict[str, Any]) -> str:
     """Save a simulation result. Returns the filename."""
     results_dir = _get_results_dir()
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -260,7 +380,7 @@ def save_result(result_data: dict) -> str:
     return filename
 
 
-def load_result(filename: str) -> dict:
+def load_result(filename: str) -> dict[str, Any]:
     """Load a saved simulation result."""
     results_dir = _get_results_dir()
     path = results_dir / f"{filename}.json"
@@ -274,3 +394,197 @@ def delete_result(filename: str) -> None:
     path = results_dir / f"{filename}.json"
     if path.exists():
         path.unlink()
+
+
+def load_pet_tier_table() -> PetTierConfig:
+    """Load pet tier table from JSON (tiers 1-15)."""
+    defaults_dir = _get_defaults_dir()
+    try:
+        with open(defaults_dir / "pet_tier_table.json") as f:
+            data = json.load(f)
+        config = PetTierConfig(**data)
+        return config
+    except FileNotFoundError:
+        raise FileNotFoundError("pet_tier_table.json not found in data/defaults/")
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(f"Pet tier table validation failed: {str(e)}")
+
+
+def load_pet_level_table() -> PetLevelConfig:
+    """Load pet level table from JSON (levels 1-100 × rarity)."""
+    defaults_dir = _get_defaults_dir()
+    try:
+        with open(defaults_dir / "pet_level_table.json") as f:
+            data = json.load(f)
+        config = PetLevelConfig(**data)
+        return config
+    except FileNotFoundError:
+        raise FileNotFoundError("pet_level_table.json not found in data/defaults/")
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(f"Pet level table validation failed: {str(e)}")
+
+
+def load_pet_duplicate_table() -> PetDuplicateConfig:
+    """Load pet duplicate table from JSON (levels 1-100 × rarity)."""
+    defaults_dir = _get_defaults_dir()
+    try:
+        with open(defaults_dir / "pet_duplicate_table.json") as f:
+            data = json.load(f)
+        config = PetDuplicateConfig(**data)
+        return config
+    except FileNotFoundError:
+        raise FileNotFoundError("pet_duplicate_table.json not found in data/defaults/")
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(f"Pet duplicate table validation failed: {str(e)}")
+
+
+def load_pet_build_table() -> PetBuildConfig:
+    """Load pet build cost table from JSON (builds 1-8)."""
+    defaults_dir = _get_defaults_dir()
+    try:
+        with open(defaults_dir / "pet_build_table.json") as f:
+            data = json.load(f)
+        config = PetBuildConfig(**data)
+        return config
+    except FileNotFoundError:
+        raise FileNotFoundError("pet_build_table.json not found in data/defaults/")
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(f"Pet build table validation failed: {str(e)}")
+
+
+def _validate_gear_day_ranges(rows: list[GearDesignIncomeRow]) -> None:
+    sorted_rows = sorted(rows, key=lambda row: row.day_start)
+    for idx, row in enumerate(sorted_rows):
+        if row.day_start > row.day_end:
+            raise ConfigValidationError(
+                f"Invalid day range at index {idx}: day_start ({row.day_start}) "
+                f"must be <= day_end ({row.day_end})"
+            )
+        if idx == 0:
+            continue
+        prev_row = sorted_rows[idx - 1]
+        if prev_row.day_end >= row.day_start:
+            raise ConfigValidationError(
+                "Overlapping day ranges in gear design income table: "
+                f"{prev_row.day_start}-{prev_row.day_end} overlaps with "
+                f"{row.day_start}-{row.day_end}"
+            )
+
+
+def _validate_gear_slot_costs(rows: list[GearSlotCostRow]) -> None:
+    required_pairs = {
+        (slot_id, level) for slot_id in range(1, 7) for level in range(1, 101)
+    }
+    seen_pairs: set[tuple[int, int]] = set()
+
+    for row in rows:
+        pair = (row.slot_id, row.level)
+        if pair in seen_pairs:
+            raise ConfigValidationError(
+                "Gear slot cost table has duplicate slot/level row: "
+                f"slot_id={row.slot_id}, level={row.level}"
+            )
+        seen_pairs.add(pair)
+
+    missing_pairs = sorted(required_pairs - seen_pairs)
+    extra_pairs = sorted(seen_pairs - required_pairs)
+    if missing_pairs or extra_pairs:
+        details: list[str] = []
+        if missing_pairs:
+            details.append(
+                f"missing {len(missing_pairs)} pair(s), first={missing_pairs[0]}"
+            )
+        if extra_pairs:
+            details.append(
+                f"unexpected {len(extra_pairs)} pair(s), first={extra_pairs[0]}"
+            )
+        raise ConfigValidationError(
+            "Gear slot cost table incomplete: " + "; ".join(details)
+        )
+
+
+def load_gear_design_income() -> GearDesignConfig:
+    defaults_dir = _get_defaults_dir()
+    try:
+        with open(defaults_dir / "gear_design_income_table.json") as f:
+            data = json.load(f)
+        config = GearDesignConfig(**data)
+        _validate_gear_day_ranges(config.income_table)
+        return config
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            "gear_design_income_table.json not found in data/defaults/"
+        )
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(
+            f"Gear design income table validation failed: {str(e)}"
+        )
+
+
+def load_gear_slot_costs() -> GearSlotCostConfig:
+    defaults_dir = _get_defaults_dir()
+    try:
+        with open(defaults_dir / "gear_slot_cost_table.json") as f:
+            data = json.load(f)
+        config = GearSlotCostConfig(**data)
+        _validate_gear_slot_costs(config.cost_table)
+        return config
+    except FileNotFoundError:
+        raise FileNotFoundError("gear_slot_cost_table.json not found in data/defaults/")
+    except (ValueError, TypeError) as e:
+        raise ConfigValidationError(f"Gear slot cost table validation failed: {str(e)}")
+
+
+def load_hero_unlocks(hero_unlock_rows: list[dict[str, Any]]) -> HeroUnlockTable:
+    """
+    Load and validate hero unlock table with deterministic same-day aggregation.
+
+    Validates each row format (day, hero_id, unique_cards_added), rejects negative
+    card counts, and aggregates multiple same-day heroes deterministically.
+
+    Args:
+        hero_unlock_rows: List of dicts with {day, hero_id, unique_cards_added}
+
+    Returns:
+        HeroUnlockTable: Aggregated unlock table with schedule and total cards.
+
+    Raises:
+        ConfigValidationError: If validation fails or negative card counts detected.
+    """
+    from simulation.models import HeroUnlockRow
+
+    unlock_schedule: dict[int, dict[str, int]] = {}
+    total_unique_cards = 0
+
+    try:
+        for i, row_data in enumerate(hero_unlock_rows):
+            row = HeroUnlockRow(**row_data)
+            day = row.day
+            hero_id = row.hero_id
+            cards = row.unique_cards_added
+
+            if cards < 0:
+                raise ConfigValidationError(
+                    f"Row {i}: hero '{hero_id}' has negative unique_cards_added: {cards}"
+                )
+
+            if day not in unlock_schedule:
+                unlock_schedule[day] = {}
+
+            unlock_schedule[day][hero_id] = unlock_schedule[day].get(hero_id, 0) + cards
+            total_unique_cards += cards
+
+    except ConfigValidationError:
+        raise
+    except ValueError as e:
+        raise ConfigValidationError(f"Hero unlock table validation failed: {str(e)}")
+    except TypeError as e:
+        raise ConfigValidationError(
+            f"Hero unlock table type error: {str(e)} - expected row format: "
+            "{day: int, hero_id: str, unique_cards_added: int}"
+        )
+
+    return HeroUnlockTable(
+        unlock_schedule=unlock_schedule,
+        total_unique_cards=total_unique_cards,
+    )
