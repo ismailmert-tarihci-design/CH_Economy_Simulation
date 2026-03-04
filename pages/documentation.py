@@ -21,49 +21,136 @@ def render_documentation() -> None:
     st.markdown("## Table of Contents")
     st.markdown(
         """
-        1. [Overview](#overview)
-        2. [Core Systems](#core-systems)
+        1. [Stakeholder Release Summary](#stakeholder-release-summary)
+        2. [Product Specifications](#product-specifications)
+        3. [Overview](#overview)
+        4. [Core Systems](#core-systems)
             - [Drop Algorithm](#drop-algorithm)
             - [Progression System](#progression-system)
             - [Upgrade Engine](#upgrade-engine)
             - [Pack System](#pack-system)
             - [Coin Economy](#coin-economy)
-        3. [Mathematical Formulas](#mathematical-formulas)
-        4. [Data Models](#data-models)
-        5. [Configuration Tables](#configuration-tables)
-        6. [Simulation Modes](#simulation-modes)
-        7. [Implementation Details](#implementation-details)
+        5. [Mathematical Formulas](#mathematical-formulas)
+        6. [Data Models](#data-models)
+        7. [Configuration Tables](#configuration-tables)
+        8. [Simulation Modes](#simulation-modes)
+        9. [Implementation Details](#implementation-details)
         """
     )
 
     st.divider()
 
-    # 1. OVERVIEW
+    _render_stakeholder_release_summary()
+    st.divider()
+
+    _render_product_specifications()
+    st.divider()
+
     _render_overview()
     st.divider()
 
-    # 2. CORE SYSTEMS
     _render_core_systems()
     st.divider()
 
-    # 3. MATHEMATICAL FORMULAS
     _render_mathematical_formulas()
     st.divider()
 
-    # 4. DATA MODELS
     _render_data_models()
     st.divider()
 
-    # 5. CONFIGURATION TABLES
     _render_configuration_tables()
     st.divider()
 
-    # 6. SIMULATION MODES
     _render_simulation_modes()
     st.divider()
 
-    # 7. IMPLEMENTATION DETAILS
     _render_implementation_details()
+
+
+def _render_stakeholder_release_summary() -> None:
+    st.markdown("## Stakeholder Release Summary")
+    st.markdown(
+        """
+        This release focused on making the simulator easier to use for planning and decision-making,
+        while expanding model coverage to include Pet, Hero, and Gear progression.
+        """
+    )
+
+    st.markdown("### What Improved")
+    st.markdown(
+        """
+        - **Saved Results & Comparison:** Teams can save run outcomes, reopen them later, and compare runs side-by-side.
+        - **Expanded Progression Scope:** Pet, Hero, and Gear systems are now integrated into daily simulation flow.
+        - **Faster Config Editing:** Bulk editing workflows were added for high-volume table changes.
+        - **Richer Dashboards:** Dedicated Pet, Hero, and Gear analytics views were added for progression monitoring.
+        - **Goal-Based Simulation:** Users can set targets (e.g., bluestars by day) and get immediate pass/fail evaluation.
+        """
+    )
+
+    st.markdown("### Business Value")
+    st.markdown(
+        """
+        - **Faster balancing cycles** through reusable saved scenarios and direct comparison.
+        - **Better planning confidence** via system-specific dashboards and target checks.
+        - **Lower operational friction** with improved configuration usability for non-engineering users.
+        """
+    )
+
+
+def _render_product_specifications() -> None:
+    st.markdown("## Product Specifications")
+
+    st.markdown("### Functional Scope")
+    st.markdown(
+        """
+        - Runs deterministic and Monte Carlo simulations for a configurable number of days.
+        - Models card progression, coin economy, and unique unlock schedules.
+        - Models Pet/Hero/Gear systems as table-driven mechanics.
+        - Supports result saving, loading, deletion, and comparison.
+        - Supports goal-based checks for target outcomes by target day.
+        """
+    )
+
+    st.markdown("### Goal-Based Simulation Specification")
+    st.markdown(
+        """
+        - **Available goals:**
+          - Bluestars by Day (Deterministic + Monte Carlo)
+          - Hero Unique Pool by Day (Deterministic)
+          - Pet Tier by Day (Deterministic)
+          - Average Gear Level by Day (Deterministic)
+        - **Inputs:** goal type, target day, target value
+        - **Output:** reached/not reached, actual value, and gap from target
+        """
+    )
+
+    st.markdown("### System Configuration Specification")
+    st.markdown(
+        """
+        - **Pet:** Tier table, level costs, duplicate requirements, build costs, eggs/day schedule
+        - **Hero:** Day-based unlock rows with unique card count increments
+        - **Gear:** Day-range design income and slot-level cost matrix (6 slots, levels 1-100)
+        - All systems are configured through JSON-backed tables and in-app editors.
+        """
+    )
+
+    st.markdown("### Non-Functional Specification")
+    st.markdown(
+        """
+        - **Usability:** Bulk-edit-friendly config screens for large balancing tables
+        - **Reproducibility:** Deterministic mode gives repeatable outcomes with same config
+        - **Performance:** Cached simulation runs for repeated configurations
+        - **Quality controls:** Automated test suite and CI fast test path
+        """
+    )
+
+    st.markdown("### Current Boundaries")
+    st.markdown(
+        """
+        - Combat power and battle simulation are intentionally out of scope.
+        - The simulator is economy/progression focused, not combat resolution focused.
+        """
+    )
 
 
 def _render_overview() -> None:
