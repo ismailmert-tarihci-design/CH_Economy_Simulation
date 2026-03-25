@@ -141,7 +141,7 @@ def _render_per_card(pull_logs: list) -> None:
             selected_card = st.selectbox(
                 "Select Card",
                 sorted_ids,
-                format_func=lambda cid: _card_display_name(card_dict, cid),
+                format_func=lambda cid, d=card_dict: _card_display_name(d, cid),
                 key=f"card_select_{cat_key}",
             )
 

@@ -1,7 +1,7 @@
 import streamlit as st
 
-from pages.config_sharing import render_config_sharing
-from pages.config_tabs import (
+from app_pages.config_sharing import render_config_sharing
+from app_pages.config_tabs import (
     render_pack_config,
     render_upgrade_tables,
     render_card_economy,

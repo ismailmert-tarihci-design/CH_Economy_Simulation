@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import pandas as pd
 
-from pages.dashboard_charts import (
+from app_pages.dashboard_charts import (
     add_category_ci,
     add_coin_balance_ci,
     render_kpi_row,
@@ -46,7 +46,7 @@ def render_dashboard() -> None:
             with col_confirm:
                 if st.button("✅ Save", use_container_width=True):
                     try:
-                        from pages.results_manager import save_current_result
+                        from app_pages.results_manager import save_current_result
 
                         filename = save_current_result(save_name, save_desc)
                         st.session_state.show_save_dialog = False
@@ -129,7 +129,7 @@ def _render_bluestar_chart(result: Any, mode: str) -> None:
         hovermode="x unified",
         template="plotly_white",
     )
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def _render_card_progression_chart(result: Any, mode: str) -> None:
@@ -204,7 +204,7 @@ def _render_card_progression_chart(result: Any, mode: str) -> None:
         hovermode="x unified",
         template="plotly_white",
     )
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def _render_coin_flow_chart(result: Any, mode: str) -> None:
@@ -265,7 +265,7 @@ def _render_coin_flow_chart(result: Any, mode: str) -> None:
         hovermode="x unified",
         template="plotly_white",
     )
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def _render_pet_hero_gear_events(result: Any) -> None:
@@ -384,7 +384,7 @@ def _render_pet_detail_dashboard(result: Any) -> None:
         barmode="group",
         template="plotly_white",
     )
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
     st.dataframe(pet_df, use_container_width=True, hide_index=True)
 
 
@@ -446,7 +446,7 @@ def _render_hero_detail_dashboard(result: Any) -> None:
         yaxis=dict(title="Unique Cards"),
         template="plotly_white",
     )
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
     st.dataframe(hero_df, use_container_width=True, hide_index=True)
 
 
@@ -509,7 +509,7 @@ def _render_gear_detail_dashboard(result: Any) -> None:
         yaxis2=dict(title="Average Level", overlaying="y", side="right"),
         template="plotly_white",
     )
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
 
     slot_fig = go.Figure()
     for slot_id in range(1, 7):
@@ -527,5 +527,5 @@ def _render_gear_detail_dashboard(result: Any) -> None:
         yaxis=dict(title="Slot Level"),
         template="plotly_white",
     )
-    st.plotly_chart(slot_fig, width="stretch")
+    st.plotly_chart(slot_fig, use_container_width=True)
     st.dataframe(gear_df, use_container_width=True, hide_index=True)
