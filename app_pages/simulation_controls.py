@@ -187,8 +187,28 @@ def render_simulation_controls(config: Any) -> None:
 
         st.info("📊 View results in the Dashboard page.")
 
+    # --- Compare Variants ---
+    if len(variants.list_variants()) > 1:
+        st.divider()
+        st.subheader("Compare Variants")
+        st.caption("Run both variants with the same day count and compare results side-by-side.")
+
+        if st.button("Compare All Variants (Deterministic)", use_container_width=True):
+            config.num_days = num_days
+            comparison_results = {"mode": "deterministic", "variants": {}}
+            for v in variants.list_variants():
+                v_config = st.session_state.configs.get(v.variant_id)
+                if v_config is None:
+                    v_config = v.load_defaults()
+                v_config.num_days = num_days
+                with st.spinner(f"Running {v.display_name}..."):
+                    result = v.run_simulation(v_config, rng=None)
+                comparison_results["variants"][v.variant_id] = result
+            st.session_state.comparison_results = comparison_results
+            st.success("Comparison complete! View in Dashboard → select 'Comparison' view.")
+
     st.divider()
-    st.subheader("📋 Share Configuration")
+    st.subheader("Share Configuration")
     st.caption("Generate a shareable URL containing your current configuration")
 
     if st.button("Generate Shareable URL", use_container_width=True):

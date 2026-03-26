@@ -66,6 +66,23 @@ def _page_simulation():
 
 def _page_dashboard():
     variant_id = st.session_state.get("active_variant", "variant_a")
+
+    # Show comparison view toggle if comparison data exists
+    if st.session_state.get("comparison_results"):
+        view = st.radio(
+            "View",
+            ["Variant Dashboard", "Variant Comparison"],
+            horizontal=True,
+            key="dashboard_view_toggle",
+        )
+        if view == "Variant Comparison":
+            from app_pages.variant_dashboards.comparison_dashboard import (
+                render_comparison_dashboard,
+            )
+
+            render_comparison_dashboard()
+            return
+
     if variant_id == "variant_b":
         from app_pages.variant_dashboards.variant_b_dashboard import (
             render_variant_b_dashboard,
