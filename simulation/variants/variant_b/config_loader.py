@@ -12,7 +12,6 @@ from simulation.variants.variant_b.models import (
     HeroCardRarity,
     HeroDef,
     HeroDropConfig,
-    HeroPackConfig,
     HeroUpgradeCostTable,
     PremiumPackCardRate,
     PremiumPackDef,
