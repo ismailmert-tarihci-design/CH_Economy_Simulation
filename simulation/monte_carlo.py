@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 import numpy as np
 
 from simulation.models import SimConfig
-from simulation.orchestrator import DailySnapshot, run_simulation
+from simulation.orchestrator import DailySnapshot, run_simulation as _default_run_simulation
 
 
 class WelfordAccumulator:
@@ -112,13 +112,13 @@ class DailyAccumulators:
         self.pull_count_accumulators: Dict[str, List[WelfordAccumulator]] = {}
         self.pack_count_accumulators: Dict[str, List[WelfordAccumulator]] = {}
 
-    def update_from_snapshot(self, day_index: int, snapshot: DailySnapshot) -> None:
+    def update_from_snapshot(self, day_index: int, snapshot: Any) -> None:
         """
         Update all accumulators for a given day.
 
         Args:
             day_index: 0-indexed day (day=1 -> index=0)
-            snapshot: DailySnapshot from run_simulation
+            snapshot: Any object satisfying DailySnapshotProtocol
         """
         # Update bluestar accumulator
         self.bluestar_accumulators[day_index].update(float(snapshot.total_bluestars))
@@ -231,7 +231,11 @@ class MCResult:
     completion_time: float
 
 
-def run_monte_carlo(config: SimConfig, num_runs: int = 100) -> MCResult:
+def run_monte_carlo(
+    config: Any,
+    num_runs: int = 100,
+    run_fn: Any = None,
+) -> MCResult:
     """
     Run Monte Carlo simulation with Welford statistics.
 
@@ -243,8 +247,10 @@ def run_monte_carlo(config: SimConfig, num_runs: int = 100) -> MCResult:
     5. Track timing: Record completion_time in seconds
 
     Args:
-        config: Simulation configuration
+        config: Simulation configuration (any ConfigProtocol)
         num_runs: Number of Monte Carlo runs (default 100)
+        run_fn: Simulation callable (config, rng=) -> SimResultProtocol.
+                Defaults to Variant A's run_simulation if None.
 
     Returns:
         MCResult with aggregated statistics across all runs
@@ -252,6 +258,8 @@ def run_monte_carlo(config: SimConfig, num_runs: int = 100) -> MCResult:
     Raises:
         ValueError: If num_runs < 1 or num_runs > 500
     """
+    if run_fn is None:
+        run_fn = _default_run_simulation
     # Validation
     if num_runs < 1 or num_runs > 500:
         raise ValueError(f"num_runs must be between 1 and 500, got {num_runs}")
@@ -275,7 +283,7 @@ def run_monte_carlo(config: SimConfig, num_runs: int = 100) -> MCResult:
         rng = Random()
         rng.seed(run_idx)
         np.random.seed(run_idx)
-        result = run_simulation(config, rng=rng)
+        result = run_fn(config, rng=rng)
 
         # Update final bluestar accumulator
         final_bluestar_accumulator.update(float(result.total_bluestars))
