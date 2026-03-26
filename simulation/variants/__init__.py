@@ -47,5 +47,7 @@ try:
     from simulation.variants.variant_b import register_variant_b  # noqa: E402
 
     register_variant_b()
-except ImportError:
-    pass
+except Exception as _e:
+    import logging as _logging
+
+    _logging.getLogger(__name__).debug("Variant B not registered: %s", _e)
