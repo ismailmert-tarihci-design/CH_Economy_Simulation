@@ -10,20 +10,19 @@ from typing import Any
 
 import streamlit as st
 
-from simulation.models import SimConfig
+import simulation.variants as variants
 from simulation.monte_carlo import run_monte_carlo
-from simulation.orchestrator import run_simulation
 from simulation.url_config import encode_config
 
 
-def render_simulation_controls(config: SimConfig) -> None:
+def render_simulation_controls(config: Any) -> None:
     """
     Render simulation control interface.
 
     Args:
-        config: Current SimConfig from session state
+        config: Current config from session state (any variant's ConfigProtocol)
     """
-    st.title("▶️ Simulation Controls")
+    st.title("Simulation Controls")
     st.markdown("Configure and run simulations. Results are cached for performance.")
 
     col1, col2 = st.columns(2)
@@ -145,27 +144,32 @@ def render_simulation_controls(config: SimConfig) -> None:
             "goal_value": float(goal_value),
         }
 
-    if st.button("▶️ Run Simulation", type="primary", use_container_width=True):
+    variant_id = st.session_state.get("active_variant", "variant_a")
+
+    if st.button("Run Simulation", type="primary", use_container_width=True):
         config.num_days = num_days
         config_hash = hashlib.md5(config.model_dump_json().encode()).hexdigest()
 
+        variant_info = variants.get(variant_id)
+        run_fn = variant_info.run_simulation
+
         if mode == "Deterministic":
             with st.spinner("Running deterministic simulation..."):
-                result = _run_cached_simulation(config_hash, config)
+                result = _run_cached_simulation(config_hash, config, variant_id)
             st.session_state.sim_result = result
             st.session_state.sim_mode = "deterministic"
             st.success(
-                f"✅ Deterministic simulation complete! "
+                f"Deterministic simulation complete! "
                 f"Final bluestars: {result.total_bluestars}"
             )
         else:
             with st.spinner(f"Running {num_runs} Monte Carlo trials..."):
-                result = _run_cached_mc(config_hash, config, num_runs)
+                result = _run_cached_mc(config_hash, config, num_runs, variant_id)
             st.session_state.sim_result = result
             st.session_state.sim_mode = "monte_carlo"
             mean, std = result.bluestar_stats.result()
             st.success(
-                f"✅ Monte Carlo simulation complete! Final bluestars: {mean:.1f} ± {std:.1f} ({num_runs} runs in {result.completion_time:.1f}s)"
+                f"Monte Carlo simulation complete! Final bluestars: {mean:.1f} ± {std:.1f} ({num_runs} runs in {result.completion_time:.1f}s)"
             )
 
         if use_goal_mode and goal_settings:
@@ -203,36 +207,19 @@ def render_simulation_controls(config: SimConfig) -> None:
 
 
 @st.cache_data(ttl=3600, max_entries=10)
-def _run_cached_simulation(config_hash: str, _config: SimConfig):
-    """
-    Run and cache deterministic simulation.
-
-    Args:
-        config_hash: MD5 hash of config JSON for cache key
-        _config: SimConfig object (underscore prefix = don't hash)
-
-    Returns:
-        SimResult from run_simulation
-    """
+def _run_cached_simulation(config_hash: str, _config: Any, variant_id: str = "variant_a"):
+    """Run and cache deterministic simulation for any variant."""
     _ = config_hash
-    return run_simulation(_config, rng=None)
+    run_fn = variants.get(variant_id).run_simulation
+    return run_fn(_config, rng=None)
 
 
 @st.cache_data(ttl=3600, max_entries=10)
-def _run_cached_mc(config_hash: str, _config: SimConfig, num_runs: int):
-    """
-    Run and cache Monte Carlo simulation.
-
-    Args:
-        config_hash: MD5 hash of config JSON for cache key
-        _config: SimConfig object (underscore prefix = don't hash)
-        num_runs: Number of Monte Carlo runs
-
-    Returns:
-        MCResult from run_monte_carlo
-    """
+def _run_cached_mc(config_hash: str, _config: Any, num_runs: int, variant_id: str = "variant_a"):
+    """Run and cache Monte Carlo simulation for any variant."""
     _ = config_hash
-    return run_monte_carlo(_config, num_runs=num_runs)
+    run_fn = variants.get(variant_id).run_simulation
+    return run_monte_carlo(_config, num_runs=num_runs, run_fn=run_fn)
 
 
 def _evaluate_goal(

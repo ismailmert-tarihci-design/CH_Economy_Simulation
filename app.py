@@ -2,20 +2,33 @@
 Main entry point for the Bluestar Economy Simulator.
 
 Provides navigation between Configuration, Simulation, Dashboard, and tool pages.
-Initializes session state with default configuration on first run.
-Supports URL-based config loading via ?cfg=... query parameter.
+Supports A/B variant selection, per-variant config, and URL-based config loading.
 """
 
 import streamlit as st
 
-from simulation.config_loader import load_defaults
+import simulation.variants as variants
 
 # Must be the first Streamlit command
 st.set_page_config(
     page_title="Bluestar Economy Simulator", page_icon="🌌", layout="wide"
 )
 
-# URL-based config loading
+# --- Variant selector (sidebar, before anything else) ---
+with st.sidebar:
+    variant_options = {v.variant_id: v.display_name for v in variants.list_variants()}
+    active_variant = st.selectbox(
+        "Game Variant",
+        options=list(variant_options.keys()),
+        format_func=lambda x: variant_options[x],
+        key="active_variant",
+    )
+
+# --- Per-variant config initialization ---
+if "configs" not in st.session_state:
+    st.session_state.configs = {}
+
+# URL-based config loading (applies to active variant)
 if "cfg" in st.query_params:
     if "config_loaded_from_url" not in st.session_state:
         try:
@@ -23,22 +36,26 @@ if "cfg" in st.query_params:
 
             encoded_config = st.query_params["cfg"]
             decoded = decode_config(encoded_config)
-            st.session_state.config = decoded
+            st.session_state.configs[active_variant] = decoded
             st.session_state.config_loaded_from_url = True
-            st.success("✅ Configuration loaded from shared URL!")
+            st.success("Configuration loaded from shared URL!")
         except ValueError as e:
-            st.error(f"❌ Invalid config URL: {e}")
-            if "config" not in st.session_state:
-                st.session_state.config = load_defaults()
-elif "config" not in st.session_state:
-    st.session_state.config = load_defaults()
+            st.error(f"Invalid config URL: {e}")
+
+# Ensure active variant has a config loaded
+if active_variant not in st.session_state.configs:
+    variant_info = variants.get(active_variant)
+    st.session_state.configs[active_variant] = variant_info.load_defaults()
+
+# Backward compat: st.session_state.config always points to active variant's config
+st.session_state.config = st.session_state.configs[active_variant]
 
 
-# Page callables (thin wrappers so st.navigation can invoke them)
+# --- Page callables ---
 def _page_config():
     from app_pages.config_editor import render_config_editor
 
-    render_config_editor(st.session_state.config)
+    render_config_editor(st.session_state.config, variant_id=active_variant)
 
 
 def _page_simulation():
@@ -48,9 +65,17 @@ def _page_simulation():
 
 
 def _page_dashboard():
-    from app_pages.dashboard import render_dashboard
+    variant_id = st.session_state.get("active_variant", "variant_a")
+    if variant_id == "variant_b":
+        from app_pages.variant_dashboards.variant_b_dashboard import (
+            render_variant_b_dashboard,
+        )
 
-    render_dashboard()
+        render_variant_b_dashboard()
+    else:
+        from app_pages.dashboard import render_dashboard
+
+        render_dashboard()
 
 
 def _page_saved_results():
@@ -77,7 +102,7 @@ def _page_docs():
     render_documentation()
 
 
-# Navigation
+# --- Navigation ---
 page = st.navigation(
     {
         "Simulation": [
@@ -89,17 +114,13 @@ page = st.navigation(
         ],
         "Tools": [
             st.Page(
-                _page_saved_results,
-                title="Saved Results",
-                icon=":material/save:",
+                _page_saved_results, title="Saved Results", icon=":material/save:"
             ),
             st.Page(
                 _page_pull_logs, title="Pull Logs", icon=":material/list_alt:"
             ),
             st.Page(
-                _page_gacha,
-                title="Gacha Simulator",
-                icon=":material/casino:",
+                _page_gacha, title="Gacha Simulator", icon=":material/casino:"
             ),
             st.Page(
                 _page_docs, title="Documentation", icon=":material/menu_book:"
@@ -108,7 +129,7 @@ page = st.navigation(
     }
 )
 
-# Shared sidebar: config sharing
+# --- Shared sidebar: config sharing ---
 with st.sidebar:
     st.divider()
     st.caption("Share Configuration")
