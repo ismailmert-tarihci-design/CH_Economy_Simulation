@@ -262,44 +262,53 @@ def _render_upgrade_costs_tab(config: HeroCardConfig) -> None:
 
 
 def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
-    st.subheader("Drop Algorithm Settings")
+    st.subheader("Drop Algorithm — Interactive Diagram")
+    st.caption("Edit values directly — the flowchart updates in real time.")
     dc = config.drop_config
 
-    col1, col2 = st.columns(2)
-    with col1:
-        dc.hero_vs_shared_base_rate = st.slider(
-            "Hero vs Shared Base Rate",
-            min_value=0.0, max_value=1.0, value=dc.hero_vs_shared_base_rate, step=0.05,
-            help="Probability of pulling a hero card vs shared card",
-            key="vb_hero_rate",
+    # --- Editable controls in a compact layout ---
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        config.joker_drop_rate_in_regular_packs = st.slider(
+            "Joker drop rate",
+            min_value=0.0, max_value=0.20, value=config.joker_drop_rate_in_regular_packs,
+            step=0.005, format="%.3f", key="vb_da_joker",
         )
-    with col2:
+    with c2:
+        dc.pity_counter_threshold = st.number_input(
+            "Pity threshold (0 = off)",
+            min_value=0, max_value=100, value=dc.pity_counter_threshold, step=1,
+            key="vb_da_pity",
+        )
+    with c3:
+        dc.hero_vs_shared_base_rate = st.slider(
+            "Hero vs Shared rate",
+            min_value=0.0, max_value=1.0, value=dc.hero_vs_shared_base_rate, step=0.05,
+            key="vb_da_hero_rate",
+        )
+
+    c4, c5, c6 = st.columns(3)
+    with c4:
         dc.card_selection_mode = st.selectbox(
-            "Card Selection Mode",
+            "Card selection mode",
             ["lowest_level", "weighted_rarity", "equal"],
             index=["lowest_level", "weighted_rarity", "equal"].index(dc.card_selection_mode)
             if dc.card_selection_mode in ["lowest_level", "weighted_rarity", "equal"] else 0,
-            key="vb_card_mode",
+            key="vb_da_mode",
         )
-
-    col3, col4 = st.columns(2)
-    with col3:
-        dc.pity_counter_threshold = st.number_input(
-            "Pity Counter (0=disabled)",
-            min_value=0, max_value=100, value=dc.pity_counter_threshold, step=1,
-            help="Guarantee hero card after N shared-only pulls",
-            key="vb_pity",
-        )
-    with col4:
+    with c5:
         dc.streak_decay_shared = st.number_input(
-            "Streak Decay (Shared)", min_value=0.0, max_value=1.0,
-            value=dc.streak_decay_shared, step=0.05, key="vb_sd_shared",
+            "Streak decay (shared)", min_value=0.0, max_value=1.0,
+            value=dc.streak_decay_shared, step=0.05, key="vb_da_sd_shared",
+        )
+    with c6:
+        dc.streak_decay_hero = st.number_input(
+            "Streak decay (hero)", min_value=0.0, max_value=1.0,
+            value=dc.streak_decay_hero, step=0.05, key="vb_da_sd_hero",
         )
 
-    dc.streak_decay_hero = st.number_input(
-        "Streak Decay (Hero)", min_value=0.0, max_value=1.0,
-        value=dc.streak_decay_hero, step=0.05, key="vb_sd_hero",
-    )
+    # --- Render the live diagram with current values ---
+    _render_drop_diagram(config)
 
 
 def _render_joker_tab(config: HeroCardConfig) -> None:
@@ -424,3 +433,100 @@ def _render_import_export(config: HeroCardConfig) -> None:
                 st.rerun()
             except Exception as e:
                 st.error(f"Invalid config: {e}")
+
+
+def _render_drop_diagram(config: HeroCardConfig) -> None:
+    """Render an interactive HTML flowchart that reflects current config values."""
+    dc = config.drop_config
+    hero_pct = f"{dc.hero_vs_shared_base_rate * 100:.0f}%"
+    shared_pct = f"{(1 - dc.hero_vs_shared_base_rate) * 100:.0f}%"
+    pity = dc.pity_counter_threshold
+    joker_pct = f"{config.joker_drop_rate_in_regular_packs * 100:.1f}%"
+    mode = dc.card_selection_mode.replace("_", " ").title()
+
+    html = f"""
+<style>
+.fd {{font-family:'Segoe UI',system-ui,sans-serif;max-width:720px;margin:0 auto}}
+.fn {{border:2px solid #555;border-radius:12px;padding:14px 18px;margin:8px auto;
+      text-align:center;max-width:480px;font-size:14px;line-height:1.5}}
+.fn.start {{background:#1a1a2e;color:#e0e0e0;border-color:#4a90d9}}
+.fn.dec   {{background:#2d2d44;color:#f0f0f0;border-color:#f5a623}}
+.fn.proc  {{background:#1e3a2f;color:#c8e6c9;border-color:#66bb6a}}
+.fn.out   {{background:#3e1a1a;color:#ffcdd2;border-color:#ef5350}}
+.fn.spec  {{background:#2a1f3d;color:#e1bee7;border-color:#ab47bc}}
+.fa {{text-align:center;font-size:22px;color:#888;margin:2px 0;line-height:1.2}}
+.fa .lb {{font-size:12px;color:#aaa;display:block}}
+.fs {{display:flex;gap:16px;justify-content:center;margin:8px 0}}
+.fs>div {{flex:1;max-width:340px}}
+.bg {{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin:0 2px}}
+.bg.hero   {{background:#ff9800;color:#000}}
+.bg.shared {{background:#2196f3;color:#fff}}
+.bg.joker  {{background:#9c27b0;color:#fff}}
+.bg.pity   {{background:#f44336;color:#fff}}
+.pm {{font-size:12px;color:#999;margin-top:4px}}
+</style>
+<div class="fd">
+
+<div class="fn start"><strong>REGULAR PACK PULL</strong><br>Player opens a regular pack card</div>
+<div class="fa">\u2193</div>
+
+<div class="fn dec"><strong>\U0001f0cf Joker Check</strong><br>Roll for Hero Joker drop<br>
+<div class="pm">Rate: <span class="bg joker">{joker_pct}</span> per pull</div></div>
+
+<div class="fs">
+<div>
+  <div class="fa"><span class="lb">\u2713 Joker drops</span>\u2193</div>
+  <div class="fn spec"><strong>\U0001f0cf JOKER AWARDED</strong><br>Universal wildcard \u2014 upgrades<br>any hero card as a duplicate</div>
+</div>
+<div>
+  <div class="fa"><span class="lb">\u2717 No joker</span>\u2193</div>
+  <div style="text-align:center"><em style="color:#888;font-size:12px">(continue)</em></div>
+</div>
+</div>
+
+<div class="fa">\u2193</div>
+
+<div class="fn dec"><strong>\U0001f3af Pity System Check</strong><br>Has pity counter reached threshold?<br>
+<div class="pm">Threshold: <span class="bg pity">{pity} pulls</span> without hero card \u2192 guaranteed hero</div></div>
+
+<div class="fs">
+<div>
+  <div class="fa"><span class="lb">\u2265 {pity} shared pulls</span>\u2193</div>
+  <div class="fn proc"><strong>\u2192 FORCED HERO CARD</strong><br>Pity counter resets to 0</div>
+</div>
+<div>
+  <div class="fa"><span class="lb">Under threshold</span>\u2193</div>
+  <div style="text-align:center"><em style="color:#888;font-size:12px">(roll normally)</em></div>
+</div>
+</div>
+
+<div class="fa">\u2193</div>
+
+<div class="fn dec"><strong>\U0001f3b2 Hero vs Shared Roll</strong><br>Random roll against base rate<br>
+<div class="pm"><span class="bg hero">Hero {hero_pct}</span> <span class="bg shared">Shared {shared_pct}</span></div></div>
+
+<div class="fs">
+<div>
+  <div class="fa"><span class="lb">\U0001f9b8 Hero card</span>\u2193</div>
+  <div class="fn proc"><strong>SELECT HERO CARD</strong><br>Mode: <strong>{mode}</strong><br>
+  <div class="pm">Pool: all unlocked cards<br>across all unlocked heroes</div></div>
+  <div class="fa">\u2193</div>
+  <div class="fn proc"><strong>COMPUTE DUPLICATES</strong><br>Formula: max(1, 4 \u2212 level\u00f710)<br>
+  <div class="pm">Then random 1..base dupes</div></div>
+  <div class="fa">\u2193</div>
+  <div class="fn out"><strong>\u2b06 UPGRADE ENGINE</strong><br>Dupes + Coins \u2192 Level up<br>Grants Bluestars + Hero XP<br>
+  <div class="pm">Pity counter resets to 0</div></div>
+</div>
+<div>
+  <div class="fa"><span class="lb">\U0001f7e1\U0001f535 Shared card</span>\u2193</div>
+  <div class="fn proc"><strong>SELECT SHARED CARD</strong><br>Lowest-level-first (catch-up)<br>
+  <div class="pm">Weight: 1 / (level + 1)<br>Pool: {config.num_gold_cards} Gold + {config.num_blue_cards} Blue cards</div></div>
+  <div class="fa">\u2193</div>
+  <div class="fn out"><strong>\u2b06 STANDARD UPGRADE</strong><br>Same upgrade engine for shared cards<br>
+  <div class="pm">Pity counter +1</div></div>
+</div>
+</div>
+
+</div>
+"""
+    st.components.v1.html(html, height=1050, scrolling=True)

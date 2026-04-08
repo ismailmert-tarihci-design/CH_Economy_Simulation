@@ -1,8 +1,6 @@
-"""Hero Card Tools — Drop algorithm diagram and single-pull simulator.
+"""Hero Card Tools — Single-pull simulator for hero unique card packs.
 
-Provides:
-1. A visual flowchart of the Variant B card drop algorithm
-2. An interactive single-pull simulator for hero unique card packs
+Uses the actual Variant B drop algorithm parameters from the config.
 """
 
 from __future__ import annotations
@@ -21,11 +19,11 @@ from simulation.variants.variant_b.models import (
 
 
 def render_hero_card_tools() -> None:
-    st.title("Hero Card Tools")
+    st.title("Hero Card Pull Simulator")
 
     variant_id = st.session_state.get("active_variant", "variant_a")
     if variant_id != "variant_b":
-        st.info("Switch to **Hero Card System** variant in the sidebar to use these tools.")
+        st.info("Switch to **Hero Card System** variant in the sidebar to use this tool.")
         return
 
     config: HeroCardConfig = st.session_state.configs.get("variant_b")
@@ -33,212 +31,8 @@ def render_hero_card_tools() -> None:
         st.warning("No Variant B config loaded.")
         return
 
-    tab_diagram, tab_pull = st.tabs([
-        ":material/account_tree: Drop Algorithm Diagram",
-        ":material/casino: Hero Card Pull Simulator",
-    ])
+    _render_hero_pull_simulator(config)
 
-    with tab_diagram:
-        _render_drop_algorithm_diagram(config)
-
-    with tab_pull:
-        _render_hero_pull_simulator(config)
-
-
-# ---------------------------------------------------------------------------
-# Drop Algorithm Diagram
-# ---------------------------------------------------------------------------
-
-_DIAGRAM_CSS = """
-<style>
-.flow-diagram {
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    max-width: 720px;
-    margin: 0 auto;
-}
-.flow-node {
-    border: 2px solid #555;
-    border-radius: 12px;
-    padding: 14px 18px;
-    margin: 8px auto;
-    text-align: center;
-    max-width: 480px;
-    font-size: 14px;
-    line-height: 1.5;
-}
-.flow-node.start { background: #1a1a2e; color: #e0e0e0; border-color: #4a90d9; }
-.flow-node.decision { background: #2d2d44; color: #f0f0f0; border-color: #f5a623;
-    border-radius: 4px; transform: rotate(0deg); }
-.flow-node.process { background: #1e3a2f; color: #c8e6c9; border-color: #66bb6a; }
-.flow-node.outcome { background: #3e1a1a; color: #ffcdd2; border-color: #ef5350; }
-.flow-node.special { background: #2a1f3d; color: #e1bee7; border-color: #ab47bc; }
-.flow-arrow {
-    text-align: center;
-    font-size: 22px;
-    color: #888;
-    margin: 2px 0;
-    line-height: 1.2;
-}
-.flow-arrow .label {
-    font-size: 12px;
-    color: #aaa;
-    display: block;
-}
-.flow-split {
-    display: flex;
-    gap: 16px;
-    justify-content: center;
-    margin: 8px 0;
-}
-.flow-split > div { flex: 1; max-width: 340px; }
-.flow-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 700;
-    margin: 0 2px;
-}
-.flow-badge.hero { background: #ff9800; color: #000; }
-.flow-badge.shared { background: #2196f3; color: #fff; }
-.flow-badge.joker { background: #9c27b0; color: #fff; }
-.flow-badge.pity { background: #f44336; color: #fff; }
-.flow-param { font-size: 12px; color: #999; margin-top: 4px; }
-</style>
-"""
-
-def _render_drop_algorithm_diagram(config: HeroCardConfig) -> None:
-    dc = config.drop_config
-    hero_pct = f"{dc.hero_vs_shared_base_rate * 100:.0f}%"
-    shared_pct = f"{(1 - dc.hero_vs_shared_base_rate) * 100:.0f}%"
-    pity = dc.pity_counter_threshold
-    joker_pct = f"{config.joker_drop_rate_in_regular_packs * 100:.1f}%"
-    mode = dc.card_selection_mode.replace("_", " ").title()
-
-    html = _DIAGRAM_CSS + f"""
-<div class="flow-diagram">
-
-<div class="flow-node start">
-    <strong>REGULAR PACK PULL</strong><br>
-    Player opens a regular pack card
-</div>
-
-<div class="flow-arrow">↓</div>
-
-<div class="flow-node decision">
-    <strong>🃏 Joker Check</strong><br>
-    Roll for Hero Joker drop<br>
-    <div class="flow-param">Rate: <span class="flow-badge joker">{joker_pct}</span> per pull</div>
-</div>
-
-<div class="flow-split">
-    <div>
-        <div class="flow-arrow"><span class="label">✓ Joker drops</span>↓</div>
-        <div class="flow-node special">
-            <strong>🃏 JOKER AWARDED</strong><br>
-            Universal wildcard — upgrades<br>any hero card as a duplicate
-        </div>
-    </div>
-    <div>
-        <div class="flow-arrow"><span class="label">✗ No joker</span>↓</div>
-        <div class="flow-node" style="border:none;padding:0;margin:0;">
-            <em style="color:#888;font-size:12px;">(continue to card selection)</em>
-        </div>
-    </div>
-</div>
-
-<div class="flow-arrow">↓</div>
-
-<div class="flow-node decision">
-    <strong>🎯 Pity System Check</strong><br>
-    Has pity counter reached threshold?<br>
-    <div class="flow-param">Threshold: <span class="flow-badge pity">{pity} pulls</span> without hero card → guaranteed hero</div>
-</div>
-
-<div class="flow-split">
-    <div>
-        <div class="flow-arrow"><span class="label">≥ {pity} shared pulls</span>↓</div>
-        <div class="flow-node process">
-            <strong>→ FORCED HERO CARD</strong><br>
-            Pity counter resets to 0
-        </div>
-    </div>
-    <div>
-        <div class="flow-arrow"><span class="label">Under threshold</span>↓</div>
-        <div class="flow-node" style="border:none;padding:0;margin:0;">
-            <em style="color:#888;font-size:12px;">(roll normally)</em>
-        </div>
-    </div>
-</div>
-
-<div class="flow-arrow">↓</div>
-
-<div class="flow-node decision">
-    <strong>🎲 Hero vs Shared Roll</strong><br>
-    Random roll against base rate<br>
-    <div class="flow-param">
-        <span class="flow-badge hero">Hero {hero_pct}</span>
-        <span class="flow-badge shared">Shared {shared_pct}</span>
-    </div>
-</div>
-
-<div class="flow-split">
-    <div>
-        <div class="flow-arrow"><span class="label">🦸 Hero card</span>↓</div>
-        <div class="flow-node process">
-            <strong>SELECT HERO CARD</strong><br>
-            Mode: <strong>{mode}</strong><br>
-            <div class="flow-param">Pool: all unlocked cards<br>across all unlocked heroes</div>
-        </div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-node process">
-            <strong>COMPUTE DUPLICATES</strong><br>
-            Formula: max(1, 4 − level÷10)<br>
-            <div class="flow-param">Then random 1..base dupes</div>
-        </div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-node outcome">
-            <strong>⬆ UPGRADE ENGINE</strong><br>
-            Dupes + Coins → Level up<br>
-            Grants Bluestars + Hero XP<br>
-            <div class="flow-param">Pity counter resets to 0</div>
-        </div>
-    </div>
-    <div>
-        <div class="flow-arrow"><span class="label">🟡🔵 Shared card</span>↓</div>
-        <div class="flow-node process">
-            <strong>SELECT SHARED CARD</strong><br>
-            Lowest-level-first (catch-up)<br>
-            <div class="flow-param">Weight: 1 / (level + 1)<br>
-            Pool: {config.num_gold_cards} Gold + {config.num_blue_cards} Blue cards</div>
-        </div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-node outcome">
-            <strong>⬆ STANDARD UPGRADE</strong><br>
-            Same upgrade engine for shared cards<br>
-            <div class="flow-param">Pity counter +1</div>
-        </div>
-    </div>
-</div>
-
-</div>
-"""
-    st.components.v1.html(html, height=1050, scrolling=True)
-
-    # Config summary below the diagram
-    with st.expander("Current drop algorithm parameters"):
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Hero rate", hero_pct)
-        col1.metric("Shared rate", shared_pct)
-        col2.metric("Pity threshold", pity)
-        col2.metric("Selection mode", mode)
-        col3.metric("Joker rate", joker_pct)
-        col3.metric("Heroes unlocked", f"{len(config.heroes)}")
-
-
-# ---------------------------------------------------------------------------
-# Hero Card Pull Simulator
-# ---------------------------------------------------------------------------
 
 def _render_hero_pull_simulator(config: HeroCardConfig) -> None:
     st.markdown("Simulate single pulls from hero unique card packs using the actual Variant B drop algorithm.")
@@ -247,7 +41,6 @@ def _render_hero_pull_simulator(config: HeroCardConfig) -> None:
         st.warning("No heroes defined in the config.")
         return
 
-    # Setup controls
     col1, col2 = st.columns([2, 1])
     with col1:
         unlocked_hero_ids = _get_unlocked_hero_ids(config)
@@ -264,7 +57,6 @@ def _render_hero_pull_simulator(config: HeroCardConfig) -> None:
             key="hero_pull_sim_day",
         )
 
-        # Recalculate unlocked heroes based on selected day
         unlocked_hero_ids = []
         for day, hero_ids in sorted(config.hero_unlock_schedule.items()):
             if day <= sim_day:
@@ -304,7 +96,6 @@ def _render_hero_pull_simulator(config: HeroCardConfig) -> None:
 
 
 def _get_unlocked_hero_ids(config: HeroCardConfig) -> list[str]:
-    """Get hero IDs unlocked at day 0."""
     ids = []
     for day, hero_ids in config.hero_unlock_schedule.items():
         if day <= 0:
@@ -319,18 +110,14 @@ def _simulate_pulls(
     sim_day: int,
     rng: Random,
 ) -> list[dict]:
-    """Simulate N pulls and return results."""
     dc = config.drop_config
     results = []
     pity_counter = 0
 
-    # Build the card pool from unlocked heroes (starter cards only for simplicity)
     hero_cards: dict[str, list[HeroCardDef]] = {}
     for hero in unlocked_heroes:
-        # Start with starter cards, add more based on a rough skill tree estimate
         starter_ids = set(hero.starter_card_ids)
         available = [c for c in hero.card_pool if c.card_id in starter_ids]
-        # Rough: also add cards unlocked by early skill tree nodes proportional to sim_day
         for node in hero.skill_tree:
             if node.hero_level_required <= max(1, sim_day // 5):
                 for cid in node.cards_unlocked:
@@ -346,14 +133,12 @@ def _simulate_pulls(
     for i in range(num_pulls):
         pull: dict = {"pull_number": i + 1}
 
-        # Joker check
         if rng.random() < config.joker_drop_rate_in_regular_packs:
             pull["type"] = "joker"
             pull["description"] = "Hero Joker (universal wildcard)"
             results.append(pull)
             continue
 
-        # Pity check
         if dc.pity_counter_threshold > 0 and pity_counter >= dc.pity_counter_threshold:
             pull_type = "hero"
             pull["pity_triggered"] = True
@@ -361,12 +146,11 @@ def _simulate_pulls(
             pull_type = "hero" if rng.random() < dc.hero_vs_shared_base_rate else "shared"
 
         if pull_type == "hero":
-            # Select hero card using the configured mode
             card_info = _pick_hero_card(hero_cards, dc.card_selection_mode, rng)
             if card_info:
                 hero_id, card = card_info
                 hero_name = next((h.name for h in unlocked_heroes if h.hero_id == hero_id), hero_id)
-                base_dupes = max(1, 4 - 1 // 10)  # level 1 start
+                base_dupes = max(1, 4 - 1 // 10)
                 dupes = max(1, rng.randint(1, base_dupes))
                 pull["type"] = "hero"
                 pull["hero_id"] = hero_id
@@ -378,7 +162,6 @@ def _simulate_pulls(
                 pull["xp_on_upgrade"] = card.base_xp_on_upgrade
             pity_counter = 0
         else:
-            # Shared card
             pull["type"] = "shared"
             card_type = "Gold" if rng.random() < config.num_gold_cards / (config.num_gold_cards + config.num_blue_cards) else "Blue"
             pull["card_type"] = card_type
@@ -396,7 +179,6 @@ def _pick_hero_card(
     mode: str,
     rng: Random,
 ) -> Optional[tuple[str, HeroCardDef]]:
-    """Pick a hero card from the available pool."""
     candidates: list[tuple[str, HeroCardDef]] = []
     for hero_id, cards in hero_cards.items():
         for card in cards:
@@ -405,24 +187,15 @@ def _pick_hero_card(
     if not candidates:
         return None
 
-    if mode == "weighted_rarity":
-        rarity_weights = {
-            HeroCardRarity.COMMON: 5.0,
-            HeroCardRarity.UNCOMMON: 3.0,
-            HeroCardRarity.RARE: 2.0,
-            HeroCardRarity.EPIC: 1.0,
-            HeroCardRarity.LEGENDARY: 0.5,
-        }
-        weights = [rarity_weights.get(c.rarity, 1.0) for _, c in candidates]
-    elif mode == "lowest_level":
-        # In the simulator we don't track levels, so use inverse rarity as proxy
-        rarity_weights = {
-            HeroCardRarity.COMMON: 5.0,
-            HeroCardRarity.UNCOMMON: 3.0,
-            HeroCardRarity.RARE: 2.0,
-            HeroCardRarity.EPIC: 1.0,
-            HeroCardRarity.LEGENDARY: 0.5,
-        }
+    rarity_weights = {
+        HeroCardRarity.COMMON: 5.0,
+        HeroCardRarity.UNCOMMON: 3.0,
+        HeroCardRarity.RARE: 2.0,
+        HeroCardRarity.EPIC: 1.0,
+        HeroCardRarity.LEGENDARY: 0.5,
+    }
+
+    if mode in ("weighted_rarity", "lowest_level"):
         weights = [rarity_weights.get(c.rarity, 1.0) for _, c in candidates]
     else:
         weights = [1.0] * len(candidates)
@@ -438,12 +211,10 @@ def _pick_hero_card(
 
 
 def _display_pull_results(results: list[dict], config: HeroCardConfig, heroes: list[HeroDef]) -> None:
-    """Display pull simulation results."""
     if not results:
         st.warning("No results to display.")
         return
 
-    # Summary stats
     hero_pulls = [r for r in results if r.get("type") == "hero"]
     shared_pulls = [r for r in results if r.get("type") == "shared"]
     joker_pulls = [r for r in results if r.get("type") == "joker"]
@@ -456,7 +227,6 @@ def _display_pull_results(results: list[dict], config: HeroCardConfig, heroes: l
     cols[3].metric("Jokers", len(joker_pulls))
     cols[4].metric("Pity triggers", len(pity_pulls))
 
-    # Visual pull results
     st.markdown("---")
 
     rarity_colors = {
@@ -473,27 +243,25 @@ def _display_pull_results(results: list[dict], config: HeroCardConfig, heroes: l
 
         if r["type"] == "joker":
             st.markdown(
-                f"**#{pull_num}** — 🃏 **Hero Joker** (universal wildcard){pity_tag}",
+                f"**#{pull_num}** — :material/playing_cards: **Hero Joker** (universal wildcard){pity_tag}",
                 unsafe_allow_html=True,
             )
         elif r["type"] == "hero":
             rarity = r["rarity"]
             color = rarity_colors.get(rarity, "#fff")
-            total_dupes = r["duplicates"]
             st.markdown(
-                f"**#{pull_num}** — 🦸 **{r['hero_name']}** → "
+                f"**#{pull_num}** — :material/person: **{r['hero_name']}** > "
                 f'<span style="color:{color};font-weight:600;">{r["card_name"]}</span> '
-                f'({rarity}) — **×{total_dupes}** dupes — +{r["xp_on_upgrade"]} XP{pity_tag}',
+                f'({rarity}) — **x{r["duplicates"]}** dupes — +{r["xp_on_upgrade"]} XP{pity_tag}',
                 unsafe_allow_html=True,
             )
         elif r["type"] == "shared":
-            icon = "🟡" if r.get("card_type") == "Gold" else "🔵"
+            icon = ":material/circle:" if r.get("card_type") == "Gold" else ":material/radio_button_unchecked:"
             st.markdown(
                 f"**#{pull_num}** — {icon} **{r['description']}** *(pity: {r.get('pity_counter', 0)})*{pity_tag}",
                 unsafe_allow_html=True,
             )
 
-    # Hero card distribution
     if hero_pulls:
         st.markdown("---")
         st.markdown("**Hero card distribution**")
