@@ -113,12 +113,6 @@ def _page_gacha():
     render_gacha_simulator()
 
 
-def _page_hero_tools():
-    from app_pages.hero_card_tools import render_hero_card_tools
-
-    render_hero_card_tools()
-
-
 def _page_docs():
     from app_pages.documentation import render_documentation
 
@@ -143,10 +137,7 @@ page = st.navigation(
                 _page_pull_logs, title="Pull Logs", icon=":material/list_alt:"
             ),
             st.Page(
-                _page_gacha, title="Gacha Simulator", icon=":material/casino:"
-            ),
-            st.Page(
-                _page_hero_tools, title="Hero Card Tools", icon=":material/playing_cards:"
+                _page_gacha, title="Pack Simulator", icon=":material/playing_cards:"
             ),
             st.Page(
                 _page_docs, title="Documentation", icon=":material/menu_book:"
