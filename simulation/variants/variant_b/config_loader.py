@@ -2,9 +2,13 @@
 
 Provides default configuration with sample heroes, card pools, skill trees,
 premium packs, and upgrade tables. All values are editable from the frontend.
+Supports saving/loading persisted configs to data/defaults/variant_b_config.json.
 """
 
 from __future__ import annotations
+
+import logging
+from pathlib import Path
 
 from simulation.variants.variant_b.models import (
     HeroCardConfig,
@@ -22,21 +26,47 @@ from simulation.variants.variant_b.models import (
 
 
 def load_defaults() -> HeroCardConfig:
-    """Load default Variant B configuration with sample heroes."""
+    """Load Variant B config — from saved file if available, else built-in defaults."""
+    saved = load_saved_config()
+    if saved is not None:
+        return saved
+    return _builtin_defaults()
+
+
+def _builtin_defaults() -> HeroCardConfig:
+    """Built-in default Variant B configuration with all 17 heroes."""
     heroes = [
-        _create_sample_hero("woodie", "Woodie", num_cards=12),
-        _create_sample_hero("suna", "Suna", num_cards=10),
-        _create_sample_hero("felorc", "Felorc", num_cards=8),
+        _create_sample_hero("woody", "Woody", num_cards=12),
+        _create_sample_hero("cowboy", "Cowboy", num_cards=10),
+        _create_sample_hero("barbarian", "Barbarian", num_cards=11),
+        _create_sample_hero("rexx", "Rexx", num_cards=10),
+        _create_sample_hero("sunna", "Sunna", num_cards=10),
+        _create_sample_hero("mammon", "Mammon", num_cards=12),
+        _create_sample_hero("rogue", "Rogue", num_cards=9),
+        _create_sample_hero("felorc", "Felorc", num_cards=11),
+        _create_sample_hero("eiva", "Eiva", num_cards=10),
+        _create_sample_hero("gudan", "Gudan", num_cards=10),
+        _create_sample_hero("druid", "Druid", num_cards=9),
+        _create_sample_hero("yasuhiro", "Yasuhiro", num_cards=11),
+        _create_sample_hero("nova", "Nova", num_cards=10),
+        _create_sample_hero("rickie", "Rickie", num_cards=9),
+        _create_sample_hero("raven", "Raven", num_cards=10),
+        _create_sample_hero("jester", "Jester", num_cards=11),
+        _create_sample_hero("munara", "Munara", num_cards=12),
     ]
 
-    # Sample premium packs
+    # Premium packs — starter pack per hero wave + themed multi-hero packs
     premium_packs = [
-        _create_premium_pack("woodie_bronze", "Woodie Starter Pack", PremiumPackRarity.BRONZE, ["woodie"], heroes, diamond_cost=200, cards_per_pack=3),
-        _create_premium_pack("woodie_silver", "Woodie Booster Pack", PremiumPackRarity.SILVER, ["woodie"], heroes, diamond_cost=500, cards_per_pack=5),
-        _create_premium_pack("woodie_gold", "Woodie Premium Pack", PremiumPackRarity.GOLD, ["woodie"], heroes, diamond_cost=1000, cards_per_pack=8),
-        _create_premium_pack("woodie_platinum", "Woodie Elite Pack", PremiumPackRarity.PLATINUM, ["woodie"], heroes, diamond_cost=2000, cards_per_pack=10),
-        _create_premium_pack("woodie_diamond", "Woodie Ultimate Pack", PremiumPackRarity.DIAMOND, ["woodie"], heroes, diamond_cost=5000, cards_per_pack=15),
-        _create_premium_pack("fire_fighters", "Fire Fighters Collection", PremiumPackRarity.GOLD, ["suna", "felorc"], heroes, diamond_cost=1500, cards_per_pack=10),
+        # Wave 1 hero packs
+        _create_premium_pack("woody_bronze", "Woody Starter Pack", PremiumPackRarity.BRONZE, ["woody"], heroes, diamond_cost=200, cards_per_pack=3),
+        _create_premium_pack("woody_silver", "Woody Booster Pack", PremiumPackRarity.SILVER, ["woody"], heroes, diamond_cost=500, cards_per_pack=5),
+        _create_premium_pack("woody_gold", "Woody Premium Pack", PremiumPackRarity.GOLD, ["woody"], heroes, diamond_cost=1000, cards_per_pack=8),
+        # Themed multi-hero packs
+        _create_premium_pack("warriors_collection", "Warriors Collection", PremiumPackRarity.GOLD, ["barbarian", "cowboy", "rexx"], heroes, diamond_cost=1500, cards_per_pack=10),
+        _create_premium_pack("mystics_collection", "Mystics Collection", PremiumPackRarity.GOLD, ["gudan", "druid", "munara"], heroes, diamond_cost=1500, cards_per_pack=10),
+        _create_premium_pack("shadows_collection", "Shadows Collection", PremiumPackRarity.GOLD, ["rogue", "raven", "jester"], heroes, diamond_cost=1500, cards_per_pack=10),
+        _create_premium_pack("legends_collection", "Legends Collection", PremiumPackRarity.PLATINUM, ["yasuhiro", "nova", "eiva"], heroes, diamond_cost=2500, cards_per_pack=12),
+        _create_premium_pack("all_heroes_diamond", "All Heroes Ultimate", PremiumPackRarity.DIAMOND, [h.hero_id for h in heroes], heroes, diamond_cost=5000, cards_per_pack=15),
     ]
 
     return HeroCardConfig(
@@ -45,9 +75,18 @@ def load_defaults() -> HeroCardConfig:
         initial_bluestars=0,
         heroes=heroes,
         hero_unlock_schedule={
-            0: ["woodie"],
-            7: ["suna"],
-            14: ["felorc"],
+            0: ["woody", "cowboy"],
+            3: ["barbarian"],
+            7: ["rexx", "sunna"],
+            10: ["mammon"],
+            14: ["rogue", "felorc"],
+            18: ["eiva"],
+            21: ["gudan", "druid"],
+            28: ["yasuhiro"],
+            35: ["nova", "rickie"],
+            42: ["raven"],
+            50: ["jester"],
+            60: ["munara"],
         },
         num_gold_cards=9,
         num_blue_cards=14,
@@ -61,12 +100,14 @@ def load_defaults() -> HeroCardConfig:
         daily_pack_schedule=[{"regular": 5.0}],
         premium_packs=premium_packs,
         premium_pack_schedule=[
-            PremiumPackSchedule(pack_id="woodie_bronze", available_from_day=1, available_until_day=100),
-            PremiumPackSchedule(pack_id="woodie_silver", available_from_day=1, available_until_day=100),
-            PremiumPackSchedule(pack_id="woodie_gold", available_from_day=7, available_until_day=100),
-            PremiumPackSchedule(pack_id="woodie_platinum", available_from_day=14, available_until_day=100),
-            PremiumPackSchedule(pack_id="woodie_diamond", available_from_day=30, available_until_day=100),
-            PremiumPackSchedule(pack_id="fire_fighters", available_from_day=14, available_until_day=28),
+            PremiumPackSchedule(pack_id="woody_bronze", available_from_day=1, available_until_day=100),
+            PremiumPackSchedule(pack_id="woody_silver", available_from_day=1, available_until_day=100),
+            PremiumPackSchedule(pack_id="woody_gold", available_from_day=7, available_until_day=100),
+            PremiumPackSchedule(pack_id="warriors_collection", available_from_day=7, available_until_day=100),
+            PremiumPackSchedule(pack_id="mystics_collection", available_from_day=21, available_until_day=100),
+            PremiumPackSchedule(pack_id="shadows_collection", available_from_day=14, available_until_day=100),
+            PremiumPackSchedule(pack_id="legends_collection", available_from_day=28, available_until_day=100),
+            PremiumPackSchedule(pack_id="all_heroes_diamond", available_from_day=30, available_until_day=100),
         ],
     )
 
@@ -188,6 +229,33 @@ def _create_premium_pack(
         diamond_cost=diamond_cost,
         joker_rate=joker_rates.get(rarity, 0.02),
     )
+
+
+_log = logging.getLogger(__name__)
+
+
+def _get_saved_config_path() -> Path:
+    """Path to the persisted Variant B config file."""
+    return Path(__file__).resolve().parent.parent.parent.parent / "data" / "defaults" / "variant_b_config.json"
+
+
+def load_saved_config() -> HeroCardConfig | None:
+    """Load persisted Variant B config from disk, or None if not found."""
+    path = _get_saved_config_path()
+    if not path.exists():
+        return None
+    try:
+        return HeroCardConfig.model_validate_json(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        _log.warning("Failed to load saved Variant B config: %s", exc)
+        return None
+
+
+def save_config(config: HeroCardConfig) -> None:
+    """Persist the current Variant B config to disk."""
+    path = _get_saved_config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(config.model_dump_json(indent=2), encoding="utf-8")
 
 
 def _default_upgrade_tables() -> list[HeroUpgradeCostTable]:

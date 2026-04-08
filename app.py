@@ -113,6 +113,12 @@ def _page_gacha():
     render_gacha_simulator()
 
 
+def _page_hero_tools():
+    from app_pages.hero_card_tools import render_hero_card_tools
+
+    render_hero_card_tools()
+
+
 def _page_docs():
     from app_pages.documentation import render_documentation
 
@@ -140,6 +146,9 @@ page = st.navigation(
                 _page_gacha, title="Gacha Simulator", icon=":material/casino:"
             ),
             st.Page(
+                _page_hero_tools, title="Hero Card Tools", icon=":material/playing_cards:"
+            ),
+            st.Page(
                 _page_docs, title="Documentation", icon=":material/menu_book:"
             ),
         ],
@@ -163,3 +172,14 @@ with st.sidebar:
             st.error(f"Failed: {e}")
 
 page.run()
+
+# --- Auto-persist config changes to disk ---
+_active = st.session_state.get("active_variant")
+if _active and _active in st.session_state.get("configs", {}):
+    _cfg = st.session_state.configs[_active]
+    if _active == "variant_b":
+        from simulation.variants.variant_b.config_loader import save_config as _save_vb
+        _save_vb(_cfg)
+    elif _active == "variant_a":
+        from simulation.config_loader import save_defaults as _save_va
+        _save_va(_cfg)
