@@ -17,6 +17,7 @@ from simulation.variants.variant_b.models import (
     HeroDef,
     HeroDropConfig,
     HeroUpgradeCostTable,
+    PackVariant,
     PremiumPackCardRate,
     PremiumPackDef,
     PremiumPackRarity,
@@ -55,19 +56,13 @@ def _builtin_defaults() -> HeroCardConfig:
         _create_sample_hero("munara", "Munara", num_cards=12),
     ]
 
-    # Premium packs — starter pack per hero wave + themed multi-hero packs
+    # One premium pack per hero (card pool auto-derived from hero's cards)
     premium_packs = [
-        # Wave 1 hero packs
-        _create_premium_pack("woody_bronze", "Woody Starter Pack", PremiumPackRarity.BRONZE, ["woody"], heroes, diamond_cost=200, cards_per_pack=3),
-        _create_premium_pack("woody_silver", "Woody Booster Pack", PremiumPackRarity.SILVER, ["woody"], heroes, diamond_cost=500, cards_per_pack=5),
-        _create_premium_pack("woody_gold", "Woody Premium Pack", PremiumPackRarity.GOLD, ["woody"], heroes, diamond_cost=1000, cards_per_pack=8),
-        # Themed multi-hero packs
-        _create_premium_pack("warriors_collection", "Warriors Collection", PremiumPackRarity.GOLD, ["barbarian", "cowboy", "rexx"], heroes, diamond_cost=1500, cards_per_pack=10),
-        _create_premium_pack("mystics_collection", "Mystics Collection", PremiumPackRarity.GOLD, ["gudan", "druid", "munara"], heroes, diamond_cost=1500, cards_per_pack=10),
-        _create_premium_pack("shadows_collection", "Shadows Collection", PremiumPackRarity.GOLD, ["rogue", "raven", "jester"], heroes, diamond_cost=1500, cards_per_pack=10),
-        _create_premium_pack("legends_collection", "Legends Collection", PremiumPackRarity.PLATINUM, ["yasuhiro", "nova", "eiva"], heroes, diamond_cost=2500, cards_per_pack=12),
-        _create_premium_pack("all_heroes_diamond", "All Heroes Ultimate", PremiumPackRarity.DIAMOND, [h.hero_id for h in heroes], heroes, diamond_cost=5000, cards_per_pack=15),
+        _create_hero_pack(hero, heroes) for hero in heroes
     ]
+
+    # 5 pack variants (bonus tiers applied to any hero pack)
+    pack_variants = _default_pack_variants()
 
     return HeroCardConfig(
         num_days=100,
@@ -98,15 +93,10 @@ def _builtin_defaults() -> HeroCardConfig:
         ),
         daily_pack_schedule=[{"regular": 5.0}],
         premium_packs=premium_packs,
+        pack_variants=pack_variants,
         premium_pack_schedule=[
-            PremiumPackSchedule(pack_id="woody_bronze", available_from_day=1, available_until_day=100),
-            PremiumPackSchedule(pack_id="woody_silver", available_from_day=1, available_until_day=100),
-            PremiumPackSchedule(pack_id="woody_gold", available_from_day=7, available_until_day=100),
-            PremiumPackSchedule(pack_id="warriors_collection", available_from_day=7, available_until_day=100),
-            PremiumPackSchedule(pack_id="mystics_collection", available_from_day=21, available_until_day=100),
-            PremiumPackSchedule(pack_id="shadows_collection", available_from_day=14, available_until_day=100),
-            PremiumPackSchedule(pack_id="legends_collection", available_from_day=28, available_until_day=100),
-            PremiumPackSchedule(pack_id="all_heroes_diamond", available_from_day=30, available_until_day=100),
+            PremiumPackSchedule(pack_id=hero.hero_id, available_from_day=0, available_until_day=100)
+            for hero in heroes
         ],
     )
 
@@ -172,23 +162,8 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 12) -> HeroDef
     )
 
 
-def _create_premium_pack(
-    pack_id: str,
-    name: str,
-    rarity: PremiumPackRarity,
-    hero_ids: list[str],
-    all_heroes: list[HeroDef],
-    diamond_cost: int,
-    cards_per_pack: int,
-) -> PremiumPackDef:
-    """Create a premium pack definition with per-card drop rates."""
-    # Collect all cards from featured heroes
-    all_cards = []
-    for hero in all_heroes:
-        if hero.hero_id in hero_ids:
-            all_cards.extend(hero.card_pool)
-
-    # Assign drop rates inversely proportional to rarity
+def _create_hero_pack(hero: HeroDef, all_heroes: list[HeroDef]) -> PremiumPackDef:
+    """Create one premium pack for a hero using their card pool."""
     rarity_weights = {
         HeroCardRarity.COMMON: 5.0,
         HeroCardRarity.RARE: 2.0,
@@ -200,28 +175,30 @@ def _create_premium_pack(
             card_id=c.card_id,
             drop_rate=rarity_weights.get(c.rarity, 1.0),
         )
-        for c in all_cards
+        for c in hero.card_pool
     ]
 
-    # Joker rate scales with pack rarity
-    joker_rates = {
-        PremiumPackRarity.BRONZE: 0.01,
-        PremiumPackRarity.SILVER: 0.02,
-        PremiumPackRarity.GOLD: 0.03,
-        PremiumPackRarity.PLATINUM: 0.05,
-        PremiumPackRarity.DIAMOND: 0.08,
-    }
-
     return PremiumPackDef(
-        pack_id=pack_id,
-        name=name,
-        pack_rarity=rarity,
-        featured_hero_ids=hero_ids,
+        pack_id=hero.hero_id,
+        name=f"{hero.name} Card Pack",
+        pack_rarity=PremiumPackRarity.BRONZE,
+        featured_hero_ids=[hero.hero_id],
         card_drop_rates=card_rates,
-        cards_per_pack=cards_per_pack,
-        diamond_cost=diamond_cost,
-        joker_rate=joker_rates.get(rarity, 0.02),
+        cards_per_pack=5,
+        diamond_cost=200,
+        joker_rate=0.02,
     )
+
+
+def _default_pack_variants() -> list[PackVariant]:
+    """Default 5 bonus tiers for hero card packs."""
+    return [
+        PackVariant(tier=PremiumPackRarity.BRONZE, diamond_cost=200, cards_per_pack=3, joker_rate=0.01, dupe_boost_multiplier=1.0),
+        PackVariant(tier=PremiumPackRarity.SILVER, diamond_cost=500, cards_per_pack=5, joker_rate=0.02, dupe_boost_multiplier=1.0),
+        PackVariant(tier=PremiumPackRarity.GOLD, diamond_cost=1000, cards_per_pack=8, joker_rate=0.03, dupe_boost_multiplier=1.5),
+        PackVariant(tier=PremiumPackRarity.PLATINUM, diamond_cost=2000, cards_per_pack=10, joker_rate=0.05, dupe_boost_multiplier=2.0),
+        PackVariant(tier=PremiumPackRarity.DIAMOND, diamond_cost=5000, cards_per_pack=15, joker_rate=0.08, dupe_boost_multiplier=3.0),
+    ]
 
 
 _log = logging.getLogger(__name__)

@@ -16,6 +16,7 @@ from simulation.variants.variant_b.models import (
     HeroCardRarity,
     HeroDef,
     HeroUpgradeCostTable,
+    PackVariant,
     PremiumPackCardRate,
     PremiumPackDef,
     PremiumPackRarity,
@@ -49,7 +50,8 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
         "Upgrade Costs",
         "Drop Algorithm",
         "Hero Joker",
-        "Premium Packs",
+        "Hero Packs",
+        "Pack Variants",
         "Pack Schedule",
         "Import / Export",
     ])
@@ -69,8 +71,10 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
     with tabs[6]:
         _render_premium_packs_tab(config)
     with tabs[7]:
-        _render_pack_schedule_tab(config)
+        _render_pack_variants_tab(config)
     with tabs[8]:
+        _render_pack_schedule_tab(config)
+    with tabs[9]:
         _render_import_export(config)
 
 
@@ -358,39 +362,36 @@ def _render_joker_tab(config: HeroCardConfig) -> None:
 
 
 def _render_premium_packs_tab(config: HeroCardConfig) -> None:
-    st.subheader("Premium Card Packs")
+    st.subheader("Hero Card Packs")
+    st.caption("Each hero has one card pack. Select a hero to edit its card drop rates.")
 
     if not config.premium_packs:
-        st.info("No premium packs configured.")
+        st.info("No hero packs configured.")
         return
 
-    pack_names = [f"{p.name} ({p.pack_rarity.value})" for p in config.premium_packs]
-    sel = st.selectbox("Select Pack", range(len(pack_names)), format_func=lambda i: pack_names[i], key="vb_ppack_sel")
+    # Build hero name lookup
+    hero_name_map = {h.hero_id: h.name for h in config.heroes}
+    pack_labels = [hero_name_map.get(p.featured_hero_ids[0], p.name) if p.featured_hero_ids else p.name for p in config.premium_packs]
+    sel = st.selectbox("Select hero", range(len(pack_labels)), format_func=lambda i: pack_labels[i], key="vb_ppack_sel")
     pack = config.premium_packs[sel]
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        pack.name = st.text_input("Pack Name", value=pack.name, key=f"vb_pp_name_{sel}")
-    with col2:
-        pack.diamond_cost = st.number_input("Diamond Cost", min_value=0, value=pack.diamond_cost, step=50, key=f"vb_pp_cost_{sel}")
-    with col3:
-        pack.cards_per_pack = st.number_input("Cards per Pack", min_value=1, max_value=50, value=pack.cards_per_pack, step=1, key=f"vb_pp_cpp_{sel}")
-
-    col4, col5 = st.columns(2)
-    with col4:
-        pack.joker_rate = st.slider("Joker Rate", min_value=0.0, max_value=0.30, value=pack.joker_rate, step=0.01, key=f"vb_pp_jr_{sel}")
-    with col5:
-        pack.dupe_boost_multiplier = st.number_input("Dupe Boost Multiplier", min_value=0.5, max_value=5.0, value=pack.dupe_boost_multiplier, step=0.1, key=f"vb_pp_db_{sel}")
-
-    st.markdown("**Per-Card Drop Rates**")
+    st.markdown("**Per-card drop rates**")
     if pack.card_drop_rates:
+        # Build card name lookup
+        card_names = {}
+        for hero in config.heroes:
+            for card in hero.card_pool:
+                card_names[card.card_id] = f"{card.name} ({card.rarity.value})"
+
         rates_df = pd.DataFrame([
-            {"Card ID": r.card_id, "Drop Rate": r.drop_rate}
+            {"Card": card_names.get(r.card_id, r.card_id), "Card ID": r.card_id, "Drop Rate": r.drop_rate}
             for r in pack.card_drop_rates
         ])
         edited = st.data_editor(
             rates_df,
             column_config={
+                "Card": st.column_config.TextColumn("Card", disabled=True),
+                "Card ID": st.column_config.TextColumn("Card ID", disabled=True),
                 "Drop Rate": st.column_config.NumberColumn("Drop Rate", min_value=0.0, step=0.1, format="%.2f"),
             },
             use_container_width=True,
@@ -401,6 +402,46 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
             PremiumPackCardRate(card_id=str(row["Card ID"]), drop_rate=float(row["Drop Rate"]))
             for _, row in edited.iterrows()
         ]
+
+
+def _render_pack_variants_tab(config: HeroCardConfig) -> None:
+    st.subheader("Pack Variants")
+    st.caption("5 bonus tiers applied to any hero pack. Edit costs, cards per pack, joker rates, and dupe multipliers.")
+
+    if not config.pack_variants:
+        st.info("No pack variants configured.")
+        return
+
+    rows = [
+        {
+            "Tier": v.tier.value,
+            "Diamond Cost": v.diamond_cost,
+            "Cards per Pack": v.cards_per_pack,
+            "Joker Rate %": round(v.joker_rate * 100, 1),
+            "Dupe Multiplier": v.dupe_boost_multiplier,
+        }
+        for v in config.pack_variants
+    ]
+    df = pd.DataFrame(rows)
+    edited = st.data_editor(
+        df,
+        column_config={
+            "Tier": st.column_config.TextColumn("Tier", disabled=True),
+            "Diamond Cost": st.column_config.NumberColumn("Diamond Cost", min_value=0, step=50),
+            "Cards per Pack": st.column_config.NumberColumn("Cards per Pack", min_value=1, max_value=50, step=1),
+            "Joker Rate %": st.column_config.NumberColumn("Joker Rate %", min_value=0.0, max_value=30.0, step=0.5, format="%.1f"),
+            "Dupe Multiplier": st.column_config.NumberColumn("Dupe Multiplier", min_value=0.5, max_value=10.0, step=0.1, format="%.1f"),
+        },
+        use_container_width=True,
+        hide_index=True,
+        key="vb_pack_variants",
+    )
+    for i, (_, row) in enumerate(edited.iterrows()):
+        if i < len(config.pack_variants):
+            config.pack_variants[i].diamond_cost = int(row["Diamond Cost"])
+            config.pack_variants[i].cards_per_pack = int(row["Cards per Pack"])
+            config.pack_variants[i].joker_rate = float(row["Joker Rate %"]) / 100.0
+            config.pack_variants[i].dupe_boost_multiplier = float(row["Dupe Multiplier"])
 
 
 def _render_pack_schedule_tab(config: HeroCardConfig) -> None:

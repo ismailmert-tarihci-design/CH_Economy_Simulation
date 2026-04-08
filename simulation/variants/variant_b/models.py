@@ -74,6 +74,15 @@ class PremiumPackCardRate(BaseModel):
     drop_rate: float = Field(description="Probability weight for this card")
 
 
+class PackVariant(BaseModel):
+    """One of 5 bonus tiers for hero card packs (Bronze→Diamond)."""
+    tier: PremiumPackRarity
+    diamond_cost: int = Field(default=500)
+    cards_per_pack: int = Field(default=5)
+    joker_rate: float = Field(default=0.02, description="Chance of joker per draw")
+    dupe_boost_multiplier: float = Field(default=1.0, description="Multiplier on duplicates")
+
+
 class PremiumPackDef(BaseModel):
     """Definition of a hero-specific premium card pack."""
     pack_id: str
@@ -174,8 +183,9 @@ class HeroCardConfig(BaseModel):
         description="Daily pack schedule (shared packs)"
     )
 
-    # Premium packs
+    # Premium packs (one per hero, auto-generated from hero card pools)
     premium_packs: List[PremiumPackDef] = Field(default_factory=list)
+    pack_variants: List[PackVariant] = Field(default_factory=list, description="5 bonus tiers (Bronze→Diamond) applied to any hero pack")
     premium_pack_schedule: List[PremiumPackSchedule] = Field(default_factory=list)
     premium_pack_purchase_schedule: List[Dict[str, int]] = Field(
         default_factory=list,

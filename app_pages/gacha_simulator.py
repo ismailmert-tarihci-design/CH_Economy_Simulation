@@ -1,8 +1,7 @@
 """Hero Pack Pull Simulator.
 
-Simulates opening hero-specific premium card packs using the actual
-Variant B configuration values. Supports selecting a pack, choosing
-how many to open, and viewing per-pull results with joker/rarity breakdown.
+Simulates opening a hero's card pack at a chosen variant tier (Bronze→Diamond).
+Uses actual Variant B config: per-hero card pools, drop rates, and pack variant bonuses.
 """
 
 from __future__ import annotations
@@ -14,12 +13,14 @@ import streamlit as st
 from simulation.variants.variant_b.models import (
     HeroCardConfig,
     HeroCardRarity,
+    PackVariant,
     PremiumPackDef,
+    PremiumPackRarity,
 )
 
 
 def render_gacha_simulator() -> None:
-    st.title("Hero Pack Pull Simulator")
+    st.title("Hero Card Pack Simulator")
 
     variant_id = st.session_state.get("active_variant", "variant_a")
     if variant_id != "variant_b":
@@ -32,49 +33,45 @@ def render_gacha_simulator() -> None:
         return
 
     if not config.premium_packs:
-        st.warning("No premium packs defined. Add some in the Configuration > Premium Packs tab.")
+        st.warning("No hero packs available.")
         return
 
-    # --- Pack selection ---
-    pack_labels = {p.pack_id: f"{p.name}  ({p.pack_rarity.value} — {p.diamond_cost} diamonds, {p.cards_per_pack} cards)" for p in config.premium_packs}
-    selected_id = st.selectbox(
-        "Select a hero pack",
-        options=list(pack_labels.keys()),
-        format_func=lambda x: pack_labels[x],
-        key="gacha_pack_select",
+    # --- Select hero ---
+    hero_packs = {p.pack_id: p for p in config.premium_packs}
+    hero_names = {}
+    for hero in config.heroes:
+        if hero.hero_id in hero_packs:
+            hero_names[hero.hero_id] = hero.name
+
+    if not hero_names:
+        st.warning("No hero packs configured.")
+        return
+
+    selected_hero = st.selectbox(
+        "Select hero",
+        options=list(hero_names.keys()),
+        format_func=lambda x: hero_names[x],
+        key="gacha_hero_select",
     )
-    pack = next(p for p in config.premium_packs if p.pack_id == selected_id)
+    pack = hero_packs[selected_hero]
 
-    # --- Pack info ---
-    with st.expander("Pack details", expanded=False):
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Diamond cost", f"{pack.diamond_cost}")
-        c2.metric("Cards per pack", f"{pack.cards_per_pack}")
-        c3.metric("Joker rate", f"{pack.joker_rate * 100:.1f}%")
-        c4.metric("Dupe boost", f"x{pack.dupe_boost_multiplier:.1f}")
+    # --- Select variant tier ---
+    variants = config.pack_variants
+    if not variants:
+        st.warning("No pack variants configured. Add them in Configuration > Pack Variants.")
+        return
 
-        st.caption(f"Featured heroes: **{', '.join(pack.featured_hero_ids)}**")
-
-        if pack.card_drop_rates:
-            # Build card name lookup from config heroes
-            card_names = {}
-            card_rarities = {}
-            for hero in config.heroes:
-                for card in hero.card_pool:
-                    card_names[card.card_id] = card.name
-                    card_rarities[card.card_id] = card.rarity.value
-
-            total_w = sum(cr.drop_rate for cr in pack.card_drop_rates)
-            rows = []
-            for cr in sorted(pack.card_drop_rates, key=lambda x: -x.drop_rate):
-                pct = (cr.drop_rate / total_w * 100) if total_w > 0 else 0
-                rows.append({
-                    "Card": card_names.get(cr.card_id, cr.card_id),
-                    "Rarity": card_rarities.get(cr.card_id, "?"),
-                    "Weight": f"{cr.drop_rate:.1f}",
-                    "Drop %": f"{pct:.1f}%",
-                })
-            st.dataframe(rows, use_container_width=True, hide_index=True)
+    tier_labels = {
+        v.tier.value: f"{v.tier.value} — {v.diamond_cost} diamonds, {v.cards_per_pack} cards, joker {v.joker_rate*100:.0f}%, dupe x{v.dupe_boost_multiplier:.1f}"
+        for v in variants
+    }
+    selected_tier = st.selectbox(
+        "Pack variant",
+        options=list(tier_labels.keys()),
+        format_func=lambda x: tier_labels[x],
+        key="gacha_tier_select",
+    )
+    variant = next(v for v in variants if v.tier.value == selected_tier)
 
     # --- Controls ---
     col1, col2 = st.columns(2)
@@ -83,24 +80,23 @@ def render_gacha_simulator() -> None:
     with col2:
         seed = st.number_input("RNG seed (0 = random)", min_value=0, max_value=999999, value=0, key="gacha_seed")
 
-    total_pulls = num_packs * pack.cards_per_pack
-    total_cost = num_packs * pack.diamond_cost
-    st.caption(f"**{total_pulls}** total pulls — **{total_cost}** diamonds")
+    total_pulls = num_packs * variant.cards_per_pack
+    total_cost = num_packs * variant.diamond_cost
+    st.caption(f"**{total_pulls}** pulls — **{total_cost:,}** diamonds")
 
     if st.button("Open packs", type="primary", use_container_width=True, key="gacha_open"):
         rng = Random(seed if seed > 0 else None)
-        results = _simulate_pack_opening(pack, config, num_packs, rng)
-        _display_results(results, pack, config, num_packs)
+        results = _simulate(pack, variant, config, num_packs, rng)
+        _display(results, variant, config, num_packs)
 
 
-def _simulate_pack_opening(
+def _simulate(
     pack: PremiumPackDef,
+    variant: PackVariant,
     config: HeroCardConfig,
     num_packs: int,
     rng: Random,
 ) -> list[dict]:
-    """Simulate opening N copies of a premium pack."""
-    # Build card name/rarity lookup
     card_info = {}
     for hero in config.heroes:
         for card in hero.card_pool:
@@ -111,25 +107,21 @@ def _simulate_pack_opening(
                 "rarity": card.rarity,
             }
 
-    # Build weighted pool
     card_rates = [(cr.card_id, cr.drop_rate) for cr in pack.card_drop_rates]
     total_weight = sum(r for _, r in card_rates)
-
     results = []
     pull_num = 0
 
     for pack_idx in range(num_packs):
-        for draw in range(pack.cards_per_pack):
+        for _ in range(variant.cards_per_pack):
             pull_num += 1
             pull = {"pull_number": pull_num, "pack_number": pack_idx + 1}
 
-            # Joker check
-            if rng.random() < pack.joker_rate:
+            if rng.random() < variant.joker_rate:
                 pull["type"] = "joker"
                 results.append(pull)
                 continue
 
-            # Card selection via weighted random
             if total_weight > 0:
                 roll = rng.random() * total_weight
                 cumulative = 0.0
@@ -143,43 +135,36 @@ def _simulate_pack_opening(
                 continue
 
             info = card_info.get(selected_id, {})
-            base_dupes = max(1, round(1 * pack.dupe_boost_multiplier))
+            dupes = max(1, round(variant.dupe_boost_multiplier))
+            rarity = info.get("rarity")
             pull["type"] = "card"
             pull["card_id"] = selected_id
             pull["card_name"] = info.get("name", selected_id)
-            pull["hero_id"] = info.get("hero_id", "")
             pull["hero_name"] = info.get("hero_name", "")
-            pull["rarity"] = info.get("rarity", HeroCardRarity.COMMON).value if isinstance(info.get("rarity"), HeroCardRarity) else str(info.get("rarity", "COMMON"))
-            pull["duplicates"] = base_dupes
+            pull["rarity"] = rarity.value if isinstance(rarity, HeroCardRarity) else str(rarity or "COMMON")
+            pull["duplicates"] = dupes
             results.append(pull)
 
     return results
 
 
-def _display_results(results: list[dict], pack: PremiumPackDef, config: HeroCardConfig, num_packs: int) -> None:
-    """Display pack opening results."""
+def _display(results: list[dict], variant: PackVariant, config: HeroCardConfig, num_packs: int) -> None:
     if not results:
         st.warning("No results.")
         return
 
     card_pulls = [r for r in results if r.get("type") == "card"]
     joker_pulls = [r for r in results if r.get("type") == "joker"]
-    total_cost = num_packs * pack.diamond_cost
+    total_cost = num_packs * variant.diamond_cost
 
-    # KPIs
     cols = st.columns(4)
     cols[0].metric("Total pulls", len(results))
     cols[1].metric("Cards", len(card_pulls))
     cols[2].metric("Jokers", len(joker_pulls))
     cols[3].metric("Diamonds spent", f"{total_cost:,}")
 
-    rarity_colors = {
-        "COMMON": "#9e9e9e",
-        "RARE": "#2196f3",
-        "EPIC": "#9c27b0",
-    }
+    rarity_colors = {"COMMON": "#9e9e9e", "RARE": "#2196f3", "EPIC": "#9c27b0"}
 
-    # Pull log
     st.markdown("---")
     for r in results:
         n = r["pull_number"]
@@ -194,19 +179,10 @@ def _display_results(results: list[dict], pack: PremiumPackDef, config: HeroCard
                 unsafe_allow_html=True,
             )
 
-    # Distribution
     if card_pulls:
         st.markdown("---")
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown("**By hero**")
-            hero_counts: dict[str, int] = {}
-            for r in card_pulls:
-                hero_counts[r["hero_name"]] = hero_counts.get(r["hero_name"], 0) + 1
-            for name, count in sorted(hero_counts.items(), key=lambda x: -x[1]):
-                pct = count / len(card_pulls) * 100
-                st.markdown(f"- **{name}**: {count} ({pct:.0f}%)")
-        with c2:
             st.markdown("**By rarity**")
             rarity_counts: dict[str, int] = {}
             for r in card_pulls:
@@ -220,3 +196,7 @@ def _display_results(results: list[dict], pack: PremiumPackDef, config: HeroCard
                         f'- <span style="color:{color};font-weight:600">{rarity}</span>: {count} ({pct:.0f}%)',
                         unsafe_allow_html=True,
                     )
+        with c2:
+            if joker_pulls:
+                joker_pct = len(joker_pulls) / len(results) * 100
+                st.markdown(f"**Joker rate**: {joker_pct:.1f}% (config: {variant.joker_rate*100:.0f}%)")
