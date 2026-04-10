@@ -23,34 +23,34 @@ from simulation.variants.variant_b.models import (
 
 
 def render_variant_b_editor(config: HeroCardConfig) -> None:
-    st.markdown("Edit Hero Card System parameters. All changes update immediately.")
+    st.caption("Hero card system parameters. All changes update immediately.")
 
-    # Top-level settings
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        config.initial_coins = st.number_input("Initial Coins", min_value=0, value=config.initial_coins, step=100, key="vb_coins")
-    with col2:
-        config.initial_bluestars = st.number_input("Initial Bluestars", min_value=0, value=config.initial_bluestars, step=10, key="vb_stars")
-    with col3:
-        config.num_days = st.number_input("Simulation Days", min_value=1, max_value=730, value=config.num_days, step=1, key="vb_days")
+    with st.container(border=True):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            config.initial_coins = st.number_input("Initial coins", min_value=0, value=config.initial_coins, step=100, key="vb_coins")
+        with col2:
+            config.initial_bluestars = st.number_input("Initial bluestars", min_value=0, value=config.initial_bluestars, step=10, key="vb_stars")
+        with col3:
+            config.num_days = st.number_input("Simulation days", min_value=1, max_value=730, value=config.num_days, step=1, key="vb_days")
 
-    col4, col5 = st.columns(2)
-    with col4:
-        config.num_gold_cards = st.number_input("Gold Shared Cards", min_value=1, max_value=50, value=config.num_gold_cards, key="vb_gold")
-    with col5:
-        config.num_blue_cards = st.number_input("Blue Shared Cards", min_value=1, max_value=50, value=config.num_blue_cards, key="vb_blue")
+        col4, col5 = st.columns(2)
+        with col4:
+            config.num_gold_cards = st.number_input("Gold shared cards", min_value=1, max_value=50, value=config.num_gold_cards, key="vb_gold")
+        with col5:
+            config.num_blue_cards = st.number_input("Blue shared cards", min_value=1, max_value=50, value=config.num_blue_cards, key="vb_blue")
 
     tabs = st.tabs([
-        "Heroes & Cards",
-        "Skill Trees",
-        "XP & Leveling",
-        "Upgrade Costs",
-        "Dupe Ranges",
-        "Drop Algorithm",
-        "Hero Joker",
-        "Hero Packs",
-        "Pack Schedule",
-        "Import / Export",
+        ":material/person: Heroes & cards",
+        ":material/account_tree: Skill trees",
+        ":material/trending_up: XP & leveling",
+        ":material/paid: Upgrade costs",
+        ":material/percent: Dupe ranges",
+        ":material/casino: Drop algorithm",
+        ":material/playing_cards: Hero joker",
+        ":material/inventory_2: Hero packs",
+        ":material/calendar_today: Pack schedule",
+        ":material/swap_horiz: Import / export",
     ])
 
     with tabs[0]:

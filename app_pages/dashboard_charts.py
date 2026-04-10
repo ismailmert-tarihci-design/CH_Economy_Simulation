@@ -11,17 +11,17 @@ def render_kpi_row(result: Any, mode: str) -> None:
         total_upgrades = (
             sum(result.total_upgrades.values()) if result.total_upgrades else 0
         )
-        cols = st.columns(4)
-        cols[0].metric("Total Bluestars", f"{result.total_bluestars:,}")
-        cols[1].metric("Coins Earned", f"{result.total_coins_earned:,}")
-        cols[2].metric("Coins Spent", f"{result.total_coins_spent:,}")
-        cols[3].metric("Total Upgrades", f"{total_upgrades:,}")
+        with st.container(horizontal=True):
+            st.metric("Total bluestars", f"{result.total_bluestars:,}", border=True)
+            st.metric("Coins earned", f"{result.total_coins_earned:,}", border=True)
+            st.metric("Coins spent", f"{result.total_coins_spent:,}", border=True)
+            st.metric("Total upgrades", f"{total_upgrades:,}", border=True)
     else:
         mean, std = result.bluestar_stats.result()
-        cols = st.columns(3)
-        cols[0].metric("Mean Final Bluestars", f"{mean:,.0f} ± {std:,.0f}")
-        cols[1].metric("MC Runs", f"{result.num_runs}")
-        cols[2].metric("Completion Time", f"{result.completion_time:.1f}s")
+        with st.container(horizontal=True):
+            st.metric("Mean final bluestars", f"{mean:,.0f} +/- {std:,.0f}", border=True)
+            st.metric("MC runs", f"{result.num_runs}", border=True)
+            st.metric("Completion time", f"{result.completion_time:.1f}s", border=True)
 
 
 def render_upgrades_chart(result: Any) -> None:
@@ -56,7 +56,7 @@ def render_upgrades_chart(result: Any) -> None:
         yaxis=dict(title="Upgrade Count", side="left"),
         yaxis2=dict(title="Bluestars Earned", side="right", overlaying="y"),
         hovermode="x unified",
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         legend=dict(x=0.01, y=0.99),
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -83,7 +83,7 @@ def render_unique_unlocked_chart(result: Any) -> None:
         xaxis=dict(title="Day"),
         yaxis=dict(title="Cards Unlocked", dtick=1),
         hovermode="x unified",
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -195,7 +195,7 @@ def render_pull_counts_chart(result: Any, mode: str) -> None:
         xaxis=dict(title="Day"),
         yaxis=dict(title="Pull Count"),
         hovermode="x unified",
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -233,6 +233,6 @@ def render_pack_counts_chart(result: Any, mode: str) -> None:
         xaxis=dict(title="Day"),
         yaxis=dict(title="Card Pulls from Pack"),
         hovermode="x unified",
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)

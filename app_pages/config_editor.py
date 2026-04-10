@@ -4,7 +4,7 @@ import streamlit as st
 
 
 def render_config_editor(config, variant_id: str = "variant_a") -> None:
-    st.title("Configuration Editor")
+    st.title("Configuration")
 
     if variant_id == "variant_a":
         from app_pages.variant_editors.variant_a_editor import render_variant_a_editor

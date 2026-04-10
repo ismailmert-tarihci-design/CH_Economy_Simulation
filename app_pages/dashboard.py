@@ -19,54 +19,52 @@ from app_pages.dashboard_charts import (
 
 def render_dashboard() -> None:
     if "sim_result" not in st.session_state:
-        st.warning("No simulation results available. Run a simulation first.")
+        st.info("No simulation results yet. Run a simulation first.", icon=":material/info:")
         return
 
     result = st.session_state.sim_result
     mode = st.session_state.sim_mode
 
-    st.title("Simulation Dashboard")
+    st.title("Simulation dashboard")
 
     render_kpi_row(result, mode)
 
-    col_save, col_spacer = st.columns([1, 4])
-    with col_save:
-        if st.button("💾 Save This Result", use_container_width=True):
-            st.session_state.show_save_dialog = True
+    with st.popover("Save result", icon=":material/bookmark:"):
+        save_name = st.text_input(
+            "Name",
+            value=f"Sim_{mode}_{result.total_bluestars if mode == 'deterministic' else 'MC'}",
+        )
+        save_desc = st.text_area("Description (optional)", height=68)
+        if st.button("Save", use_container_width=True, icon=":material/save:", type="primary"):
+            try:
+                from app_pages.results_manager import save_current_result
+                filename = save_current_result(save_name, save_desc)
+                st.success(f"Saved as {filename}!", icon=":material/check_circle:")
+            except Exception as e:
+                st.error(f"Failed to save: {e}")
 
-    if st.session_state.get("show_save_dialog", False):
+    col1, col2 = st.columns(2)
+    with col1:
         with st.container(border=True):
-            st.markdown("**Save Simulation Result**")
-            save_name = st.text_input(
-                "Name",
-                value=f"Sim_{mode}_{result.total_bluestars if mode == 'deterministic' else 'MC'}",
-            )
-            save_desc = st.text_area("Description (optional)", height=68)
-            col_confirm, col_cancel = st.columns(2)
-            with col_confirm:
-                if st.button("✅ Save", use_container_width=True):
-                    try:
-                        from app_pages.results_manager import save_current_result
+            _render_bluestar_chart(result, mode)
+    with col2:
+        with st.container(border=True):
+            _render_coin_flow_chart(result, mode)
 
-                        filename = save_current_result(save_name, save_desc)
-                        st.session_state.show_save_dialog = False
-                        st.success(f"Saved as {filename}!")
-                    except Exception as e:
-                        st.error(f"Failed to save: {e}")
-            with col_cancel:
-                if st.button("❌ Cancel", use_container_width=True):
-                    st.session_state.show_save_dialog = False
-                    st.rerun()
+    with st.container(border=True):
+        _render_card_progression_chart(result, mode)
 
-    st.divider()
-    _render_bluestar_chart(result, mode)
-    _render_card_progression_chart(result, mode)
     if mode == "deterministic":
         _render_upgrades_and_unlocked(result)
-    _render_coin_flow_chart(result, mode)
-    st.divider()
-    render_pull_counts_chart(result, mode)
-    render_pack_counts_chart(result, mode)
+
+    col3, col4 = st.columns(2)
+    with col3:
+        with st.container(border=True):
+            render_pull_counts_chart(result, mode)
+    with col4:
+        with st.container(border=True):
+            render_pack_counts_chart(result, mode)
+
     if mode == "deterministic":
         _render_pet_hero_gear_events(result)
         _render_pet_hero_gear_details(result)
@@ -127,7 +125,7 @@ def _render_bluestar_chart(result: Any, mode: str) -> None:
         xaxis=dict(title="Day"),
         yaxis=dict(title="Total Bluestars"),
         hovermode="x unified",
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -202,7 +200,7 @@ def _render_card_progression_chart(result: Any, mode: str) -> None:
         xaxis=dict(title="Day"),
         yaxis=dict(title="Average Card Level"),
         hovermode="x unified",
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -263,7 +261,7 @@ def _render_coin_flow_chart(result: Any, mode: str) -> None:
         xaxis=dict(title="Day"),
         yaxis=dict(title="Coins"),
         hovermode="x unified",
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -274,12 +272,11 @@ def _render_pet_hero_gear_events(result: Any) -> None:
     hero_count = sum(len(s.hero_unlock_events) for s in snapshots)
     gear_count = sum(len(s.gear_events) for s in snapshots)
 
-    st.divider()
-    st.subheader("Pet / Hero / Gear Events")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Pet Events", f"{pet_count:,}")
-    col2.metric("Hero Unlock Events", f"{hero_count:,}")
-    col3.metric("Gear Events", f"{gear_count:,}")
+    st.subheader("Pet / hero / gear events")
+    with st.container(horizontal=True):
+        st.metric("Pet events", f"{pet_count:,}", border=True)
+        st.metric("Hero unlock events", f"{hero_count:,}", border=True)
+        st.metric("Gear events", f"{gear_count:,}", border=True)
 
     rows = []
     for snapshot in snapshots:
@@ -295,9 +292,12 @@ def _render_pet_hero_gear_events(result: Any) -> None:
 
 
 def _render_pet_hero_gear_details(result: Any) -> None:
-    st.divider()
-    st.subheader("Detailed System Dashboards")
-    pet_tab, hero_tab, gear_tab = st.tabs(["Pet", "Hero", "Gear"])
+    st.subheader("Detailed system dashboards")
+    pet_tab, hero_tab, gear_tab = st.tabs([
+        ":material/pets: Pet",
+        ":material/person: Hero",
+        ":material/shield: Gear",
+    ])
 
     with pet_tab:
         _render_pet_detail_dashboard(result)
@@ -382,7 +382,7 @@ def _render_pet_detail_dashboard(result: Any) -> None:
         yaxis=dict(title="Counts"),
         yaxis2=dict(title="Tier", overlaying="y", side="right"),
         barmode="group",
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
     st.dataframe(pet_df, use_container_width=True, hide_index=True)
@@ -444,7 +444,7 @@ def _render_hero_detail_dashboard(result: Any) -> None:
         title="Hero Unlock Progression",
         xaxis=dict(title="Day"),
         yaxis=dict(title="Unique Cards"),
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
     st.dataframe(hero_df, use_container_width=True, hide_index=True)
@@ -507,7 +507,7 @@ def _render_gear_detail_dashboard(result: Any) -> None:
         xaxis=dict(title="Day"),
         yaxis=dict(title="Daily Upgrades"),
         yaxis2=dict(title="Average Level", overlaying="y", side="right"),
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -525,7 +525,7 @@ def _render_gear_detail_dashboard(result: Any) -> None:
         title="Per-Slot Gear Levels",
         xaxis=dict(title="Day"),
         yaxis=dict(title="Slot Level"),
-        template="plotly_white",
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(slot_fig, use_container_width=True)
     st.dataframe(gear_df, use_container_width=True, hide_index=True)

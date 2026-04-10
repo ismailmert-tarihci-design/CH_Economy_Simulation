@@ -134,28 +134,23 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 32) -> HeroDef
     # Starter cards: first 3 common cards
     starter_ids = [c.card_id for c in cards if c.rarity == HeroCardRarity.COMMON][:3]
 
-    # Linear skill tree: unlock remaining cards progressively
-    # With ~29 remaining cards, unlock ~3 cards per node over ~10 nodes
+    # Linear skill tree: 33 nodes, distributing remaining cards across them
+    # Some nodes unlock cards, others are perk-only nodes
     skill_tree = []
     remaining_cards = [c.card_id for c in cards if c.card_id not in starter_ids]
-    num_nodes = min(10, len(remaining_cards))
-    cards_per_node = max(1, len(remaining_cards) // num_nodes) if num_nodes > 0 else 0
+    num_nodes = 33
+    # Spread cards across the first len(remaining_cards) nodes
     for node_idx in range(num_nodes):
-        if not remaining_cards:
-            break
-        # Last node gets any remainder
-        if node_idx == num_nodes - 1:
-            unlock_count = len(remaining_cards)
+        if remaining_cards:
+            unlocked = [remaining_cards.pop(0)]
         else:
-            unlock_count = min(cards_per_node, len(remaining_cards))
-        unlocked = remaining_cards[:unlock_count]
-        remaining_cards = remaining_cards[unlock_count:]
-        level_req = 2 + node_idx  # levels 2-11 (hero max = 50)
+            unlocked = []
+        level_req = 2 + node_idx  # levels 2-34
         skill_tree.append(SkillTreeNode(
             node_index=node_idx,
             hero_level_required=level_req,
             cards_unlocked=unlocked,
-            perk_label=f"Level {level_req} unlock",
+            perk_label=f"Level {level_req} unlock" if unlocked else f"Level {level_req} perk",
         ))
 
     # XP per level: escalating thresholds
