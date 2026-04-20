@@ -111,6 +111,11 @@ def _page_docs():
     render_documentation()
 
 
+def _page_variant_b_flow():
+    from app_pages.variant_b_flow import render_variant_b_flow
+    render_variant_b_flow()
+
+
 # ─── Navigation ───────────────────────────────────────────────────────────────
 page = st.navigation(
     {
@@ -123,6 +128,7 @@ page = st.navigation(
             st.Page(_page_saved_results, title="Saved results", icon=":material/bookmark:"),
             st.Page(_page_pull_logs, title="Pull logs", icon=":material/list_alt:"),
             st.Page(_page_gacha, title="Pack simulator", icon=":material/playing_cards:"),
+            st.Page(_page_variant_b_flow, title="Variant B flow", icon=":material/account_tree:"),
             st.Page(_page_docs, title="Documentation", icon=":material/menu_book:"),
         ],
     }
