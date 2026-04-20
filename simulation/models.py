@@ -12,10 +12,11 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class CardCategory(str, Enum):
-    """Card category enum for the three card types."""
+    """Card category enum for shared and unique card types."""
 
     GOLD_SHARED = "GOLD_SHARED"
     BLUE_SHARED = "BLUE_SHARED"
+    GRAY_SHARED = "GRAY_SHARED"
     UNIQUE = "UNIQUE"
 
 

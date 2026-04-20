@@ -24,6 +24,7 @@ from simulation.variants.variant_b.drop_algorithm import (
     check_joker_drop,
     compute_hero_duplicates,
     decide_hero_or_shared,
+    get_coins_per_dupe,
     select_hero_card,
     select_shared_card,
 )
@@ -70,6 +71,7 @@ def run_simulation(
         day_upgrades: List[Any] = []
         day_premium_packs = 0
         day_premium_diamonds = 0
+        day_hero_tokens = 0
 
         # 1. Check hero unlock schedule
         _process_hero_unlocks(day, config, game_state)
@@ -101,8 +103,9 @@ def run_simulation(
                         card.duplicates += dupes
                         day_pull_counts["HERO"] = day_pull_counts.get("HERO", 0) + 1
 
-                        # Coin income from hero card dupe
-                        coin_income = max(1, dupes * 5)
+                        # Coin income from hero card dupe (per-level, per-rarity)
+                        cpd = get_coins_per_dupe(card.level, card.rarity, config)
+                        coin_income = max(1, dupes * cpd)
                         game_state.coins += coin_income
                         day_coins_earned += coin_income
 
@@ -127,15 +130,27 @@ def run_simulation(
                     day_coins_earned += coin_income
 
         # 3. Process premium pack purchases (uses same dupe % mechanic)
-        premium_pulls, diamonds_spent, jokers_from_premium = process_premium_purchases(
+        premium_pulls, diamonds_spent, jokers_from_premium, tokens_from_premium = process_premium_purchases(
             day, config, game_state, rng=rng
         )
         day_premium_packs = len(premium_pulls)
         day_premium_diamonds = diamonds_spent
         day_jokers_received += jokers_from_premium
+        day_hero_tokens = tokens_from_premium
 
         # Apply premium pull results to game state
         for pull in premium_pulls:
+            if pull.get("reward_type") == "hero_tokens":
+                continue  # tracked via tokens_from_premium
+            if pull.get("reward_type") == "coins":
+                game_state.coins += pull.get("reward_amount", 0)
+                day_coins_earned += pull.get("reward_amount", 0)
+                continue
+            if pull.get("reward_type") == "bluestars":
+                game_state.total_bluestars += pull.get("reward_amount", 0)
+                continue
+            if pull.get("reward_type"):
+                continue  # other reward types — tracked but not applied as coins/bluestars
             if pull["is_joker"]:
                 hero_id = pull["hero_id"]
                 if hero_id in game_state.heroes:
@@ -177,10 +192,13 @@ def run_simulation(
         # Shared card averages
         gold_cards = [c for c in game_state.shared_cards if c.category == CardCategory.GOLD_SHARED]
         blue_cards = [c for c in game_state.shared_cards if c.category == CardCategory.BLUE_SHARED]
+        gray_cards = [c for c in game_state.shared_cards if c.category == CardCategory.GRAY_SHARED]
         if gold_cards:
             category_avg_levels["GOLD_SHARED"] = sum(c.level for c in gold_cards) / len(gold_cards)
         if blue_cards:
             category_avg_levels["BLUE_SHARED"] = sum(c.level for c in blue_cards) / len(blue_cards)
+        if gray_cards:
+            category_avg_levels["GRAY_SHARED"] = sum(c.level for c in gray_cards) / len(gray_cards)
         # Per-hero card averages (compute once, reuse)
         hero_avg_levels = {hid: hero_card_avg_level(hs) for hid, hs in game_state.heroes.items()}
         for hero_id, avg in hero_avg_levels.items():
@@ -205,6 +223,7 @@ def run_simulation(
             jokers_used_today=sum(e.get("jokers_spent", 0) for e in upgrade_events),
             premium_packs_opened=day_premium_packs,
             premium_diamonds_spent=day_premium_diamonds,
+            hero_tokens_received=day_hero_tokens,
             upgrades_today=day_upgrades,
         )
         snapshots.append(snapshot)
@@ -219,6 +238,7 @@ def run_simulation(
         final_hero_xp={hid: hs.xp for hid, hs in game_state.heroes.items()},
         total_premium_diamonds_spent=sum(s.premium_diamonds_spent for s in snapshots),
         total_jokers_received=sum(s.jokers_received_today for s in snapshots),
+        total_hero_tokens=sum(s.hero_tokens_received for s in snapshots),
     )
 
 
@@ -230,7 +250,7 @@ def _create_initial_state(config: HeroCardConfig) -> HeroCardGameState:
         total_bluestars=config.initial_bluestars,
     )
 
-    # Initialize shared cards (Gold + Blue)
+    # Initialize shared cards (Gold + Blue + Gray)
     for i in range(1, config.num_gold_cards + 1):
         state.shared_cards.append(
             Card(id=f"gold_{i}", name=f"Gold Card {i}", category=CardCategory.GOLD_SHARED)
@@ -238,6 +258,10 @@ def _create_initial_state(config: HeroCardConfig) -> HeroCardGameState:
     for i in range(1, config.num_blue_cards + 1):
         state.shared_cards.append(
             Card(id=f"blue_{i}", name=f"Blue Card {i}", category=CardCategory.BLUE_SHARED)
+        )
+    for i in range(1, config.num_gray_cards + 1):
+        state.shared_cards.append(
+            Card(id=f"gray_{i}", name=f"Gray Card {i}", category=CardCategory.GRAY_SHARED)
         )
 
     # Initialize heroes from day 0 unlock schedule

@@ -1956,9 +1956,9 @@ def _render_hero_card_core_systems() -> None:
         **Upgrade costs** are configurable per rarity:
         ```
         hero_upgrade_tables: [
-            { rarity: COMMON, duplicate_costs: [3, 5, 7, ...], coin_costs: [...], xp_rewards: [...] },
-            { rarity: RARE,   ... },
-            { rarity: EPIC,   ... },
+            { rarity: GRAY, duplicate_costs: [10, 12, 16, ...], coin_costs: [...], xp_rewards: [...] },
+            { rarity: BLUE, ... },
+            { rarity: GOLD, ... },
         ]
         ```
 
@@ -2030,7 +2030,7 @@ def _render_hero_card_data_models() -> None:
         ```python
         card_id: str
         hero_id: str
-        rarity: HeroCardRarity              # COMMON | RARE | EPIC
+        rarity: HeroCardRarity              # GRAY | BLUE | GOLD
         name: str
         base_xp_on_upgrade: int             # Hero XP granted when this card upgrades
         ```
@@ -2190,7 +2190,7 @@ def _render_premium_card_packs() -> None:
         dupes = round(dupe_cost_for_next_level × random(min_pct, max_pct))
         ```
 
-        The percentage ranges are configured per card rarity (Common / Rare / Epic)
+        The percentage ranges are configured per card rarity (Gray / Blue / Gold)
         and per card level. Higher levels yield lower percentages, making progression
         harder as cards level up. See **Dupe Ranges** tab in the config editor.
 

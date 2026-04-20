@@ -176,9 +176,9 @@ def select_hero_card(
         cards_by_rarity.setdefault(card.rarity, []).append(card)
 
     rarity_config = [
-        (HeroCardRarity.COMMON, dc.rarity_weight_common),
-        (HeroCardRarity.RARE, dc.rarity_weight_rare),
-        (HeroCardRarity.EPIC, dc.rarity_weight_epic),
+        (HeroCardRarity.GRAY, dc.rarity_weight_gray),
+        (HeroCardRarity.BLUE, dc.rarity_weight_blue),
+        (HeroCardRarity.GOLD, dc.rarity_weight_gold),
     ]
 
     available_rarities = []
@@ -299,6 +299,21 @@ def compute_hero_duplicates(
         pct = (min_pct + max_pct) / 2.0
 
     return max(1, round(base_cost * pct))
+
+
+def get_coins_per_dupe(
+    card_level: int,
+    card_rarity: HeroCardRarity,
+    config: HeroCardConfig,
+) -> int:
+    """Look up coins earned per duplicate for a given card level and rarity."""
+    dupe_range = _find_dupe_range(config, card_rarity)
+    if not dupe_range or not dupe_range.coins_per_dupe:
+        return 5  # fallback
+    level_idx = card_level - 1
+    if level_idx >= len(dupe_range.coins_per_dupe):
+        return dupe_range.coins_per_dupe[-1] if dupe_range.coins_per_dupe else 5
+    return dupe_range.coins_per_dupe[level_idx]
 
 
 # ---------------------------------------------------------------------------

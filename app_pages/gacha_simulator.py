@@ -64,7 +64,7 @@ def render_gacha_simulator() -> None:
     with col2:
         seed = st.number_input("RNG seed (0 = random)", min_value=0, max_value=999999, value=0, key="gacha_seed")
 
-    total_pulls = num_packs * pack.cards_per_pack
+    total_pulls = num_packs * ((pack.min_cards_per_pack + pack.max_cards_per_pack) // 2)
     total_cost = num_packs * pack.diamond_cost
     st.caption(f"**{total_pulls}** pulls — **{total_cost:,}** diamonds")
 
@@ -99,7 +99,7 @@ def _simulate(
     sim_card_levels: dict[str, int] = {}
 
     for pack_idx in range(num_packs):
-        for _ in range(pack.cards_per_pack):
+        for _ in range(rng.randint(pack.min_cards_per_pack, pack.max_cards_per_pack)):
             pull_num += 1
             pull = {"pull_number": pull_num, "pack_number": pack_idx + 1}
 
@@ -131,7 +131,7 @@ def _simulate(
             pull["card_id"] = selected_id
             pull["card_name"] = info.get("name", selected_id)
             pull["hero_name"] = info.get("hero_name", "")
-            pull["rarity"] = rarity.value if isinstance(rarity, HeroCardRarity) else str(rarity or "COMMON")
+            pull["rarity"] = rarity.value if isinstance(rarity, HeroCardRarity) else str(rarity or "GRAY")
             pull["duplicates"] = dupes
             results.append(pull)
 
@@ -180,7 +180,7 @@ def _display(results: list[dict], pack: PremiumPackDef, config: HeroCardConfig, 
     cols[2].metric("Jokers", len(joker_pulls))
     cols[3].metric("Diamonds spent", f"{total_cost:,}")
 
-    rarity_colors = {"COMMON": "#9e9e9e", "RARE": "#2196f3", "EPIC": "#9c27b0"}
+    rarity_colors = {"GRAY": "#9e9e9e", "BLUE": "#2196f3", "GOLD": "#f59e0b"}
 
     st.markdown("---")
     for r in results:
@@ -204,7 +204,7 @@ def _display(results: list[dict], pack: PremiumPackDef, config: HeroCardConfig, 
             rarity_counts: dict[str, int] = {}
             for r in card_pulls:
                 rarity_counts[r["rarity"]] = rarity_counts.get(r["rarity"], 0) + 1
-            for rarity in ["COMMON", "RARE", "EPIC"]:
+            for rarity in ["GRAY", "BLUE", "GOLD"]:
                 count = rarity_counts.get(rarity, 0)
                 if count > 0:
                     color = rarity_colors.get(rarity, "#ccc")

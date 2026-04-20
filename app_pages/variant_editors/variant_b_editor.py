@@ -12,6 +12,7 @@ from simulation.variants.variant_b.models import (
     HeroCardConfig,
     HeroCardDef,
     HeroCardRarity,
+    PremiumPackAdditionalReward,
     PremiumPackCardRate,
     PremiumPackSchedule,
     SkillTreeNode,
@@ -30,11 +31,13 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
         with col3:
             config.num_days = st.number_input("Simulation days", min_value=1, max_value=730, value=config.num_days, step=1, key="vb_days")
 
-        col4, col5 = st.columns(2)
+        col4, col5, col6 = st.columns(3)
         with col4:
             config.num_gold_cards = st.number_input("Gold shared cards", min_value=1, max_value=50, value=config.num_gold_cards, key="vb_gold")
         with col5:
             config.num_blue_cards = st.number_input("Blue shared cards", min_value=1, max_value=50, value=config.num_blue_cards, key="vb_blue")
+        with col6:
+            config.num_gray_cards = st.number_input("Gray shared cards", min_value=1, max_value=50, value=config.num_gray_cards, key="vb_gray")
 
     tabs = st.tabs([
         ":material/person: Heroes & cards",
@@ -347,26 +350,26 @@ def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
         # Step 3: Roll rarity
         with st.container(border=True):
             st.markdown("**3. Roll rarity**")
-            dc.rarity_weight_common = st.slider(
-                "Common", min_value=0.0, max_value=1.0,
-                value=dc.rarity_weight_common, step=0.01, key="vb_rw_c",
+            dc.rarity_weight_gray = st.slider(
+                "Gray", min_value=0.0, max_value=1.0,
+                value=dc.rarity_weight_gray, step=0.01, key="vb_rw_c",
             )
-            dc.rarity_weight_rare = st.slider(
-                "Rare", min_value=0.0, max_value=1.0,
-                value=dc.rarity_weight_rare, step=0.01, key="vb_rw_r",
+            dc.rarity_weight_blue = st.slider(
+                "Blue", min_value=0.0, max_value=1.0,
+                value=dc.rarity_weight_blue, step=0.01, key="vb_rw_r",
             )
-            dc.rarity_weight_epic = st.slider(
-                "Epic", min_value=0.0, max_value=1.0,
-                value=dc.rarity_weight_epic, step=0.01, key="vb_rw_e",
+            dc.rarity_weight_gold = st.slider(
+                "Gold", min_value=0.0, max_value=1.0,
+                value=dc.rarity_weight_gold, step=0.01, key="vb_rw_e",
             )
-            rarity_sum = dc.rarity_weight_common + dc.rarity_weight_rare + dc.rarity_weight_epic
+            rarity_sum = dc.rarity_weight_gray + dc.rarity_weight_blue + dc.rarity_weight_gold
             if abs(rarity_sum - 1.0) > 0.01:
                 st.warning(f"Rarity weights sum to {rarity_sum:.2f} — should be 1.0")
             else:
                 st.markdown(
-                    f":gray-badge[Common {dc.rarity_weight_common*100:.0f}%] "
-                    f":blue-badge[Rare {dc.rarity_weight_rare*100:.0f}%] "
-                    f":violet-badge[Epic {dc.rarity_weight_epic*100:.0f}%]"
+                    f":gray-badge[Gray {dc.rarity_weight_gray*100:.0f}%] "
+                    f":blue-badge[Blue {dc.rarity_weight_blue*100:.0f}%] "
+                    f":orange-badge[Gold {dc.rarity_weight_gold*100:.0f}%]"
                 )
 
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
@@ -395,7 +398,7 @@ def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
 
         with st.container(border=True):
             st.markdown("**Pick shared card**")
-            st.caption(f"Lowest-level-first catch-up across {config.num_gold_cards} Gold + {config.num_blue_cards} Blue cards")
+            st.caption(f"Lowest-level-first catch-up across {config.num_gold_cards} Gold + {config.num_blue_cards} Blue + {config.num_gray_cards} Gray cards")
 
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
@@ -447,12 +450,46 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     st.markdown("**Pack Settings**")
     c1, c2, c3 = st.columns(3)
     with c1:
-        pack.cards_per_pack = st.number_input("Cards per Pack", min_value=1, max_value=50, value=pack.cards_per_pack, step=1, key=f"vb_pp_cpp_{sel}")
+        pack.min_cards_per_pack = st.number_input("Min Cards", min_value=1, max_value=50, value=pack.min_cards_per_pack, step=1, key=f"vb_pp_minc_{sel}")
+        pack.max_cards_per_pack = st.number_input("Max Cards", min_value=pack.min_cards_per_pack, max_value=50, value=pack.max_cards_per_pack, step=1, key=f"vb_pp_maxc_{sel}")
     with c2:
         pack.diamond_cost = st.number_input("Diamond Cost", min_value=0, value=pack.diamond_cost, step=50, key=f"vb_pp_cost_{sel}")
+        pack.hero_tokens_per_pack = st.number_input("Hero Tokens per Pack", min_value=0, value=pack.hero_tokens_per_pack, step=1, key=f"vb_pp_tokens_{sel}")
     with c3:
         joker_pct = st.number_input("Joker Rate %", min_value=0.0, max_value=30.0, value=round(pack.joker_rate * 100, 1), step=0.5, format="%.1f", key=f"vb_pp_joker_{sel}")
         pack.joker_rate = joker_pct / 100.0
+        pack.gold_guarantee = st.checkbox("Gold Guarantee", value=pack.gold_guarantee, key=f"vb_pp_gg_{sel}", help="Guarantee at least one GOLD rarity card per pack")
+
+    # Additional rewards
+    st.markdown("**Additional Rewards** (probability-based)")
+    if pack.additional_rewards:
+        reward_df = pd.DataFrame([
+            {"Reward Type": r.reward_type, "Amount": r.amount, "Probability %": round(r.probability * 100, 1)}
+            for r in pack.additional_rewards
+        ])
+    else:
+        reward_df = pd.DataFrame({"Reward Type": [], "Amount": [], "Probability %": []})
+    edited_rewards = st.data_editor(
+        reward_df,
+        column_config={
+            "Reward Type": st.column_config.TextColumn("Reward Type"),
+            "Amount": st.column_config.NumberColumn("Amount", min_value=0, step=1),
+            "Probability %": st.column_config.NumberColumn("Prob %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+        },
+        use_container_width=True,
+        hide_index=True,
+        num_rows="dynamic",
+        key=f"vb_pp_rewards_{sel}",
+    )
+    pack.additional_rewards = [
+        PremiumPackAdditionalReward(
+            reward_type=str(row["Reward Type"]),
+            amount=int(row["Amount"]),
+            probability=float(row["Probability %"]) / 100.0,
+        )
+        for _, row in edited_rewards.iterrows()
+        if str(row.get("Reward Type", "")).strip()
+    ]
 
     st.markdown("**Per-card drop rates**")
     if pack.card_drop_rates:
@@ -499,10 +536,15 @@ def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
     dr = config.hero_duplicate_ranges[sel]
 
     num_levels = len(dr.min_pct)
+    # Pad coins_per_dupe if shorter than min_pct
+    coins_list = dr.coins_per_dupe if dr.coins_per_dupe else [5] * num_levels
+    while len(coins_list) < num_levels:
+        coins_list.append(coins_list[-1] if coins_list else 5)
     df = pd.DataFrame({
         "Card Level": range(1, num_levels + 1),
         "Min %": [round(v * 100, 1) for v in dr.min_pct],
         "Max %": [round(v * 100, 1) for v in dr.max_pct],
+        "Coins/Dupe": coins_list[:num_levels],
     })
     edited = st.data_editor(
         df,
@@ -510,6 +552,7 @@ def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
             "Card Level": st.column_config.NumberColumn("Card Level", disabled=True),
             "Min %": st.column_config.NumberColumn("Min %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
             "Max %": st.column_config.NumberColumn("Max %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+            "Coins/Dupe": st.column_config.NumberColumn("Coins/Dupe", min_value=0, step=1),
         },
         use_container_width=True,
         hide_index=True,
@@ -518,6 +561,7 @@ def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
     )
     dr.min_pct = [float(row["Min %"]) / 100.0 for _, row in edited.iterrows()]
     dr.max_pct = [float(row["Max %"]) / 100.0 for _, row in edited.iterrows()]
+    dr.coins_per_dupe = [int(row["Coins/Dupe"]) for _, row in edited.iterrows()]
 
 
 def _render_pack_schedule_tab(config: HeroCardConfig) -> None:

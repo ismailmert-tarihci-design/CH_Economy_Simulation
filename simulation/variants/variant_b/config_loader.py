@@ -18,6 +18,7 @@ from simulation.variants.variant_b.models import (
     HeroDuplicateRange,
     HeroDropConfig,
     HeroUpgradeCostTable,
+    PremiumPackAdditionalReward,
     PremiumPackCardRate,
     PremiumPackDef,
     PremiumPackSchedule,
@@ -81,6 +82,7 @@ def _builtin_defaults() -> HeroCardConfig:
         },
         num_gold_cards=9,
         num_blue_cards=14,
+        num_gray_cards=20,
         hero_upgrade_tables=_default_upgrade_tables(),
         hero_duplicate_ranges=_default_duplicate_ranges(),
         joker_drop_rate_in_regular_packs=0.01,
@@ -103,21 +105,21 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 32) -> HeroDef
     Default: ~32 cards per hero (17 heroes × 32 = 544 total).
     Rarity distribution is a starting point — fully editable in the UI.
     """
-    # Distribute cards across rarities: ~55% common, 30% rare, 15% epic
-    num_common = max(1, round(num_cards * 0.55))
-    num_rare = max(1, round(num_cards * 0.30))
-    num_epic = max(1, num_cards - num_common - num_rare)
+    # Distribute cards across rarities: ~55% gray, 30% blue, 15% gold
+    num_gray = max(1, round(num_cards * 0.55))
+    num_blue = max(1, round(num_cards * 0.30))
+    num_gold = max(1, num_cards - num_gray - num_blue)
     rarity_dist = [
-        (HeroCardRarity.COMMON, num_common),
-        (HeroCardRarity.RARE, num_rare),
-        (HeroCardRarity.EPIC, num_epic),
+        (HeroCardRarity.GRAY, num_gray),
+        (HeroCardRarity.BLUE, num_blue),
+        (HeroCardRarity.GOLD, num_gold),
     ]
 
     cards = []
     xp_values = {
-        HeroCardRarity.COMMON: 5,
-        HeroCardRarity.RARE: 20,
-        HeroCardRarity.EPIC: 40,
+        HeroCardRarity.GRAY: 5,
+        HeroCardRarity.BLUE: 15,
+        HeroCardRarity.GOLD: 40,
     }
     card_idx = 1
     for rarity, count in rarity_dist:
@@ -131,8 +133,8 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 32) -> HeroDef
             ))
             card_idx += 1
 
-    # Starter cards: first 3 common cards
-    starter_ids = [c.card_id for c in cards if c.rarity == HeroCardRarity.COMMON][:3]
+    # Starter cards: first 3 gray cards
+    starter_ids = [c.card_id for c in cards if c.rarity == HeroCardRarity.GRAY][:3]
 
     # Linear skill tree: 33 nodes, distributing remaining cards across them
     # Some nodes unlock cards, others are perk-only nodes
@@ -170,9 +172,9 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 32) -> HeroDef
 def _create_hero_pack(hero: HeroDef) -> PremiumPackDef:
     """Create one premium pack for a hero using their card pool."""
     rarity_weights = {
-        HeroCardRarity.COMMON: 5.0,
-        HeroCardRarity.RARE: 2.0,
-        HeroCardRarity.EPIC: 1.0,
+        HeroCardRarity.GRAY: 5.0,
+        HeroCardRarity.BLUE: 2.0,
+        HeroCardRarity.GOLD: 1.0,
     }
 
     card_rates = [
@@ -188,9 +190,16 @@ def _create_hero_pack(hero: HeroDef) -> PremiumPackDef:
         name=f"{hero.name} Card Pack",
         featured_hero_ids=[hero.hero_id],
         card_drop_rates=card_rates,
-        cards_per_pack=5,
+        min_cards_per_pack=4,
+        max_cards_per_pack=8,
         diamond_cost=500,
         joker_rate=0.02,
+        gold_guarantee=True,
+        hero_tokens_per_pack=5,
+        additional_rewards=[
+            PremiumPackAdditionalReward(reward_type="coins", amount=500, probability=0.20),
+            PremiumPackAdditionalReward(reward_type="bluestars", amount=50, probability=0.10),
+        ],
     )
 
 
@@ -222,22 +231,30 @@ def save_config(config: HeroCardConfig) -> None:
 
 
 def _default_upgrade_tables() -> list[HeroUpgradeCostTable]:
-    """Create default upgrade cost tables for each rarity (max card level = 10)."""
-    tables = []
-    for rarity, base_dupe, base_coin, base_bs, base_xp in [
-        (HeroCardRarity.COMMON, 3, 50, 5, 5),
-        (HeroCardRarity.RARE, 8, 200, 20, 20),
-        (HeroCardRarity.EPIC, 12, 400, 40, 40),
-    ]:
-        num_levels = 10
-        tables.append(HeroUpgradeCostTable(
-            rarity=rarity,
-            duplicate_costs=[base_dupe + i * 2 for i in range(num_levels)],
-            coin_costs=[base_coin + i * base_coin for i in range(num_levels)],
-            bluestar_rewards=[base_bs + i * 3 for i in range(num_levels)],
-            xp_rewards=[base_xp + i * 5 for i in range(num_levels)],
-        ))
-    return tables
+    """Create default upgrade cost tables for each rarity (9 card levels)."""
+    return [
+        HeroUpgradeCostTable(
+            rarity=HeroCardRarity.GRAY,
+            duplicate_costs=[10, 12, 16, 20, 30, 50, 70, 100, 150],
+            coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
+            bluestar_rewards=[50, 65, 80, 95, 110, 125, 150, 200, 250],
+            xp_rewards=[5, 5, 5, 10, 10, 10, 10, 15, 15],
+        ),
+        HeroUpgradeCostTable(
+            rarity=HeroCardRarity.BLUE,
+            duplicate_costs=[10, 12, 16, 20, 30, 50, 70, 100, 150],
+            coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
+            bluestar_rewards=[120, 150, 210, 265, 310, 360, 400, 450, 500],
+            xp_rewards=[15, 15, 15, 30, 30, 30, 30, 45, 45],
+        ),
+        HeroUpgradeCostTable(
+            rarity=HeroCardRarity.GOLD,
+            duplicate_costs=[10, 12, 16, 20, 30, 50, 70, 100, 150],
+            coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
+            bluestar_rewards=[150, 200, 250, 300, 350, 400, 500, 600, 750],
+            xp_rewards=[40, 40, 40, 75, 75, 75, 75, 150, 150],
+        ),
+    ]
 
 
 def _default_duplicate_ranges() -> list[HeroDuplicateRange]:
@@ -247,22 +264,25 @@ def _default_duplicate_ranges() -> list[HeroDuplicateRange]:
     where pct is drawn uniformly from [min_pct, max_pct] for that card's current level.
 
     Percentages decrease as card level increases — early levels are easier to upgrade.
-    10 entries (one per card level, index 0 = level 1).
+    9 entries (one per card level, index 0 = level 1).
     """
     return [
         HeroDuplicateRange(
-            rarity=HeroCardRarity.COMMON,
-            min_pct=[0.80, 0.70, 0.60, 0.50, 0.40, 0.30, 0.25, 0.20, 0.15, 0.10],
-            max_pct=[0.90, 0.85, 0.75, 0.65, 0.55, 0.45, 0.40, 0.35, 0.25, 0.20],
+            rarity=HeroCardRarity.GRAY,
+            min_pct=[0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40],
+            max_pct=[0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50],
+            coins_per_dupe=[25, 29, 29, 29, 23, 16, 13, 11, 8],
         ),
         HeroDuplicateRange(
-            rarity=HeroCardRarity.RARE,
-            min_pct=[0.60, 0.50, 0.40, 0.30, 0.25, 0.20, 0.15, 0.10, 0.08, 0.05],
-            max_pct=[0.80, 0.65, 0.55, 0.45, 0.35, 0.30, 0.25, 0.20, 0.15, 0.10],
+            rarity=HeroCardRarity.BLUE,
+            min_pct=[0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40],
+            max_pct=[0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50],
+            coins_per_dupe=[25, 29, 29, 29, 23, 16, 13, 11, 8],
         ),
         HeroDuplicateRange(
-            rarity=HeroCardRarity.EPIC,
-            min_pct=[0.40, 0.30, 0.20, 0.15, 0.10, 0.08, 0.06, 0.05, 0.04, 0.03],
-            max_pct=[0.60, 0.50, 0.35, 0.25, 0.20, 0.15, 0.12, 0.10, 0.08, 0.06],
+            rarity=HeroCardRarity.GOLD,
+            min_pct=[0.25, 0.25, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],
+            max_pct=[0.40, 0.40, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15],
+            coins_per_dupe=[25, 29, 29, 29, 23, 16, 13, 11, 8],
         ),
     ]

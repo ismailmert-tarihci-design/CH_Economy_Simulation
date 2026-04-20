@@ -17,10 +17,10 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 
 class HeroCardRarity(str, Enum):
-    """Rarity tiers within a hero's card deck. Names are display-only."""
-    COMMON = "COMMON"
-    RARE = "RARE"
-    EPIC = "EPIC"
+    """Rarity tiers within a hero's card deck."""
+    GRAY = "GRAY"
+    BLUE = "BLUE"
+    GOLD = "GOLD"
 
 
 
@@ -67,6 +67,13 @@ class PremiumPackCardRate(BaseModel):
     drop_rate: float = Field(description="Probability weight for this card")
 
 
+class PremiumPackAdditionalReward(BaseModel):
+    """An additional reward that can drop from a premium pack."""
+    reward_type: str = Field(description="Type of reward (e.g. 'coins', 'bluestars', 'hero_tokens')")
+    amount: int = Field(default=1, description="Amount of reward")
+    probability: float = Field(default=0.10, description="Chance of this reward dropping per pack")
+
+
 class PremiumPackDef(BaseModel):
     """Definition of a hero-specific premium card pack (single tier per hero)."""
     pack_id: str
@@ -76,9 +83,16 @@ class PremiumPackDef(BaseModel):
         default_factory=list,
         description="Per-card drop rates (displayed to player)"
     )
-    cards_per_pack: int = Field(default=5)
+    min_cards_per_pack: int = Field(default=4, description="Minimum cards drawn per pack")
+    max_cards_per_pack: int = Field(default=8, description="Maximum cards drawn per pack")
     diamond_cost: int = Field(default=500, description="Price in diamonds")
     joker_rate: float = Field(default=0.02, description="Chance of pulling a hero joker per draw")
+    gold_guarantee: bool = Field(default=True, description="Guarantee at least one GOLD rarity card per pack")
+    hero_tokens_per_pack: int = Field(default=5, description="Hero Tokens gifted per pack opening")
+    additional_rewards: List[PremiumPackAdditionalReward] = Field(
+        default_factory=list,
+        description="Probability-based additional rewards per pack"
+    )
 
 
 class PremiumPackSchedule(BaseModel):
@@ -110,6 +124,7 @@ class HeroDuplicateRange(BaseModel):
     rarity: HeroCardRarity
     min_pct: List[float] = Field(default_factory=list, description="Min % of next-level dupe cost received per pull")
     max_pct: List[float] = Field(default_factory=list, description="Max % of next-level dupe cost received per pull")
+    coins_per_dupe: List[int] = Field(default_factory=list, description="Coins earned per duplicate at each card level")
 
 
 # ---------------------------------------------------------------------------
@@ -127,9 +142,9 @@ class HeroDropConfig(BaseModel):
     bucket_top_weight: float = Field(default=0.25, description="Probability of selecting from highest-level hero bucket")
 
     # Rarity roll weights for hero card drops
-    rarity_weight_common: float = Field(default=0.64, description="Probability of dropping a COMMON card")
-    rarity_weight_rare: float = Field(default=0.30, description="Probability of dropping a RARE card")
-    rarity_weight_epic: float = Field(default=0.06, description="Probability of dropping an EPIC card")
+    rarity_weight_gray: float = Field(default=0.64, description="Probability of dropping a GRAY card")
+    rarity_weight_blue: float = Field(default=0.30, description="Probability of dropping a BLUE card")
+    rarity_weight_gold: float = Field(default=0.06, description="Probability of dropping a GOLD card")
 
     # Anti-streak decay
     streak_decay_shared: float = Field(default=0.6, description="Weight decay for repeated shared pulls")
@@ -154,9 +169,10 @@ class HeroCardConfig(BaseModel):
         description="Day -> list of hero_ids unlocked on that day"
     )
 
-    # Shared card settings (Gold/Blue, same structure as Variant A)
+    # Shared card settings (Gold/Blue/Gray)
     num_gold_cards: int = Field(default=9)
     num_blue_cards: int = Field(default=14)
+    num_gray_cards: int = Field(default=20)
     max_shared_level: int = Field(default=100)
     shared_base_shared_rate: float = Field(default=0.70)
     shared_base_unique_rate: float = Field(default=0.30)
@@ -220,7 +236,7 @@ class HeroCardGameState(BaseModel):
     """Complete runtime game state for Variant B."""
     day: int = Field(default=0)
     heroes: Dict[str, HeroProgressState] = Field(default_factory=dict)
-    shared_cards: List[Any] = Field(default_factory=list, description="Gold/Blue shared cards (Card objects)")
+    shared_cards: List[Any] = Field(default_factory=list, description="Gold/Blue/Gray shared cards (Card objects)")
     coins: int = Field(default=0)
     total_bluestars: int = Field(default=0)
     pity_counter: int = Field(default=0, description="Pulls since last hero card")
@@ -258,6 +274,7 @@ class HeroCardDailySnapshot:
     jokers_used_today: int = 0
     premium_packs_opened: int = 0
     premium_diamonds_spent: int = 0
+    hero_tokens_received: int = 0
 
     # Shared subsystem events
     pet_events: List[Dict[str, Any]] = field(default_factory=list)
@@ -278,3 +295,4 @@ class HeroSimResult(BaseModel):
     final_hero_xp: Dict[str, int] = Field(default_factory=dict)
     total_premium_diamonds_spent: int = Field(default=0)
     total_jokers_received: int = Field(default=0)
+    total_hero_tokens: int = Field(default=0)
