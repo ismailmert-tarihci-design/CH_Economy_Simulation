@@ -87,6 +87,20 @@ class PremiumPackCardRate(BaseModel):
     drop_rate: float = Field(description="Probability weight for this card")
 
 
+class HeroCardTypesRange(BaseModel):
+    """Min/max range for card types yielded at a given unlock threshold."""
+    min: int
+    max: int
+
+
+class HeroPackType(BaseModel):
+    """Pack type definition with progression-scaled card yields."""
+    name: str
+    card_types_table: Dict[int, HeroCardTypesRange] = Field(
+        description="Maps total unlocked card count → min/max card types per pack opening"
+    )
+
+
 class PremiumPackAdditionalReward(BaseModel):
     """An additional reward that can drop from a premium pack."""
     reward_type: str = Field(description="Type of reward (e.g. 'coins', 'bluestars', 'hero_tokens')")
@@ -236,9 +250,9 @@ class HeroCardConfig(BaseModel):
     drop_config: HeroDropConfig = Field(default_factory=HeroDropConfig)
 
     # Pack types and daily schedule
-    pack_types: List[Dict[str, Any]] = Field(
+    pack_types: List[HeroPackType] = Field(
         default_factory=list,
-        description="Pack type definitions: [{name, min_cards, max_cards}, ...]"
+        description="Pack type definitions with progression-scaled card yields"
     )
     daily_pack_schedule: List[Dict[str, float]] = Field(
         default_factory=list,

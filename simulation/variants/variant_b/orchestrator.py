@@ -69,7 +69,7 @@ def run_simulation(
         _process_hero_unlocks(day, config, game_state)
 
         # 2. Process regular pack pulls
-        num_pulls, day_pack_counts = _get_daily_pulls(day, config, rng)
+        num_pulls, day_pack_counts = _get_daily_pulls(day, config, game_state, rng)
 
         for _ in range(num_pulls):
             pull_type = decide_hero_or_shared(game_state, config, rng)
@@ -293,13 +293,34 @@ def _process_hero_unlocks(
                 game_state.heroes[hero_id] = initialize_hero(hero_def)
 
 
+def _get_card_types_for_count(
+    card_types_table: Dict[int, Any],
+    total_unlocked: int,
+) -> tuple[int, int]:
+    """Floor-match total unlocked count against card_types_table thresholds.
+
+    Returns (min, max) card types for the matching threshold.
+    """
+    matching_keys = [k for k in card_types_table if int(k) <= total_unlocked]
+    if not matching_keys:
+        best_key = min(card_types_table.keys(), key=lambda k: int(k))
+    else:
+        best_key = max(matching_keys, key=lambda k: int(k))
+    entry = card_types_table[best_key]
+    if hasattr(entry, "min"):
+        return entry.min, entry.max
+    return int(entry.get("min", 1)), int(entry.get("max", 3))
+
+
 def _get_daily_pulls(
     day: int,
     config: HeroCardConfig,
+    game_state: HeroCardGameState,
     rng: Optional[Random] = None,
 ) -> tuple[int, Dict[str, int]]:
     """Determine number of card pulls from pack schedule + pack type definitions.
 
+    Uses card_types_table per pack type to scale cards with progression.
     Returns: (total_card_pulls, pack_counts_by_type)
     """
     if not config.daily_pack_schedule:
@@ -308,10 +329,18 @@ def _get_daily_pulls(
     idx = (day - 1) % len(config.daily_pack_schedule)
     day_schedule = config.daily_pack_schedule[idx]
 
-    # Build pack type lookup: name -> {min_cards, max_cards}
-    pack_type_map: Dict[str, Dict] = {}
+    # Build pack type lookup by name
+    from simulation.variants.variant_b.models import HeroPackType
+    pack_type_map: Dict[str, HeroPackType] = {}
     for pt in config.pack_types:
-        pack_type_map[pt["name"]] = pt
+        pack_type_map[pt.name] = pt
+
+    # Count total unlocked cards across all heroes
+    total_unlocked = 0
+    for hero_state in game_state.heroes.values():
+        for card in hero_state.cards.values():
+            if card.unlocked:
+                total_unlocked += 1
 
     total_pulls = 0
     pack_counts: Dict[str, int] = {}
@@ -327,10 +356,12 @@ def _get_daily_pulls(
 
         pack_counts[pack_name] = num_packs
 
-        # Determine cards per pack from pack type definition
+        # Determine cards per pack from card_types_table
         pt = pack_type_map.get(pack_name)
-        min_cards = pt.get("min_cards", 1) if pt else 1
-        max_cards = pt.get("max_cards", 3) if pt else 3
+        if pt and pt.card_types_table:
+            min_cards, max_cards = _get_card_types_for_count(pt.card_types_table, total_unlocked)
+        else:
+            min_cards, max_cards = 1, 3
 
         for _ in range(num_packs):
             if rng:

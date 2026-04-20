@@ -12,6 +12,8 @@ from simulation.variants.variant_b.models import (
     HeroCardConfig,
     HeroCardDef,
     HeroCardRarity,
+    HeroCardTypesRange,
+    HeroPackType,
     PremiumPackAdditionalReward,
     PremiumPackPullRarity,
     PremiumPackSchedule,
@@ -630,32 +632,76 @@ def _render_shared_dupe_ranges_tab(config: HeroCardConfig) -> None:
 def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
     # --- Pack type definitions ---
     st.subheader("Pack Types")
-    st.caption("Define pack types with name and cards-per-pack range. The daily schedule references these by name.")
+    st.caption(
+        "Define pack types and their card-yield progression. "
+        "Card types scale with total unlocked cards (floor-matched). "
+        "The daily schedule references these by name."
+    )
 
     if not config.pack_types:
-        config.pack_types = [{"name": "StandardPack", "min_cards": 1, "max_cards": 3}]
+        config.pack_types = [
+            HeroPackType(name="StandardPack", card_types_table={0: HeroCardTypesRange(min=1, max=3)}),
+        ]
 
-    pt_df = pd.DataFrame([
-        {"Name": pt.get("name", ""), "Min Cards": pt.get("min_cards", 1), "Max Cards": pt.get("max_cards", 3)}
-        for pt in config.pack_types
-    ])
-    edited_pt = st.data_editor(
-        pt_df,
-        column_config={
-            "Name": st.column_config.TextColumn("Pack Type Name"),
-            "Min Cards": st.column_config.NumberColumn("Min Cards", min_value=1, max_value=20, step=1),
-            "Max Cards": st.column_config.NumberColumn("Max Cards", min_value=1, max_value=20, step=1),
-        },
+    # Pack name editor
+    pack_names_df = pd.DataFrame([{"Name": pt.name} for pt in config.pack_types])
+    edited_names = st.data_editor(
+        pack_names_df,
+        column_config={"Name": st.column_config.TextColumn("Pack Type Name")},
         width="stretch",
         hide_index=True,
         num_rows="dynamic",
-        key="vb_pack_types",
+        key="vb_pack_type_names",
     )
+    new_names = [str(row["Name"]).strip() for _, row in edited_names.iterrows() if str(row.get("Name", "")).strip()]
+
+    # Sync pack_types list with edited names (preserve existing tables, add empty for new)
+    existing_map = {pt.name: pt for pt in config.pack_types}
     config.pack_types = [
-        {"name": str(row["Name"]), "min_cards": int(row["Min Cards"]), "max_cards": int(row["Max Cards"])}
-        for _, row in edited_pt.iterrows()
-        if str(row.get("Name", "")).strip()
+        existing_map.get(name, HeroPackType(name=name, card_types_table={0: HeroCardTypesRange(min=1, max=2)}))
+        for name in new_names
     ]
+    # Update names in case of renames
+    for pt, name in zip(config.pack_types, new_names):
+        pt.name = name
+
+    # Per-pack card_types_table editors
+    if config.pack_types:
+        st.markdown("**Card Types Tables by Pack**")
+        st.caption("Maps total unlocked card count to min/max card types yielded per pack opening.")
+        pack_tabs = st.tabs([pt.name for pt in config.pack_types])
+        for pt, tab in zip(config.pack_types, pack_tabs):
+            with tab:
+                table_data = [
+                    {"Unlocked Card Count": int(k), "Min Card Types": int(v.min), "Max Card Types": int(v.max)}
+                    for k, v in sorted(pt.card_types_table.items(), key=lambda x: int(x[0]))
+                ]
+                if not table_data:
+                    table_data = [{"Unlocked Card Count": 0, "Min Card Types": 1, "Max Card Types": 2}]
+
+                ct_df = pd.DataFrame(table_data)
+                edited_ct = st.data_editor(
+                    ct_df,
+                    column_config={
+                        "Unlocked Card Count": st.column_config.NumberColumn(
+                            "Unlocked Card Count", min_value=0, step=1, format="%d", required=True,
+                        ),
+                        "Min Card Types": st.column_config.NumberColumn(
+                            "Min Card Types", min_value=1, max_value=20, step=1, format="%d", required=True,
+                        ),
+                        "Max Card Types": st.column_config.NumberColumn(
+                            "Max Card Types", min_value=1, max_value=20, step=1, format="%d", required=True,
+                        ),
+                    },
+                    hide_index=True,
+                    width="stretch",
+                    num_rows="dynamic",
+                    key=f"vb_card_types_{pt.name}",
+                )
+                pt.card_types_table = {
+                    int(row._1): HeroCardTypesRange(min=int(row._2), max=int(row._3))
+                    for row in edited_ct.itertuples()
+                }
 
     st.divider()
 
