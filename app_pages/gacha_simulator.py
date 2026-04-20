@@ -80,12 +80,16 @@ def _simulate(
     rng: Random,
 ) -> list[dict]:
     """Simulate opening packs using the real open_premium_pack() logic."""
-    # Create a temporary game state with featured heroes initialized
+    # Create a temporary game state with featured heroes — all cards unlocked
+    # so the simulator can pull from the full rarity pool
     game_state = HeroCardGameState(day=0, coins=0, total_bluestars=0)
     for hero_id in pack.featured_hero_ids:
         hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
         if hero_def:
-            game_state.heroes[hero_id] = initialize_hero(hero_def)
+            hero_state = initialize_hero(hero_def)
+            for card in hero_state.cards.values():
+                card.unlocked = True
+            game_state.heroes[hero_id] = hero_state
 
     # Build card name/info lookup
     card_info = {}
