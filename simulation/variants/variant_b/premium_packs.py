@@ -171,9 +171,6 @@ def open_premium_pack(
             else:
                 chosen_rarity = _roll_rarity(pack_def.default_rarity_weights, rng)
 
-            if chosen_rarity == HeroCardRarity.GOLD:
-                got_gold = True
-
             # Pick card of chosen rarity using catch-up
             selected_card_id = _pick_card_by_rarity_catchup(
                 chosen_rarity, pack_def.featured_hero_ids, game_state, rng
@@ -280,14 +277,14 @@ def process_premium_purchases(
     config: HeroCardConfig,
     game_state: HeroCardGameState,
     rng: Optional[Random] = None,
-) -> Tuple[List[Dict[str, Any]], int, int, int]:
+) -> Tuple[List[Dict[str, Any]], int, int, int, int]:
     """Process all premium pack purchases for a day.
 
-    Returns: (all_pull_results, total_diamonds_spent, jokers_received, hero_tokens_received)
+    Returns: (all_pull_results, total_diamonds_spent, jokers_received, hero_tokens_received, packs_opened)
     """
     day_index = (day - 1) % len(config.premium_pack_purchase_schedule) if config.premium_pack_purchase_schedule else -1
     if day_index < 0:
-        return [], 0, 0, 0
+        return [], 0, 0, 0, 0
 
     purchases = config.premium_pack_purchase_schedule[day_index]
     available = get_available_packs(day, config.premium_pack_schedule, config.premium_packs)
@@ -297,6 +294,7 @@ def process_premium_purchases(
     total_diamonds = 0
     total_jokers = 0
     total_hero_tokens = 0
+    total_packs_opened = 0
 
     for pack_id, count in purchases.items():
         pack_def = available_by_id.get(pack_id)
@@ -306,6 +304,7 @@ def process_premium_purchases(
         for _ in range(count):
             pulls = open_premium_pack(pack_def, game_state, config, rng)
             all_results.extend(pulls)
+            total_packs_opened += 1
             total_diamonds += pack_def.diamond_cost
             total_jokers += sum(1 for p in pulls if p.get("is_joker", False))
             total_hero_tokens += sum(
@@ -313,4 +312,4 @@ def process_premium_purchases(
                 if p.get("reward_type") == "hero_tokens"
             )
 
-    return all_results, total_diamonds, total_jokers, total_hero_tokens
+    return all_results, total_diamonds, total_jokers, total_hero_tokens, total_packs_opened

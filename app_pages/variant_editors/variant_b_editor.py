@@ -163,6 +163,9 @@ def _render_heroes_tab(config: HeroCardConfig) -> None:
     if not schedule_rows:
         schedule_rows = [{"Day": 0, "Hero IDs": ""}]
     sched_df = pd.DataFrame(schedule_rows)
+    bulk = render_bulk_edit_bar("unlock_sched", sched_df, label="Unlock Schedule")
+    if bulk is not None:
+        sched_df = bulk
     edited_sched = st.data_editor(sched_df, width="stretch", hide_index=True, num_rows="dynamic", key="vb_unlock_sched")
     config.hero_unlock_schedule = {}
     for _, row in edited_sched.iterrows():
@@ -192,6 +195,9 @@ def _render_skill_tree_tab(config: HeroCardConfig) -> None:
             }
             for n in hero.skill_tree
         ])
+        bulk = render_bulk_edit_bar(f"skill_tree_{idx}", tree_df, label=f"{hero.name} Skill Tree")
+        if bulk is not None:
+            tree_df = bulk
         edited = st.data_editor(tree_df, width="stretch", hide_index=True, num_rows="dynamic", key=f"vb_tree_{idx}")
         hero.skill_tree = []
         for _, row in edited.iterrows():
@@ -225,6 +231,9 @@ def _render_xp_tab(config: HeroCardConfig) -> None:
         "Level": range(1, len(config.shared_xp_per_level) + 1),
         "XP Required": config.shared_xp_per_level,
     })
+    bulk = render_bulk_edit_bar("shared_xp", xp_df, label="XP Thresholds")
+    if bulk is not None:
+        xp_df = bulk
     edited = st.data_editor(
         xp_df,
         column_config={
@@ -258,6 +267,9 @@ def _render_upgrade_costs_tab(config: HeroCardConfig) -> None:
         "Bluestar Reward": table.bluestar_rewards[:num_levels],
         "XP Reward": table.xp_rewards[:num_levels],
     })
+    bulk = render_bulk_edit_bar(f"hero_upgcost_{sel}", df, label=f"{rarity_names[sel]} Upgrade Costs")
+    if bulk is not None:
+        df = bulk
     edited = st.data_editor(
         df,
         column_config={
@@ -296,6 +308,9 @@ def _render_shared_upgrade_tab(config: HeroCardConfig) -> None:
         "Coin Cost": table.coin_costs,
         "Bluestar Reward": table.bluestar_rewards[:num_levels],
     })
+    bulk = render_bulk_edit_bar(f"shared_upgcost_{sel}", df, label=f"{cat_names[sel]} Shared Upgrade Costs")
+    if bulk is not None:
+        df = bulk
     edited = st.data_editor(
         df,
         column_config={
@@ -494,6 +509,9 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     else:
         sched_df = pd.DataFrame({"Pull": [1, 2, 3, 4], "Gray %": [64.0, 55.0, 45.0, 30.0], "Blue %": [30.0, 35.0, 35.0, 35.0], "Gold %": [6.0, 10.0, 20.0, 35.0]})
 
+    bulk = render_bulk_edit_bar(f"pp_rarity_sched_{sel}", sched_df, label="Pull Rarity Schedule")
+    if bulk is not None:
+        sched_df = bulk
     edited_sched = st.data_editor(
         sched_df,
         column_config={
@@ -571,6 +589,9 @@ def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
         "Max %": [round(v * 100, 1) for v in dr.max_pct],
         "Coins/Dupe": coins_list[:num_levels],
     })
+    bulk = render_bulk_edit_bar(f"hero_duperange_{sel}", df, label=f"{rarity_names[sel]} Dupe Ranges")
+    if bulk is not None:
+        df = bulk
     edited = st.data_editor(
         df,
         column_config={
@@ -614,6 +635,9 @@ def _render_shared_dupe_ranges_tab(config: HeroCardConfig) -> None:
         "Max %": [round(v * 100, 1) for v in dr.max_pct],
         "Coins/Dupe": coins_list[:num_levels],
     })
+    bulk = render_bulk_edit_bar(f"shared_duperange_{sel}", df, label=f"{cat_names[sel]} Shared Dupe Ranges")
+    if bulk is not None:
+        df = bulk
     edited = st.data_editor(
         df,
         column_config={
@@ -714,6 +738,9 @@ def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
     if config.daily_pack_schedule:
         sched_df = pd.DataFrame(config.daily_pack_schedule)
         sched_df.insert(0, "Day", range(1, len(sched_df) + 1))
+        bulk = render_bulk_edit_bar("daily_pack_sched", sched_df, label="Daily Pack Schedule")
+        if bulk is not None:
+            sched_df = bulk
         edited = st.data_editor(sched_df, width="stretch", hide_index=True, num_rows="dynamic", key="vb_daily_packs")
         config.daily_pack_schedule = [
             {col: float(row[col]) for col in edited.columns if col != "Day"}
@@ -729,6 +756,9 @@ def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
             {"Pack ID": s.pack_id, "From Day": s.available_from_day, "Until Day": s.available_until_day}
             for s in config.premium_pack_schedule
         ])
+        bulk = render_bulk_edit_bar("pp_avail_sched", avail_df, label="Premium Pack Availability")
+        if bulk is not None:
+            avail_df = bulk
         edited = st.data_editor(avail_df, width="stretch", hide_index=True, num_rows="dynamic", key="vb_pp_sched")
         config.premium_pack_schedule = [
             PremiumPackSchedule(
@@ -745,6 +775,9 @@ def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
     if config.premium_pack_purchase_schedule:
         purch_df = pd.DataFrame(config.premium_pack_purchase_schedule)
         purch_df.insert(0, "Day", range(1, len(purch_df) + 1))
+        bulk = render_bulk_edit_bar("pp_purchases", purch_df, label="Premium Purchases")
+        if bulk is not None:
+            purch_df = bulk
         edited = st.data_editor(purch_df, width="stretch", hide_index=True, num_rows="dynamic", key="vb_pp_purchases")
         config.premium_pack_purchase_schedule = [
             {col: int(row[col]) for col in edited.columns if col != "Day"}

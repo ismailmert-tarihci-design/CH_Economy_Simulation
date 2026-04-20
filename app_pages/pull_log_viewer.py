@@ -67,10 +67,11 @@ def _render_chronological(pull_logs: list) -> None:
             key="chrono_day_range",
         )
     with col2:
+        all_categories = sorted(set(p.card_category for p in pull_logs))
         category_filter = st.multiselect(
             "Category Filter",
-            ["GOLD_SHARED", "BLUE_SHARED", "UNIQUE"],
-            default=["GOLD_SHARED", "BLUE_SHARED", "UNIQUE"],
+            all_categories,
+            default=all_categories,
             key="chrono_cat_filter",
         )
 
@@ -117,20 +118,25 @@ def _render_chronological(pull_logs: list) -> None:
     )
 
 
+def _format_category_label(cat: str) -> str:
+    """Convert category keys to readable tab labels."""
+    if cat.startswith("HERO_"):
+        return f"Hero: {cat[5:].replace('_', ' ').title()}"
+    return cat.replace("_", " ").title()
+
+
 def _render_per_card(pull_logs: list) -> None:
+    all_categories = sorted(set(p.card_category for p in pull_logs))
     cards_by_category: dict[str, dict[str, list]] = {
-        "GOLD_SHARED": defaultdict(list),
-        "BLUE_SHARED": defaultdict(list),
-        "UNIQUE": defaultdict(list),
+        cat: defaultdict(list) for cat in all_categories
     }
 
     for p in pull_logs:
         cards_by_category[p.card_category][p.card_id].append(p)
 
-    category_tabs = st.tabs(["Gold Shared", "Blue Shared", "Unique"])
-    category_keys = ["GOLD_SHARED", "BLUE_SHARED", "UNIQUE"]
+    category_tabs = st.tabs([_format_category_label(cat) for cat in all_categories])
 
-    for tab, cat_key in zip(category_tabs, category_keys):
+    for tab, cat_key in zip(category_tabs, all_categories):
         with tab:
             card_dict = cards_by_category[cat_key]
             if not card_dict:

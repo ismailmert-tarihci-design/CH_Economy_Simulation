@@ -6,8 +6,23 @@ coins earned, and any upgrades that fired immediately after the pull.
 """
 
 from dataclasses import dataclass, field
+from typing import Any
 
-from simulation.upgrade_engine import UpgradeEvent
+
+@dataclass
+class VariantBUpgradeEvent:
+    """Adapter for Variant B upgrade dicts — matches UpgradeEvent interface."""
+
+    card_id: str
+    old_level: int
+    new_level: int
+    dupes_spent: int
+    coins_spent: int
+    bluestars_earned: int
+    day: int
+    hero_id: str = ""
+    jokers_spent: int = 0
+    xp_earned: int = 0
 
 
 @dataclass
@@ -18,14 +33,14 @@ class PullEvent:
     pull_index: int  # 1-indexed within the day
     card_id: str
     card_name: str
-    card_category: str  # "GOLD_SHARED", "BLUE_SHARED", "UNIQUE"
+    card_category: str  # e.g. "GOLD_SHARED", "BLUE_SHARED", "UNIQUE", "HERO_warrior"
     card_level_before: int  # level at the moment of pull
     duplicates_received: int
     duplicates_total_after: int  # total dupes on card after this pull
     coins_earned: int
     pack_name: str  # which pack this pull came from
     bluestars_earned: int  # total bluestars from upgrades after this pull
-    upgrades: list[UpgradeEvent] = field(default_factory=list)
+    upgrades: list[Any] = field(default_factory=list)
 
 
 @dataclass
@@ -48,7 +63,7 @@ class PullLogger:
         coins_earned: int,
         pack_name: str,
         bluestars_earned: int,
-        upgrades: list[UpgradeEvent],
+        upgrades: list[Any],
     ) -> None:
         self.events.append(
             PullEvent(

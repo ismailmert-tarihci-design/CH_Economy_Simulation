@@ -26,6 +26,12 @@ def extract_common_metrics(
             "category_avg_levels": _extract_category_levels(snapshots),
             "total_bluestars": result.total_bluestars,
             "total_coins_earned": result.total_coins_earned,
+            "total_coins_spent": result.total_coins_spent,
+            "total_upgrades": sum(result.total_upgrades.values()) if isinstance(result.total_upgrades, dict) else 0,
+            "coins_earned_daily": [s.coins_earned_today for s in snapshots],
+            "coins_spent_daily": [s.coins_spent_today for s in snapshots],
+            "bluestars_daily": [s.bluestars_earned_today for s in snapshots],
+            "pull_counts_daily": [sum(s.pull_counts_by_type.values()) for s in snapshots],
         }
     else:
         return {

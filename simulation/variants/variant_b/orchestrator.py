@@ -6,7 +6,6 @@ from random import Random
 from typing import Any, Dict, List, Optional
 
 from simulation.models import Card, CardCategory
-from simulation.coin_economy import CoinLedger
 
 from simulation.variants.variant_b.models import (
     HeroCardConfig,
@@ -35,6 +34,17 @@ from simulation.variants.variant_b.upgrade_engine import (
 )
 from simulation.variants.variant_b.premium_packs import process_premium_purchases
 from simulation.variants.variant_b.hero_joker import add_jokers
+from simulation.pull_logger import PullLogger, VariantBUpgradeEvent
+
+
+def _resolve_card_name(config: HeroCardConfig, hero_id: str, card_id: str) -> str:
+    """Look up card name from config hero definitions."""
+    for hero_def in config.heroes:
+        if hero_def.hero_id == hero_id:
+            for card_def in hero_def.card_pool:
+                if card_def.card_id == card_id:
+                    return card_def.name
+    return card_id
 
 
 def run_simulation(
@@ -46,6 +56,7 @@ def run_simulation(
     game_state.coins = config.initial_coins
 
     snapshots: List[HeroCardDailySnapshot] = []
+    pull_logger = PullLogger()
     total_coins_earned = 0
     total_coins_spent = 0
     all_upgrade_events: Dict[str, int] = {}
@@ -64,6 +75,7 @@ def run_simulation(
         day_premium_packs = 0
         day_premium_diamonds = 0
         day_hero_tokens = 0
+        pull_index = 0
 
         # 1. Check hero unlock schedule
         _process_hero_unlocks(day, config, game_state)
@@ -90,6 +102,7 @@ def run_simulation(
                     hero_state = game_state.heroes[hero_id]
                     card = hero_state.cards.get(card_id)
                     if card:
+                        level_before = card.level
                         dupes = compute_hero_duplicates(card.level, card.rarity, config, rng)
                         card.duplicates += dupes
                         day_pull_counts["HERO"] = day_pull_counts.get("HERO", 0) + 1
@@ -99,6 +112,23 @@ def run_simulation(
                         coin_income = max(1, dupes * cpd)
                         game_state.coins += coin_income
                         day_coins_earned += coin_income
+
+                        # Log the pull
+                        pull_index += 1
+                        pull_logger.log_pull(
+                            day=day,
+                            pull_index=pull_index,
+                            card_id=card_id,
+                            card_name=_resolve_card_name(config, hero_id, card_id),
+                            card_category=f"HERO_{hero_id}",
+                            card_level_before=level_before,
+                            duplicates_received=dupes,
+                            duplicates_total_after=card.duplicates,
+                            coins_earned=coin_income,
+                            pack_name="regular",
+                            bluestars_earned=0,
+                            upgrades=[],
+                        )
 
                 # Check joker drop
                 if check_joker_drop(config, rng):
@@ -111,6 +141,7 @@ def run_simulation(
                 game_state.pity_counter += 1
                 card = select_shared_card(game_state, rng)
                 if card:
+                    level_before = card.level
                     # Per-category duplicate computation (same formula as hero cards)
                     cat = card.category.value if hasattr(card.category, "value") else str(card.category)
                     dupes = compute_shared_duplicates(card.level, cat, config, rng)
@@ -123,11 +154,28 @@ def run_simulation(
                     game_state.coins += coin_income
                     day_coins_earned += coin_income
 
+                    # Log the pull
+                    pull_index += 1
+                    pull_logger.log_pull(
+                        day=day,
+                        pull_index=pull_index,
+                        card_id=card.id,
+                        card_name=card.name,
+                        card_category=cat,
+                        card_level_before=level_before,
+                        duplicates_received=dupes,
+                        duplicates_total_after=card.duplicates,
+                        coins_earned=coin_income,
+                        pack_name="regular",
+                        bluestars_earned=0,
+                        upgrades=[],
+                    )
+
         # 3. Process premium pack purchases
-        premium_pulls, diamonds_spent, jokers_from_premium, tokens_from_premium = process_premium_purchases(
+        premium_pulls, diamonds_spent, jokers_from_premium, tokens_from_premium, packs_opened = process_premium_purchases(
             day, config, game_state, rng=rng
         )
-        day_premium_packs = len(premium_pulls)
+        day_premium_packs = packs_opened
         day_premium_diamonds = diamonds_spent
         day_jokers_received += jokers_from_premium
         day_hero_tokens = tokens_from_premium
@@ -149,13 +197,45 @@ def run_simulation(
                 hero_id = pull["hero_id"]
                 if hero_id in game_state.heroes:
                     add_jokers(game_state.heroes[hero_id], 1)
+                    pull_index += 1
+                    pull_logger.log_pull(
+                        day=day,
+                        pull_index=pull_index,
+                        card_id="__joker__",
+                        card_name="Hero Joker",
+                        card_category=f"HERO_{hero_id}",
+                        card_level_before=0,
+                        duplicates_received=1,
+                        duplicates_total_after=1,
+                        coins_earned=0,
+                        pack_name="premium",
+                        bluestars_earned=0,
+                        upgrades=[],
+                    )
             else:
                 hero_id = pull["hero_id"]
                 card_id = pull["card_id"]
                 if hero_id in game_state.heroes:
                     hero_state = game_state.heroes[hero_id]
                     if card_id in hero_state.cards and hero_state.cards[card_id].unlocked:
-                        hero_state.cards[card_id].duplicates += pull["duplicates"]
+                        card_obj = hero_state.cards[card_id]
+                        level_before = card_obj.level
+                        card_obj.duplicates += pull["duplicates"]
+                        pull_index += 1
+                        pull_logger.log_pull(
+                            day=day,
+                            pull_index=pull_index,
+                            card_id=card_id,
+                            card_name=_resolve_card_name(config, hero_id, card_id),
+                            card_category=f"HERO_{hero_id}",
+                            card_level_before=level_before,
+                            duplicates_received=pull["duplicates"],
+                            duplicates_total_after=card_obj.duplicates,
+                            coins_earned=0,
+                            pack_name="premium",
+                            bluestars_earned=0,
+                            upgrades=[],
+                        )
 
         # 4. Attempt hero card upgrades (greedy)
         upgrade_events, xp_earned, bs_earned, tree_acts = attempt_hero_upgrades(
@@ -165,8 +245,8 @@ def run_simulation(
         day_hero_xp: Dict[str, int] = {}
         for evt in upgrade_events:
             hero_id = evt["hero_id"]
-            xp_earned = evt.get("xp_earned", 0)
-            day_hero_xp[hero_id] = day_hero_xp.get(hero_id, 0) + xp_earned
+            evt_xp = evt.get("xp_earned", 0)
+            day_hero_xp[hero_id] = day_hero_xp.get(hero_id, 0) + evt_xp
             day_coins_spent += evt.get("coins_spent", 0)
             key = f"{hero_id}:{evt['card_id']}"
             all_upgrade_events[key] = all_upgrade_events.get(key, 0) + 1
@@ -183,6 +263,27 @@ def run_simulation(
             day_coins_spent += evt.get("coins_spent", 0)
             cat_key = evt.get("category", "SHARED")
             all_upgrade_events[cat_key] = all_upgrade_events.get(cat_key, 0) + 1
+
+        # Attach upgrade events to the last pull of the day
+        if day_upgrades and pull_logger.events and pull_logger.events[-1].day == day:
+            converted_upgrades = [
+                VariantBUpgradeEvent(
+                    card_id=evt.get("card_id", ""),
+                    old_level=evt.get("old_level", 0),
+                    new_level=evt.get("new_level", 0),
+                    dupes_spent=evt.get("dupes_spent", 0),
+                    coins_spent=evt.get("coins_spent", 0),
+                    bluestars_earned=evt.get("bluestars_earned", 0),
+                    day=day,
+                    hero_id=evt.get("hero_id", ""),
+                    jokers_spent=evt.get("jokers_spent", 0),
+                    xp_earned=evt.get("xp_earned", 0),
+                )
+                for evt in day_upgrades
+            ]
+            last_pull = pull_logger.events[-1]
+            last_pull.upgrades = converted_upgrades
+            last_pull.bluestars_earned = sum(u.bluestars_earned for u in converted_upgrades)
 
         total_coins_earned += day_coins_earned
         total_coins_spent += day_coins_spent
@@ -221,7 +322,7 @@ def run_simulation(
             skill_nodes_unlocked_today=day_skill_nodes,
             cards_unlocked_today=day_cards_unlocked,
             jokers_received_today=day_jokers_received,
-            jokers_used_today=sum(e.get("jokers_spent", 0) for e in upgrade_events),
+            jokers_used_today=sum(e.get("jokers_spent", 0) for e in day_upgrades),
             premium_packs_opened=day_premium_packs,
             premium_diamonds_spent=day_premium_diamonds,
             hero_tokens_received=day_hero_tokens,
@@ -235,6 +336,7 @@ def run_simulation(
         total_coins_earned=total_coins_earned,
         total_coins_spent=total_coins_spent,
         total_upgrades=all_upgrade_events,
+        pull_logs=pull_logger.events,
         final_shared_hero_level=max((hs.level for hs in game_state.heroes.values()), default=1),
         final_shared_hero_xp=sum(hs.xp for hs in game_state.heroes.values()),
         final_hero_levels={hid: hs.level for hid, hs in game_state.heroes.items()},
@@ -349,9 +451,21 @@ def _get_daily_pulls(
     for pack_name, daily_avg in day_schedule.items():
         # Determine how many packs of this type to open
         if rng:
-            import numpy as np
-            np.random.seed(rng.randint(0, 2**31))
-            num_packs = int(np.random.poisson(max(0, daily_avg)))
+            # Use Python's RNG to sample Poisson without mutating numpy global state
+            # Box-Muller approximation for Poisson via inverse transform
+            import math
+            lam = max(0.0, daily_avg)
+            if lam == 0:
+                num_packs = 0
+            else:
+                # Knuth algorithm for Poisson sampling using the simulation RNG
+                L = math.exp(-lam)
+                k = 0
+                p = 1.0
+                while p > L:
+                    k += 1
+                    p *= rng.random()
+                num_packs = k - 1
         else:
             num_packs = round(daily_avg)
 

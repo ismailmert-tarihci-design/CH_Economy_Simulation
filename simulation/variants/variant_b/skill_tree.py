@@ -32,10 +32,10 @@ def check_and_advance_skill_tree(
             break  # Linear tree — stop at first unmet requirement
 
         hero_state.skill_tree_progress = node.node_index
-        newly_unlocked = unlock_cards(hero_state, node.cards_unlocked)
+        unlock_cards(hero_state, node.cards_unlocked)
         activated.append((
             node.node_index,
-            node.cards_unlocked[:newly_unlocked] if newly_unlocked else [],
+            node.cards_unlocked,
             node.perk_label,
         ))
 

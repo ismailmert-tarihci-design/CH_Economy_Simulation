@@ -30,7 +30,7 @@ def initialize_hero(hero_def: HeroDef) -> HeroProgressState:
         hero_id=hero_def.hero_id,
         xp=0,
         level=1,
-        skill_tree_progress=0,
+        skill_tree_progress=-1,
         cards=cards,
         joker_count=0,
     )
