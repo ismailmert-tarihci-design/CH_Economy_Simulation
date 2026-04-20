@@ -1,7 +1,7 @@
 """Hero Pack Pull Simulator.
 
 Simulates opening a hero's card pack using actual Variant B config:
-per-hero card pools, drop rates, and the dupe % mechanic.
+per-pull rarity weights, dupe % mechanic, and real pack opening logic.
 """
 
 from __future__ import annotations
@@ -12,13 +12,12 @@ import streamlit as st
 
 from simulation.variants.variant_b.models import (
     HeroCardConfig,
+    HeroCardGameState,
     HeroCardRarity,
     PremiumPackDef,
 )
-from simulation.variants.variant_b.drop_algorithm import (
-    _find_dupe_range,
-    _find_upgrade_table,
-)
+from simulation.variants.variant_b.hero_deck import initialize_hero
+from simulation.variants.variant_b.premium_packs import open_premium_pack
 
 
 def render_gacha_simulator() -> None:
@@ -66,12 +65,12 @@ def render_gacha_simulator() -> None:
 
     total_pulls = num_packs * ((pack.min_cards_per_pack + pack.max_cards_per_pack) // 2)
     total_cost = num_packs * pack.diamond_cost
-    st.caption(f"**{total_pulls}** pulls — **{total_cost:,}** diamonds")
+    st.caption(f"**~{total_pulls}** pulls -- **{total_cost:,}** diamonds")
 
     if st.button("Open packs", type="primary", width="stretch", key="gacha_open"):
         rng = Random(seed if seed > 0 else None)
         results = _simulate(pack, config, num_packs, rng)
-        _display(results, pack, config, num_packs)
+        _display(results, pack, num_packs)
 
 
 def _simulate(
@@ -80,6 +79,15 @@ def _simulate(
     num_packs: int,
     rng: Random,
 ) -> list[dict]:
+    """Simulate opening packs using the real open_premium_pack() logic."""
+    # Create a temporary game state with featured heroes initialized
+    game_state = HeroCardGameState(day=0, coins=0, total_bluestars=0)
+    for hero_id in pack.featured_hero_ids:
+        hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
+        if hero_def:
+            game_state.heroes[hero_id] = initialize_hero(hero_def)
+
+    # Build card name/info lookup
     card_info = {}
     for hero in config.heroes:
         for card in hero.card_pool:
@@ -90,88 +98,53 @@ def _simulate(
                 "rarity": card.rarity,
             }
 
-    card_rates = [(cr.card_id, cr.drop_rate) for cr in pack.card_drop_rates]
-    total_weight = sum(r for _, r in card_rates)
     results = []
     pull_num = 0
 
-    # Track simulated card levels for dupe % calculation
-    sim_card_levels: dict[str, int] = {}
-
     for pack_idx in range(num_packs):
-        for _ in range(rng.randint(pack.min_cards_per_pack, pack.max_cards_per_pack)):
+        pulls = open_premium_pack(pack, game_state, config, rng)
+        for pull in pulls:
             pull_num += 1
-            pull = {"pull_number": pull_num, "pack_number": pack_idx + 1}
+            entry = {"pull_number": pull_num, "pack_number": pack_idx + 1}
 
-            if rng.random() < pack.joker_rate:
-                pull["type"] = "joker"
-                results.append(pull)
-                continue
+            card_id = pull.get("card_id", "")
+            is_joker = pull.get("is_joker", False)
+            reward_type = pull.get("reward_type")
 
-            if total_weight > 0:
-                roll = rng.random() * total_weight
-                cumulative = 0.0
-                selected_id = card_rates[0][0]
-                for card_id, rate in card_rates:
-                    cumulative += rate
-                    if roll <= cumulative:
-                        selected_id = card_id
-                        break
+            if is_joker:
+                entry["type"] = "joker"
+            elif reward_type:
+                entry["type"] = "reward"
+                entry["reward_type"] = reward_type
+                entry["reward_amount"] = pull.get("reward_amount", 0)
             else:
-                continue
+                entry["type"] = "card"
+                info = card_info.get(card_id, {})
+                rarity = info.get("rarity")
+                entry["card_id"] = card_id
+                entry["card_name"] = info.get("name", card_id)
+                entry["hero_name"] = info.get("hero_name", "")
+                entry["rarity"] = rarity.value if isinstance(rarity, HeroCardRarity) else str(rarity or "GRAY")
+                entry["duplicates"] = pull.get("duplicates", 1)
 
-            info = card_info.get(selected_id, {})
-            rarity = info.get("rarity")
-            card_level = sim_card_levels.get(selected_id, 1)
+                # Apply dupes to game state so catch-up weighting works across packs
+                for hid, hstate in game_state.heroes.items():
+                    if card_id in hstate.cards and hstate.cards[card_id].unlocked:
+                        hstate.cards[card_id].duplicates += pull.get("duplicates", 1)
 
-            # Compute dupes using the % mechanic
-            dupes = _compute_sim_dupes(card_level, rarity, config, rng)
-
-            pull["type"] = "card"
-            pull["card_id"] = selected_id
-            pull["card_name"] = info.get("name", selected_id)
-            pull["hero_name"] = info.get("hero_name", "")
-            pull["rarity"] = rarity.value if isinstance(rarity, HeroCardRarity) else str(rarity or "GRAY")
-            pull["duplicates"] = dupes
-            results.append(pull)
+            results.append(entry)
 
     return results
 
 
-def _compute_sim_dupes(
-    card_level: int,
-    rarity: HeroCardRarity | None,
-    config: HeroCardConfig,
-    rng: Random,
-) -> int:
-    """Compute dupes for the simulator using the same % mechanic as the real drop algorithm."""
-    if rarity is None:
-        return 1
-
-    dupe_range = _find_dupe_range(config, rarity)
-    upgrade_table = _find_upgrade_table(config, rarity)
-
-    if not dupe_range or not upgrade_table:
-        return 1
-
-    level_idx = card_level - 1
-    if level_idx >= len(upgrade_table.duplicate_costs) or level_idx >= len(dupe_range.min_pct):
-        return 0
-
-    base_cost = upgrade_table.duplicate_costs[level_idx]
-    min_pct = dupe_range.min_pct[level_idx]
-    max_pct = dupe_range.max_pct[level_idx]
-    pct = rng.uniform(min_pct, max_pct)
-    return max(1, round(base_cost * pct))
-
-
-def _display(results: list[dict], pack: PremiumPackDef, config: HeroCardConfig, num_packs: int) -> None:
+def _display(results: list[dict], pack: PremiumPackDef, num_packs: int) -> None:
     if not results:
         st.warning("No results.")
         return
 
     card_pulls = [r for r in results if r.get("type") == "card"]
     joker_pulls = [r for r in results if r.get("type") == "joker"]
+    reward_pulls = [r for r in results if r.get("type") == "reward"]
     total_cost = num_packs * pack.diamond_cost
 
     cols = st.columns(4)
@@ -186,9 +159,11 @@ def _display(results: list[dict], pack: PremiumPackDef, config: HeroCardConfig, 
     for r in results:
         n = r["pull_number"]
         if r["type"] == "joker":
-            st.markdown(f"**#{n}** :material/playing_cards: **JOKER** — universal wildcard")
+            st.markdown(f"**#{n}** :material/playing_cards: **JOKER** -- universal wildcard")
+        elif r["type"] == "reward":
+            st.markdown(f"**#{n}** :material/redeem: **{r['reward_type']}** x{r['reward_amount']}")
         else:
-            color = rarity_colors.get(r["rarity"], "#ccc")
+            color = rarity_colors.get(r.get("rarity", ""), "#ccc")
             st.markdown(
                 f'**#{n}** :material/person: **{r["hero_name"]}** > '
                 f'<span style="color:{color};font-weight:600">{r["card_name"]}</span> '
@@ -202,18 +177,26 @@ def _display(results: list[dict], pack: PremiumPackDef, config: HeroCardConfig, 
         with c1:
             st.markdown("**By rarity**")
             rarity_counts: dict[str, int] = {}
+            total_dupes: dict[str, int] = {}
             for r in card_pulls:
-                rarity_counts[r["rarity"]] = rarity_counts.get(r["rarity"], 0) + 1
+                rarity = r.get("rarity", "GRAY")
+                rarity_counts[rarity] = rarity_counts.get(rarity, 0) + 1
+                total_dupes[rarity] = total_dupes.get(rarity, 0) + r.get("duplicates", 0)
             for rarity in ["GRAY", "BLUE", "GOLD"]:
                 count = rarity_counts.get(rarity, 0)
+                dupes = total_dupes.get(rarity, 0)
                 if count > 0:
                     color = rarity_colors.get(rarity, "#ccc")
                     pct = count / len(card_pulls) * 100
                     st.markdown(
-                        f'- <span style="color:{color};font-weight:600">{rarity}</span>: {count} ({pct:.0f}%)',
+                        f'- <span style="color:{color};font-weight:600">{rarity}</span>: '
+                        f'{count} cards ({pct:.0f}%), {dupes} total dupes',
                         unsafe_allow_html=True,
                     )
         with c2:
             if joker_pulls:
                 joker_pct = len(joker_pulls) / len(results) * 100
                 st.markdown(f"**Joker rate**: {joker_pct:.1f}% (config: {pack.joker_rate*100:.0f}%)")
+            if reward_pulls:
+                for r in reward_pulls:
+                    st.markdown(f"**{r['reward_type']}**: {r['reward_amount']}")

@@ -19,7 +19,10 @@ from simulation.variants.variant_b.models import (
     PremiumPackPullRarity,
     PremiumPackSchedule,
 )
-from simulation.variants.variant_b.drop_algorithm import compute_hero_duplicates
+from simulation.variants.variant_b.drop_algorithm import (
+    _find_upgrade_table,
+    compute_hero_duplicates,
+)
 
 
 def get_available_packs(
@@ -185,11 +188,18 @@ def open_premium_pack(
         if card_rarity == HeroCardRarity.GOLD:
             got_gold = True
 
-        # Compute duplicates (with optional override)
+        # Compute duplicates (with optional % override)
         if card_rarity is not None:
-            override = pack_def.dupe_override_per_rarity.get(card_rarity.value)
-            if override is not None and override > 0:
-                dupes = override
+            pct_override = pack_def.dupe_pct_per_rarity.get(card_rarity.value, 0.0)
+            if pct_override > 0:
+                # % of required dupes for next level
+                upgrade_table = _find_upgrade_table(config, card_rarity)
+                level_idx = card_level - 1
+                if upgrade_table and level_idx < len(upgrade_table.duplicate_costs):
+                    base_cost = upgrade_table.duplicate_costs[level_idx]
+                    dupes = max(1, round(base_cost * pct_override))
+                else:
+                    dupes = 1
             else:
                 dupes = compute_hero_duplicates(card_level, card_rarity, config, rng)
         else:

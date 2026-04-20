@@ -129,10 +129,10 @@ class PremiumPackDef(BaseModel):
         default_factory=PremiumPackPullRarity,
         description="Fallback rarity weights after gold has been pulled"
     )
-    # Dupe override: rarity name -> fixed dupe count (empty = use normal formula)
-    dupe_override_per_rarity: Dict[str, int] = Field(
+    # Dupe override: rarity name -> % of required dupes for next level (0 = use normal formula)
+    dupe_pct_per_rarity: Dict[str, float] = Field(
         default_factory=dict,
-        description="Rarity -> fixed dupe count override. Keys: GRAY, BLUE, GOLD. Empty = use formula."
+        description="Rarity -> % of dupe cost for next level (e.g. 0.5 = 50%). Keys: GRAY, BLUE, GOLD. Empty = use normal formula."
     )
 
 
@@ -235,10 +235,14 @@ class HeroCardConfig(BaseModel):
     # Drop algorithm
     drop_config: HeroDropConfig = Field(default_factory=HeroDropConfig)
 
-    # Pack schedules
+    # Pack types and daily schedule
+    pack_types: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Pack type definitions: [{name, min_cards, max_cards}, ...]"
+    )
     daily_pack_schedule: List[Dict[str, float]] = Field(
         default_factory=list,
-        description="Daily pack schedule (shared packs)"
+        description="Daily pack schedule: [{pack_name: expected_count}, ...] per day cycle"
     )
 
     # Duplicate ranges (per rarity, % of next-level dupe cost per pull)

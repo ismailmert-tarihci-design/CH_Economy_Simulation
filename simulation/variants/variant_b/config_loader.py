@@ -97,7 +97,13 @@ def _builtin_defaults() -> HeroCardConfig:
             hero_vs_shared_base_rate=0.50,
             pity_counter_threshold=10,
         ),
-        daily_pack_schedule=[{"regular": 5.0}],
+        pack_types=[
+            {"name": "StandardPack", "min_cards": 1, "max_cards": 3},
+            {"name": "PremiumPack", "min_cards": 2, "max_cards": 4},
+        ],
+        daily_pack_schedule=[
+            {"StandardPack": 3.0, "PremiumPack": 1.0},
+        ],
         premium_packs=premium_packs,
         premium_pack_schedule=[
             PremiumPackSchedule(pack_id=hero.hero_id, available_from_day=0, available_until_day=100)

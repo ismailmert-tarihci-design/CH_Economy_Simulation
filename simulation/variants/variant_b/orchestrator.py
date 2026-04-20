@@ -69,8 +69,7 @@ def run_simulation(
         _process_hero_unlocks(day, config, game_state)
 
         # 2. Process regular pack pulls
-        num_pulls = _get_daily_pulls(day, config, rng)
-        day_pack_counts["regular"] = num_pulls
+        num_pulls, day_pack_counts = _get_daily_pulls(day, config, rng)
 
         for _ in range(num_pulls):
             pull_type = decide_hero_or_shared(game_state, config, rng)
@@ -298,18 +297,49 @@ def _get_daily_pulls(
     day: int,
     config: HeroCardConfig,
     rng: Optional[Random] = None,
-) -> int:
-    """Determine number of card pulls for this day from pack schedule."""
+) -> tuple[int, Dict[str, int]]:
+    """Determine number of card pulls from pack schedule + pack type definitions.
+
+    Returns: (total_card_pulls, pack_counts_by_type)
+    """
     if not config.daily_pack_schedule:
-        return 0
+        return 0, {}
+
     idx = (day - 1) % len(config.daily_pack_schedule)
-    day_packs = config.daily_pack_schedule[idx]
-    total = sum(day_packs.values())
-    if rng:
-        import numpy as np
-        np.random.seed(rng.randint(0, 2**31))
-        return int(np.random.poisson(max(0, total)))
-    return round(total)
+    day_schedule = config.daily_pack_schedule[idx]
+
+    # Build pack type lookup: name -> {min_cards, max_cards}
+    pack_type_map: Dict[str, Dict] = {}
+    for pt in config.pack_types:
+        pack_type_map[pt["name"]] = pt
+
+    total_pulls = 0
+    pack_counts: Dict[str, int] = {}
+
+    for pack_name, daily_avg in day_schedule.items():
+        # Determine how many packs of this type to open
+        if rng:
+            import numpy as np
+            np.random.seed(rng.randint(0, 2**31))
+            num_packs = int(np.random.poisson(max(0, daily_avg)))
+        else:
+            num_packs = round(daily_avg)
+
+        pack_counts[pack_name] = num_packs
+
+        # Determine cards per pack from pack type definition
+        pt = pack_type_map.get(pack_name)
+        min_cards = pt.get("min_cards", 1) if pt else 1
+        max_cards = pt.get("max_cards", 3) if pt else 3
+
+        for _ in range(num_packs):
+            if rng:
+                cards_in_pack = rng.randint(min_cards, max_cards)
+            else:
+                cards_in_pack = (min_cards + max_cards) // 2
+            total_pulls += cards_in_pack
+
+    return total_pulls, pack_counts
 
 
 def _pick_joker_hero(game_state: HeroCardGameState) -> Optional[str]:

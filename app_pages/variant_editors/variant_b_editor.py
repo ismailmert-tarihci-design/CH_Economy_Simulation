@@ -522,23 +522,23 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
         dd = st.number_input("Gold %", min_value=0.0, max_value=100.0, value=round(pack.default_rarity_weights.gold_weight * 100, 1), step=1.0, format="%.1f", key=f"vb_pp_def_gold_{sel}")
     pack.default_rarity_weights = PremiumPackPullRarity(gray_weight=dg / 100.0, blue_weight=db / 100.0, gold_weight=dd / 100.0)
 
-    # Dupe override per rarity
-    st.markdown("**Dupe override per rarity** (optional)")
-    st.caption("Set a fixed duplicate count per rarity. 0 = use normal formula.")
+    # Dupe % override per rarity
+    st.markdown("**Dupe % of required dupes** (optional)")
+    st.caption("% of the required duplicates for the next level-up. 0 = use normal formula.")
     ov1, ov2, ov3 = st.columns(3)
     with ov1:
-        og = st.number_input("Gray dupes", min_value=0, value=pack.dupe_override_per_rarity.get("GRAY", 0), step=1, key=f"vb_pp_ov_gray_{sel}")
+        og = st.number_input("Gray %", min_value=0.0, max_value=200.0, value=round(pack.dupe_pct_per_rarity.get("GRAY", 0.0) * 100, 1), step=5.0, format="%.1f", key=f"vb_pp_ov_gray_{sel}")
     with ov2:
-        ob = st.number_input("Blue dupes", min_value=0, value=pack.dupe_override_per_rarity.get("BLUE", 0), step=1, key=f"vb_pp_ov_blue_{sel}")
+        ob = st.number_input("Blue %", min_value=0.0, max_value=200.0, value=round(pack.dupe_pct_per_rarity.get("BLUE", 0.0) * 100, 1), step=5.0, format="%.1f", key=f"vb_pp_ov_blue_{sel}")
     with ov3:
-        oo = st.number_input("Gold dupes", min_value=0, value=pack.dupe_override_per_rarity.get("GOLD", 0), step=1, key=f"vb_pp_ov_gold_{sel}")
-    pack.dupe_override_per_rarity = {}
+        oo = st.number_input("Gold %", min_value=0.0, max_value=200.0, value=round(pack.dupe_pct_per_rarity.get("GOLD", 0.0) * 100, 1), step=5.0, format="%.1f", key=f"vb_pp_ov_gold_{sel}")
+    pack.dupe_pct_per_rarity = {}
     if og > 0:
-        pack.dupe_override_per_rarity["GRAY"] = og
+        pack.dupe_pct_per_rarity["GRAY"] = og / 100.0
     if ob > 0:
-        pack.dupe_override_per_rarity["BLUE"] = ob
+        pack.dupe_pct_per_rarity["BLUE"] = ob / 100.0
     if oo > 0:
-        pack.dupe_override_per_rarity["GOLD"] = oo
+        pack.dupe_pct_per_rarity["GOLD"] = oo / 100.0
 
 
 def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
@@ -628,15 +628,50 @@ def _render_shared_dupe_ranges_tab(config: HeroCardConfig) -> None:
 
 
 def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
-    st.subheader("Daily Pack Schedule (Regular)")
+    # --- Pack type definitions ---
+    st.subheader("Pack Types")
+    st.caption("Define pack types with name and cards-per-pack range. The daily schedule references these by name.")
+
+    if not config.pack_types:
+        config.pack_types = [{"name": "StandardPack", "min_cards": 1, "max_cards": 3}]
+
+    pt_df = pd.DataFrame([
+        {"Name": pt.get("name", ""), "Min Cards": pt.get("min_cards", 1), "Max Cards": pt.get("max_cards", 3)}
+        for pt in config.pack_types
+    ])
+    edited_pt = st.data_editor(
+        pt_df,
+        column_config={
+            "Name": st.column_config.TextColumn("Pack Type Name"),
+            "Min Cards": st.column_config.NumberColumn("Min Cards", min_value=1, max_value=20, step=1),
+            "Max Cards": st.column_config.NumberColumn("Max Cards", min_value=1, max_value=20, step=1),
+        },
+        width="stretch",
+        hide_index=True,
+        num_rows="dynamic",
+        key="vb_pack_types",
+    )
+    config.pack_types = [
+        {"name": str(row["Name"]), "min_cards": int(row["Min Cards"]), "max_cards": int(row["Max Cards"])}
+        for _, row in edited_pt.iterrows()
+        if str(row.get("Name", "")).strip()
+    ]
+
+    st.divider()
+
+    # --- Daily schedule ---
+    st.subheader("Daily Pack Schedule")
+    st.caption("Expected pack count per type per day. Schedule repeats cyclically.")
     if config.daily_pack_schedule:
         sched_df = pd.DataFrame(config.daily_pack_schedule)
         sched_df.insert(0, "Day", range(1, len(sched_df) + 1))
-        edited = st.data_editor(sched_df, width="stretch", hide_index=True, key="vb_daily_packs")
+        edited = st.data_editor(sched_df, width="stretch", hide_index=True, num_rows="dynamic", key="vb_daily_packs")
         config.daily_pack_schedule = [
             {col: float(row[col]) for col in edited.columns if col != "Day"}
             for _, row in edited.iterrows()
         ]
+    else:
+        st.info("No daily pack schedule configured. Add pack types above first.")
 
     st.divider()
     st.subheader("Premium Pack Availability Schedule")
