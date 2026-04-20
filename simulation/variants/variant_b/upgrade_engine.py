@@ -15,6 +15,7 @@ from simulation.variants.variant_b.models import (
     HeroDef,
     HeroProgressState,
     HeroUpgradeCostTable,
+    SharedUpgradeCostTable,
 )
 from simulation.variants.variant_b.hero_deck import get_unlocked_cards
 from simulation.variants.variant_b.hero_joker import consume_joker, jokers_available
@@ -111,18 +112,23 @@ def attempt_hero_upgrades(
             game_state.total_bluestars += bluestar_reward
             total_bluestars += bluestar_reward
 
-            # Grant Hero XP
-            hero_state.xp += xp_reward
+            # Grant Hero XP to shared pool
+            game_state.shared_hero_xp += xp_reward
             total_xp += xp_reward
 
-            # Check hero level up
-            leveled_up = _check_hero_level_up(hero_state, hero_def)
+            # Check shared hero level up
+            leveled_up = _check_shared_level_up(game_state, config)
 
-            # Check skill tree advancement
+            # Check skill tree advancement for ALL heroes on shared level-up
             if leveled_up:
-                activated = check_and_advance_skill_tree(hero_def, hero_state)
-                if activated:
-                    tree_activations.setdefault(hero_id, []).extend(activated)
+                for check_hid, check_hstate in game_state.heroes.items():
+                    check_hdef = _get_hero_def(config, check_hid)
+                    if check_hdef:
+                        activated = check_and_advance_skill_tree(
+                            check_hdef, check_hstate, game_state.shared_hero_level
+                        )
+                        if activated:
+                            tree_activations.setdefault(check_hid, []).extend(activated)
 
             events.append({
                 "hero_id": hero_id,
@@ -143,18 +149,96 @@ def attempt_hero_upgrades(
     return events, total_xp, total_bluestars, tree_activations
 
 
-def _check_hero_level_up(hero_state: HeroProgressState, hero_def: HeroDef) -> bool:
-    """Check if hero has enough XP to level up. Returns True if leveled."""
+def _check_shared_level_up(
+    game_state: HeroCardGameState,
+    config: HeroCardConfig,
+) -> bool:
+    """Check if shared hero XP has reached the next level threshold. May level multiple times."""
     leveled = False
-    while hero_state.level < hero_def.max_level:
-        level_idx = hero_state.level - 1
-        if level_idx >= len(hero_def.xp_per_level):
+    while game_state.shared_hero_level < config.shared_max_hero_level:
+        level_idx = game_state.shared_hero_level - 1
+        if level_idx >= len(config.shared_xp_per_level):
             break
-        threshold = hero_def.xp_per_level[level_idx]
-        if hero_state.xp >= threshold:
-            hero_state.xp -= threshold
-            hero_state.level += 1
+        threshold = config.shared_xp_per_level[level_idx]
+        if game_state.shared_hero_xp >= threshold:
+            game_state.shared_hero_xp -= threshold
+            game_state.shared_hero_level += 1
             leveled = True
         else:
             break
     return leveled
+
+
+# ---------------------------------------------------------------------------
+# Shared card upgrades (no XP, no jokers)
+# ---------------------------------------------------------------------------
+
+def _get_shared_upgrade_table(
+    config: HeroCardConfig, category: str
+) -> Optional[SharedUpgradeCostTable]:
+    for t in config.shared_upgrade_tables:
+        if t.category == category:
+            return t
+    return None
+
+
+def attempt_shared_upgrades(
+    game_state: HeroCardGameState,
+    config: HeroCardConfig,
+) -> Tuple[List[Dict[str, Any]], int]:
+    """Greedy upgrade loop for shared cards.
+
+    Lowest level first. Consumes dupes + coins -> level up -> bluestars.
+    No XP, no jokers.
+
+    Returns: (upgrade_events, total_bluestars_earned)
+    """
+    events: List[Dict[str, Any]] = []
+    total_bluestars = 0
+
+    made_progress = True
+    while made_progress:
+        made_progress = False
+
+        candidates = sorted(game_state.shared_cards, key=lambda c: c.level)
+        for card in candidates:
+            table = _get_shared_upgrade_table(config, card.category)
+            if not table:
+                continue
+
+            level_idx = card.level - 1
+            if level_idx >= len(table.duplicate_costs):
+                continue
+            if level_idx >= len(table.coin_costs):
+                continue
+
+            dupe_cost = table.duplicate_costs[level_idx]
+            coin_cost = table.coin_costs[level_idx]
+            bluestar_reward = table.bluestar_rewards[level_idx] if level_idx < len(table.bluestar_rewards) else 0
+
+            if card.duplicates < dupe_cost:
+                continue
+            if game_state.coins < coin_cost:
+                continue
+
+            card.duplicates -= dupe_cost
+            game_state.coins -= coin_cost
+            old_level = card.level
+            card.level += 1
+            game_state.total_bluestars += bluestar_reward
+            total_bluestars += bluestar_reward
+
+            events.append({
+                "card_id": card.id if hasattr(card, "id") else getattr(card, "card_id", "?"),
+                "category": card.category,
+                "old_level": old_level,
+                "new_level": card.level,
+                "dupes_spent": dupe_cost,
+                "coins_spent": coin_cost,
+                "bluestars_earned": bluestar_reward,
+            })
+
+            made_progress = True
+            break  # Restart scan from lowest level
+
+    return events, total_bluestars

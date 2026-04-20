@@ -23,6 +23,26 @@ class HeroCardRarity(str, Enum):
     GOLD = "GOLD"
 
 
+# ---------------------------------------------------------------------------
+# Shared card models (Gold/Blue/Gray — separate from hero cards)
+# ---------------------------------------------------------------------------
+
+class SharedUpgradeCostTable(BaseModel):
+    """Upgrade costs and rewards for a shared card category (no XP)."""
+    category: str = Field(description="GOLD_SHARED / BLUE_SHARED / GRAY_SHARED")
+    duplicate_costs: List[int] = Field(default_factory=list)
+    coin_costs: List[int] = Field(default_factory=list)
+    bluestar_rewards: List[int] = Field(default_factory=list)
+
+
+class SharedDuplicateRange(BaseModel):
+    """Per-category duplicate percentage ranges for shared card pulls."""
+    category: str = Field(description="GOLD_SHARED / BLUE_SHARED / GRAY_SHARED")
+    min_pct: List[float] = Field(default_factory=list)
+    max_pct: List[float] = Field(default_factory=list)
+    coins_per_dupe: List[int] = Field(default_factory=list)
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -74,6 +94,13 @@ class PremiumPackAdditionalReward(BaseModel):
     probability: float = Field(default=0.10, description="Chance of this reward dropping per pack")
 
 
+class PremiumPackPullRarity(BaseModel):
+    """Rarity weights for a specific pull position in a premium pack."""
+    gray_weight: float = Field(default=0.64)
+    blue_weight: float = Field(default=0.30)
+    gold_weight: float = Field(default=0.06)
+
+
 class PremiumPackDef(BaseModel):
     """Definition of a hero-specific premium card pack (single tier per hero)."""
     pack_id: str
@@ -81,7 +108,7 @@ class PremiumPackDef(BaseModel):
     featured_hero_ids: List[str] = Field(description="Hero(es) whose cards are in this pack")
     card_drop_rates: List[PremiumPackCardRate] = Field(
         default_factory=list,
-        description="Per-card drop rates (displayed to player)"
+        description="Legacy per-card drop rates (ignored when pull_rarity_schedule is set)"
     )
     min_cards_per_pack: int = Field(default=4, description="Minimum cards drawn per pack")
     max_cards_per_pack: int = Field(default=8, description="Maximum cards drawn per pack")
@@ -92,6 +119,20 @@ class PremiumPackDef(BaseModel):
     additional_rewards: List[PremiumPackAdditionalReward] = Field(
         default_factory=list,
         description="Probability-based additional rewards per pack"
+    )
+    # Per-pull rarity schedule (index = pull position, up to 4)
+    pull_rarity_schedule: List[PremiumPackPullRarity] = Field(
+        default_factory=list,
+        description="Rarity weights per pull position. After gold is pulled, uses default_rarity_weights."
+    )
+    default_rarity_weights: PremiumPackPullRarity = Field(
+        default_factory=PremiumPackPullRarity,
+        description="Fallback rarity weights after gold has been pulled"
+    )
+    # Dupe override: rarity name -> fixed dupe count (empty = use normal formula)
+    dupe_override_per_rarity: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Rarity -> fixed dupe count override. Keys: GRAY, BLUE, GOLD. Empty = use formula."
     )
 
 
@@ -180,6 +221,14 @@ class HeroCardConfig(BaseModel):
     # Hero card upgrade costs (per rarity)
     hero_upgrade_tables: List[HeroUpgradeCostTable] = Field(default_factory=list)
 
+    # Shared card upgrade costs and duplicate ranges (per category)
+    shared_upgrade_tables: List[SharedUpgradeCostTable] = Field(default_factory=list)
+    shared_duplicate_ranges: List[SharedDuplicateRange] = Field(default_factory=list)
+
+    # Shared hero XP (one level across all heroes)
+    shared_xp_per_level: List[int] = Field(default_factory=list, description="XP threshold per shared hero level")
+    shared_max_hero_level: int = Field(default=50)
+
     # Hero joker settings
     joker_drop_rate_in_regular_packs: float = Field(default=0.01, description="Joker chance per regular pack pull")
 
@@ -236,12 +285,15 @@ class HeroCardGameState(BaseModel):
     """Complete runtime game state for Variant B."""
     day: int = Field(default=0)
     heroes: Dict[str, HeroProgressState] = Field(default_factory=dict)
-    shared_cards: List[Any] = Field(default_factory=list, description="Gold/Blue/Gray shared cards (Card objects)")
+    shared_cards: List[Any] = Field(default_factory=list, description="Gold/Blue/Gray shared cards")
     coins: int = Field(default=0)
     total_bluestars: int = Field(default=0)
     pity_counter: int = Field(default=0, description="Pulls since last hero card")
     last_hero_pulled: Optional[str] = Field(default=None, description="hero_id of last hero card pull (for anti-streak)")
     hero_streak_count: int = Field(default=0, description="Consecutive pulls of the same hero")
+    # Shared hero XP (one level for all heroes)
+    shared_hero_xp: int = Field(default=0)
+    shared_hero_level: int = Field(default=1)
     pet_state: Optional[Any] = None
     gear_state: Optional[Any] = None
 
@@ -264,7 +316,9 @@ class HeroCardDailySnapshot:
     pull_counts_by_type: Dict[str, int] = field(default_factory=dict)
     pack_counts_by_type: Dict[str, int] = field(default_factory=dict)
 
-    # Variant B specific
+    # Variant B specific — shared hero XP
+    shared_hero_level: int = 0
+    shared_hero_xp_today: int = 0
     hero_xp_today: Dict[str, int] = field(default_factory=dict)
     hero_levels: Dict[str, int] = field(default_factory=dict)
     hero_card_avg_levels: Dict[str, float] = field(default_factory=dict)
@@ -291,6 +345,8 @@ class HeroSimResult(BaseModel):
     total_upgrades: Dict[str, Any] = Field(default_factory=dict)
     pull_logs: List[Any] = Field(default_factory=list)
     # Variant B specific aggregates
+    final_shared_hero_level: int = Field(default=0)
+    final_shared_hero_xp: int = Field(default=0)
     final_hero_levels: Dict[str, int] = Field(default_factory=dict)
     final_hero_xp: Dict[str, int] = Field(default_factory=dict)
     total_premium_diamonds_spent: int = Field(default=0)

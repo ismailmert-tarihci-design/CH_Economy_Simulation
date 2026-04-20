@@ -13,8 +13,10 @@ from simulation.variants.variant_b.models import (
     HeroCardDef,
     HeroCardRarity,
     PremiumPackAdditionalReward,
-    PremiumPackCardRate,
+    PremiumPackPullRarity,
     PremiumPackSchedule,
+    SharedDuplicateRange,
+    SharedUpgradeCostTable,
     SkillTreeNode,
 )
 
@@ -42,9 +44,11 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
     tabs = st.tabs([
         ":material/person: Heroes & cards",
         ":material/account_tree: Skill trees",
-        ":material/trending_up: XP & leveling",
-        ":material/paid: Upgrade costs",
-        ":material/percent: Dupe ranges",
+        ":material/trending_up: Shared XP",
+        ":material/paid: Hero upgrade costs",
+        ":material/layers: Shared upgrades",
+        ":material/percent: Hero dupe ranges",
+        ":material/percent: Shared dupe ranges",
         ":material/casino: Drop algorithm",
         ":material/playing_cards: Hero joker",
         ":material/inventory_2: Hero packs",
@@ -61,16 +65,20 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
     with tabs[3]:
         _render_upgrade_costs_tab(config)
     with tabs[4]:
-        _render_duplicate_ranges_tab(config)
+        _render_shared_upgrade_tab(config)
     with tabs[5]:
-        _render_drop_algorithm_tab(config)
+        _render_duplicate_ranges_tab(config)
     with tabs[6]:
-        _render_joker_tab(config)
+        _render_shared_dupe_ranges_tab(config)
     with tabs[7]:
-        _render_premium_packs_tab(config)
+        _render_drop_algorithm_tab(config)
     with tabs[8]:
-        _render_pack_schedule_tab(config)
+        _render_joker_tab(config)
     with tabs[9]:
+        _render_premium_packs_tab(config)
+    with tabs[10]:
+        _render_pack_schedule_tab(config)
+    with tabs[11]:
         _render_import_export(config)
 
 
@@ -197,18 +205,20 @@ def _render_skill_tree_tab(config: HeroCardConfig) -> None:
 
 
 def _render_xp_tab(config: HeroCardConfig) -> None:
-    st.subheader("Hero XP Thresholds")
-    if not config.heroes:
-        st.info("Add heroes first.")
-        return
+    st.subheader("Shared Hero XP Thresholds")
+    st.caption("All heroes share one XP pool and one level. Hero card upgrades contribute to the shared pool.")
 
-    hero_names = [h.name for h in config.heroes]
-    idx = st.selectbox("Select Hero", range(len(hero_names)), format_func=lambda i: hero_names[i], key="vb_xp_hero")
-    hero = config.heroes[idx]
+    config.shared_max_hero_level = st.number_input(
+        "Max shared hero level", min_value=1, max_value=200,
+        value=config.shared_max_hero_level, step=1, key="vb_shared_max_lvl",
+    )
+
+    if not config.shared_xp_per_level:
+        config.shared_xp_per_level = [50 + i * 25 for i in range(50)]
 
     xp_df = pd.DataFrame({
-        "Level": range(1, len(hero.xp_per_level) + 1),
-        "XP Required": hero.xp_per_level,
+        "Level": range(1, len(config.shared_xp_per_level) + 1),
+        "XP Required": config.shared_xp_per_level,
     })
     edited = st.data_editor(
         xp_df,
@@ -218,9 +228,10 @@ def _render_xp_tab(config: HeroCardConfig) -> None:
         },
         width="stretch",
         hide_index=True,
-        key=f"vb_xp_{idx}",
+        num_rows="dynamic",
+        key="vb_shared_xp",
     )
-    hero.xp_per_level = edited["XP Required"].tolist()
+    config.shared_xp_per_level = edited["XP Required"].tolist()
 
 
 def _render_upgrade_costs_tab(config: HeroCardConfig) -> None:
@@ -261,137 +272,116 @@ def _render_upgrade_costs_tab(config: HeroCardConfig) -> None:
     table.xp_rewards = edited["XP Reward"].tolist()
 
 
+def _render_shared_upgrade_tab(config: HeroCardConfig) -> None:
+    st.subheader("Shared Card Upgrade Costs (per Category)")
+    st.caption("Shared card upgrades grant bluestars but no hero XP.")
+
+    if not config.shared_upgrade_tables:
+        st.info("No shared upgrade tables configured.")
+        return
+
+    cat_names = [t.category for t in config.shared_upgrade_tables]
+    sel = st.selectbox("Category", range(len(cat_names)), format_func=lambda i: cat_names[i], key="vb_shared_upcost_cat")
+    table = config.shared_upgrade_tables[sel]
+
+    num_levels = len(table.duplicate_costs)
+    df = pd.DataFrame({
+        "Level": range(1, num_levels + 1),
+        "Duplicate Cost": table.duplicate_costs,
+        "Coin Cost": table.coin_costs,
+        "Bluestar Reward": table.bluestar_rewards[:num_levels],
+    })
+    edited = st.data_editor(
+        df,
+        column_config={
+            "Level": st.column_config.NumberColumn("Level", disabled=True),
+            "Duplicate Cost": st.column_config.NumberColumn(min_value=0, step=1),
+            "Coin Cost": st.column_config.NumberColumn(min_value=0, step=10),
+            "Bluestar Reward": st.column_config.NumberColumn(min_value=0, step=1),
+        },
+        width="stretch",
+        hide_index=True,
+        key=f"vb_shared_upgcost_{sel}",
+    )
+    table.duplicate_costs = edited["Duplicate Cost"].tolist()
+    table.coin_costs = edited["Coin Cost"].tolist()
+    table.bluestar_rewards = edited["Bluestar Reward"].tolist()
+
+
 def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
     st.subheader("Drop algorithm")
     st.caption("Each step in the flowchart is editable. Changes update the simulation immediately.")
     dc = config.drop_config
 
-    # ─── START ────────────────────────────────────────────────────────────────
     with st.container(border=True):
         st.markdown("**:material/playing_cards: Regular pack pull**")
         st.caption("Player opens a regular pack. Each card pull follows this algorithm.")
 
     st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
-    # ─── PITY CHECK ───────────────────────────────────────────────────────────
     with st.container(border=True):
         st.markdown("**:material/shield: Pity check**")
         dc.pity_counter_threshold = st.number_input(
             "Guarantee hero card after N shared-only pulls (0 = disabled)",
-            min_value=0, max_value=100, value=dc.pity_counter_threshold, step=1,
-            key="vb_pity",
+            min_value=0, max_value=100, value=dc.pity_counter_threshold, step=1, key="vb_pity",
         )
         if dc.pity_counter_threshold > 0:
-            st.caption(f"After {dc.pity_counter_threshold} shared pulls without a hero card → force hero card.")
+            st.caption(f"After {dc.pity_counter_threshold} shared pulls without a hero card -> force hero card.")
         else:
             st.caption("Pity system disabled.")
 
     st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
-    # ─── HERO vs SHARED ──────────────────────────────────────────────────────
     with st.container(border=True):
         st.markdown("**:material/call_split: Hero vs shared**")
         dc.hero_vs_shared_base_rate = st.slider(
             "Hero card probability",
-            min_value=0.0, max_value=1.0, value=dc.hero_vs_shared_base_rate, step=0.05,
-            key="vb_hero_rate",
+            min_value=0.0, max_value=1.0, value=dc.hero_vs_shared_base_rate, step=0.05, key="vb_hero_rate",
         )
         hero_pct = dc.hero_vs_shared_base_rate * 100
         shared_pct = (1 - dc.hero_vs_shared_base_rate) * 100
         st.markdown(f":blue-badge[Hero {hero_pct:.0f}%] :orange-badge[Shared {shared_pct:.0f}%]")
 
-    # ─── TWO PATHS ────────────────────────────────────────────────────────────
     col_hero, col_shared = st.columns(2)
 
     with col_hero:
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓ <small>Hero card</small></div>", unsafe_allow_html=True)
 
-        # Step 1: Pick bucket
         with st.container(border=True):
             st.markdown("**1. Pick bucket**")
             st.caption("Heroes ranked by level, split into 3 tiers")
-            dc.bucket_bottom_weight = st.slider(
-                "Bottom (lowest level)", min_value=0.0, max_value=1.0,
-                value=dc.bucket_bottom_weight, step=0.05, key="vb_bkt_bot",
-            )
-            dc.bucket_middle_weight = st.slider(
-                "Middle", min_value=0.0, max_value=1.0,
-                value=dc.bucket_middle_weight, step=0.05, key="vb_bkt_mid",
-            )
-            dc.bucket_top_weight = st.slider(
-                "Top (highest level)", min_value=0.0, max_value=1.0,
-                value=dc.bucket_top_weight, step=0.05, key="vb_bkt_top",
-            )
+            dc.bucket_bottom_weight = st.slider("Bottom (lowest level)", min_value=0.0, max_value=1.0, value=dc.bucket_bottom_weight, step=0.05, key="vb_bkt_bot")
+            dc.bucket_middle_weight = st.slider("Middle", min_value=0.0, max_value=1.0, value=dc.bucket_middle_weight, step=0.05, key="vb_bkt_mid")
+            dc.bucket_top_weight = st.slider("Top (highest level)", min_value=0.0, max_value=1.0, value=dc.bucket_top_weight, step=0.05, key="vb_bkt_top")
             bucket_sum = dc.bucket_bottom_weight + dc.bucket_middle_weight + dc.bucket_top_weight
             if abs(bucket_sum - 1.0) > 0.01:
-                st.warning(f"Bucket weights sum to {bucket_sum:.2f} — should be 1.0")
-            else:
-                st.markdown(
-                    f":green-badge[Bottom {dc.bucket_bottom_weight*100:.0f}%] "
-                    f":blue-badge[Mid {dc.bucket_middle_weight*100:.0f}%] "
-                    f":violet-badge[Top {dc.bucket_top_weight*100:.0f}%]"
-                )
+                st.warning(f"Bucket weights sum to {bucket_sum:.2f} -- should be 1.0")
 
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
-        # Step 2: Pick hero
         with st.container(border=True):
             st.markdown("**2. Pick hero**")
-            st.caption("Anti-streak: reduce weight for consecutive same-hero pulls")
-            dc.streak_decay_hero = st.slider(
-                "Streak decay multiplier", min_value=0.0, max_value=1.0,
-                value=dc.streak_decay_hero, step=0.05, key="vb_sd_hero",
-                help="Applied per consecutive same-hero pull (lower = stronger penalty)",
-            )
-            st.caption(f"Each repeat: weight x{dc.streak_decay_hero}")
+            dc.streak_decay_hero = st.slider("Streak decay multiplier", min_value=0.0, max_value=1.0, value=dc.streak_decay_hero, step=0.05, key="vb_sd_hero")
 
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
-        # Step 3: Roll rarity
         with st.container(border=True):
             st.markdown("**3. Roll rarity**")
-            dc.rarity_weight_gray = st.slider(
-                "Gray", min_value=0.0, max_value=1.0,
-                value=dc.rarity_weight_gray, step=0.01, key="vb_rw_c",
-            )
-            dc.rarity_weight_blue = st.slider(
-                "Blue", min_value=0.0, max_value=1.0,
-                value=dc.rarity_weight_blue, step=0.01, key="vb_rw_r",
-            )
-            dc.rarity_weight_gold = st.slider(
-                "Gold", min_value=0.0, max_value=1.0,
-                value=dc.rarity_weight_gold, step=0.01, key="vb_rw_e",
-            )
-            rarity_sum = dc.rarity_weight_gray + dc.rarity_weight_blue + dc.rarity_weight_gold
-            if abs(rarity_sum - 1.0) > 0.01:
-                st.warning(f"Rarity weights sum to {rarity_sum:.2f} — should be 1.0")
-            else:
-                st.markdown(
-                    f":gray-badge[Gray {dc.rarity_weight_gray*100:.0f}%] "
-                    f":blue-badge[Blue {dc.rarity_weight_blue*100:.0f}%] "
-                    f":orange-badge[Gold {dc.rarity_weight_gold*100:.0f}%]"
-                )
+            dc.rarity_weight_gray = st.slider("Gray", min_value=0.0, max_value=1.0, value=dc.rarity_weight_gray, step=0.01, key="vb_rw_c")
+            dc.rarity_weight_blue = st.slider("Blue", min_value=0.0, max_value=1.0, value=dc.rarity_weight_blue, step=0.01, key="vb_rw_r")
+            dc.rarity_weight_gold = st.slider("Gold", min_value=0.0, max_value=1.0, value=dc.rarity_weight_gold, step=0.01, key="vb_rw_e")
 
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
-        # Step 4: Pick card
         with st.container(border=True):
             st.markdown("**4. Pick card**")
             st.caption("Lowest-level-first catch-up weighting: weight = 1/(level+1)")
 
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
-        # Step 5: Compute dupes
         with st.container(border=True):
             st.markdown("**5. Compute dupes**")
-            st.caption("round(dupe_cost x random(min%, max%)) — see **Dupe Ranges** tab")
-
-        st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
-
-        # Upgrade result
-        with st.container(border=True):
-            st.markdown("**:material/upgrade: Upgrade**")
-            st.caption("Dupes + Coins → Level up → Bluestars + Hero XP. Pity counter resets.")
+            st.caption("round(dupe_cost x random(min%, max%)) -- see **Dupe Ranges** tab")
 
     with col_shared:
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓ <small>Shared card</small></div>", unsafe_allow_html=True)
@@ -403,21 +393,18 @@ def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
         with st.container(border=True):
-            st.markdown("**Standard upgrade**")
-            st.caption("Same upgrade engine. Pity counter +1.")
+            st.markdown("**Compute dupes (per-category)**")
+            st.caption("round(dupe_cost x random(min%, max%)) -- see **Shared Dupe Ranges** tab")
 
-        # Shared streak decay (less prominent)
+        st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
+
+        with st.container(border=True):
+            st.markdown("**Upgrade (bluestars only)**")
+            st.caption("Dupes + Coins -> Level up -> Bluestars. No hero XP. Pity counter +1.")
+
         with st.container(border=True):
             st.markdown("**Shared streak decay**")
-            dc.streak_decay_shared = st.slider(
-                "Shared decay multiplier", min_value=0.0, max_value=1.0,
-                value=dc.streak_decay_shared, step=0.05, key="vb_sd_shared",
-            )
-
-    # ─── JOKERS ───────────────────────────────────────────────────────────────
-    with st.container(border=True):
-        st.markdown("**:material/playing_cards: Jokers** — from hero-specific premium packs only")
-        st.caption("Each premium pack has its own joker rate (configured in Hero Packs tab). Jokers are universal wildcards.")
+            dc.streak_decay_shared = st.slider("Shared decay multiplier", min_value=0.0, max_value=1.0, value=dc.streak_decay_shared, step=0.05, key="vb_sd_shared")
 
 
 def _render_joker_tab(config: HeroCardConfig) -> None:
@@ -434,13 +421,12 @@ def _render_joker_tab(config: HeroCardConfig) -> None:
 
 def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     st.subheader("Hero Card Packs")
-    st.caption("Each hero has one card pack (single tier). Select a hero to edit pack stats and card drop rates.")
+    st.caption("Each hero has one card pack. Rarity weights change per pull until a gold is pulled.")
 
     if not config.premium_packs:
         st.info("No hero packs configured.")
         return
 
-    # Build hero name lookup
     hero_name_map = {h.hero_id: h.name for h in config.heroes}
     pack_labels = [hero_name_map.get(p.featured_hero_ids[0], p.name) if p.featured_hero_ids else p.name for p in config.premium_packs]
     sel = st.selectbox("Select hero", range(len(pack_labels)), format_func=lambda i: pack_labels[i], key="vb_ppack_sel")
@@ -458,7 +444,7 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     with c3:
         joker_pct = st.number_input("Joker Rate %", min_value=0.0, max_value=30.0, value=round(pack.joker_rate * 100, 1), step=0.5, format="%.1f", key=f"vb_pp_joker_{sel}")
         pack.joker_rate = joker_pct / 100.0
-        pack.gold_guarantee = st.checkbox("Gold Guarantee", value=pack.gold_guarantee, key=f"vb_pp_gg_{sel}", help="Guarantee at least one GOLD rarity card per pack")
+        pack.gold_guarantee = st.checkbox("Gold Guarantee", value=pack.gold_guarantee, key=f"vb_pp_gg_{sel}")
 
     # Additional rewards
     st.markdown("**Additional Rewards** (probability-based)")
@@ -491,40 +477,75 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
         if str(row.get("Reward Type", "")).strip()
     ]
 
-    st.markdown("**Per-card drop rates**")
-    if pack.card_drop_rates:
-        # Build card name lookup
-        card_names = {}
-        for hero in config.heroes:
-            for card in hero.card_pool:
-                card_names[card.card_id] = f"{card.name} ({card.rarity.value})"
+    # Per-pull rarity schedule
+    st.markdown("**Per-pull rarity weights**")
+    st.caption("Rarity weights change per pull. After gold is pulled, remaining pulls use default weights.")
 
-        rates_df = pd.DataFrame([
-            {"Card": card_names.get(r.card_id, r.card_id), "Card ID": r.card_id, "Drop Rate": r.drop_rate}
-            for r in pack.card_drop_rates
+    if pack.pull_rarity_schedule:
+        sched_df = pd.DataFrame([
+            {"Pull": i + 1, "Gray %": round(r.gray_weight * 100, 1), "Blue %": round(r.blue_weight * 100, 1), "Gold %": round(r.gold_weight * 100, 1)}
+            for i, r in enumerate(pack.pull_rarity_schedule)
         ])
-        edited = st.data_editor(
-            rates_df,
-            column_config={
-                "Card": st.column_config.TextColumn("Card", disabled=True),
-                "Card ID": st.column_config.TextColumn("Card ID", disabled=True),
-                "Drop Rate": st.column_config.NumberColumn("Drop Rate", min_value=0.0, step=0.1, format="%.2f"),
-            },
-            width="stretch",
-            hide_index=True,
-            key=f"vb_pp_rates_{sel}",
+    else:
+        sched_df = pd.DataFrame({"Pull": [1, 2, 3, 4], "Gray %": [64.0, 55.0, 45.0, 30.0], "Blue %": [30.0, 35.0, 35.0, 35.0], "Gold %": [6.0, 10.0, 20.0, 35.0]})
+
+    edited_sched = st.data_editor(
+        sched_df,
+        column_config={
+            "Pull": st.column_config.NumberColumn("Pull #", disabled=True),
+            "Gray %": st.column_config.NumberColumn("Gray %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+            "Blue %": st.column_config.NumberColumn("Blue %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+            "Gold %": st.column_config.NumberColumn("Gold %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+        },
+        width="stretch",
+        hide_index=True,
+        num_rows="dynamic",
+        key=f"vb_pp_rarity_sched_{sel}",
+    )
+    pack.pull_rarity_schedule = [
+        PremiumPackPullRarity(
+            gray_weight=float(row["Gray %"]) / 100.0,
+            blue_weight=float(row["Blue %"]) / 100.0,
+            gold_weight=float(row["Gold %"]) / 100.0,
         )
-        pack.card_drop_rates = [
-            PremiumPackCardRate(card_id=str(row["Card ID"]), drop_rate=float(row["Drop Rate"]))
-            for _, row in edited.iterrows()
-        ]
+        for _, row in edited_sched.iterrows()
+    ]
+
+    # Default rarity weights (after gold)
+    st.markdown("**Default rarity weights** (after gold pulled)")
+    dc1, dc2, dc3 = st.columns(3)
+    with dc1:
+        dg = st.number_input("Gray %", min_value=0.0, max_value=100.0, value=round(pack.default_rarity_weights.gray_weight * 100, 1), step=1.0, format="%.1f", key=f"vb_pp_def_gray_{sel}")
+    with dc2:
+        db = st.number_input("Blue %", min_value=0.0, max_value=100.0, value=round(pack.default_rarity_weights.blue_weight * 100, 1), step=1.0, format="%.1f", key=f"vb_pp_def_blue_{sel}")
+    with dc3:
+        dd = st.number_input("Gold %", min_value=0.0, max_value=100.0, value=round(pack.default_rarity_weights.gold_weight * 100, 1), step=1.0, format="%.1f", key=f"vb_pp_def_gold_{sel}")
+    pack.default_rarity_weights = PremiumPackPullRarity(gray_weight=dg / 100.0, blue_weight=db / 100.0, gold_weight=dd / 100.0)
+
+    # Dupe override per rarity
+    st.markdown("**Dupe override per rarity** (optional)")
+    st.caption("Set a fixed duplicate count per rarity. 0 = use normal formula.")
+    ov1, ov2, ov3 = st.columns(3)
+    with ov1:
+        og = st.number_input("Gray dupes", min_value=0, value=pack.dupe_override_per_rarity.get("GRAY", 0), step=1, key=f"vb_pp_ov_gray_{sel}")
+    with ov2:
+        ob = st.number_input("Blue dupes", min_value=0, value=pack.dupe_override_per_rarity.get("BLUE", 0), step=1, key=f"vb_pp_ov_blue_{sel}")
+    with ov3:
+        oo = st.number_input("Gold dupes", min_value=0, value=pack.dupe_override_per_rarity.get("GOLD", 0), step=1, key=f"vb_pp_ov_gold_{sel}")
+    pack.dupe_override_per_rarity = {}
+    if og > 0:
+        pack.dupe_override_per_rarity["GRAY"] = og
+    if ob > 0:
+        pack.dupe_override_per_rarity["BLUE"] = ob
+    if oo > 0:
+        pack.dupe_override_per_rarity["GOLD"] = oo
 
 
 def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
-    st.subheader("Duplicate Ranges (per Rarity)")
+    st.subheader("Hero Card Duplicate Ranges (per Rarity)")
     st.caption(
-        "When a hero card is pulled, dupes received = round(dupe_cost_for_next_level \u00d7 random(min%, max%)). "
-        "One row per card level. Percentages should decrease as card level increases."
+        "When a hero card is pulled, dupes received = round(dupe_cost_for_next_level x random(min%, max%)). "
+        "One row per card level."
     )
 
     if not config.hero_duplicate_ranges:
@@ -536,7 +557,6 @@ def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
     dr = config.hero_duplicate_ranges[sel]
 
     num_levels = len(dr.min_pct)
-    # Pad coins_per_dupe if shorter than min_pct
     coins_list = dr.coins_per_dupe if dr.coins_per_dupe else [5] * num_levels
     while len(coins_list) < num_levels:
         coins_list.append(coins_list[-1] if coins_list else 5)
@@ -558,6 +578,49 @@ def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
         hide_index=True,
         num_rows="dynamic",
         key=f"vb_duperange_{sel}",
+    )
+    dr.min_pct = [float(row["Min %"]) / 100.0 for _, row in edited.iterrows()]
+    dr.max_pct = [float(row["Max %"]) / 100.0 for _, row in edited.iterrows()]
+    dr.coins_per_dupe = [int(row["Coins/Dupe"]) for _, row in edited.iterrows()]
+
+
+def _render_shared_dupe_ranges_tab(config: HeroCardConfig) -> None:
+    st.subheader("Shared Card Duplicate Ranges (per Category)")
+    st.caption(
+        "When a shared card is pulled, dupes received = round(dupe_cost x random(min%, max%)). "
+        "One row per card level. Shared cards grant bluestars but no hero XP."
+    )
+
+    if not config.shared_duplicate_ranges:
+        st.info("No shared duplicate ranges configured.")
+        return
+
+    cat_names = [dr.category for dr in config.shared_duplicate_ranges]
+    sel = st.selectbox("Category", range(len(cat_names)), format_func=lambda i: cat_names[i], key="vb_shared_duperange_cat")
+    dr = config.shared_duplicate_ranges[sel]
+
+    num_levels = len(dr.min_pct)
+    coins_list = dr.coins_per_dupe if dr.coins_per_dupe else [5] * num_levels
+    while len(coins_list) < num_levels:
+        coins_list.append(coins_list[-1] if coins_list else 5)
+    df = pd.DataFrame({
+        "Card Level": range(1, num_levels + 1),
+        "Min %": [round(v * 100, 1) for v in dr.min_pct],
+        "Max %": [round(v * 100, 1) for v in dr.max_pct],
+        "Coins/Dupe": coins_list[:num_levels],
+    })
+    edited = st.data_editor(
+        df,
+        column_config={
+            "Card Level": st.column_config.NumberColumn("Card Level", disabled=True),
+            "Min %": st.column_config.NumberColumn("Min %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+            "Max %": st.column_config.NumberColumn("Max %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+            "Coins/Dupe": st.column_config.NumberColumn("Coins/Dupe", min_value=0, step=1),
+        },
+        width="stretch",
+        hide_index=True,
+        num_rows="dynamic",
+        key=f"vb_shared_duperange_{sel}",
     )
     dr.min_pct = [float(row["Min %"]) / 100.0 for _, row in edited.iterrows()]
     dr.max_pct = [float(row["Max %"]) / 100.0 for _, row in edited.iterrows()]
@@ -628,5 +691,3 @@ def _render_import_export(config: HeroCardConfig) -> None:
                 st.rerun()
             except Exception as e:
                 st.error(f"Invalid config: {e}")
-
-

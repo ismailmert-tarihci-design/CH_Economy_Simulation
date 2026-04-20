@@ -1,7 +1,8 @@
 """Hero-specific premium card pack economics.
 
 Premium packs are diamond-only, rotating availability, FOMO-driven.
-Each pack has per-card drop rates. Dupes use the same %-of-cost mechanic as regular pulls.
+Each pack uses per-pull rarity weights that change until a gold is pulled.
+Dupes use the same %-of-cost mechanic as regular pulls, with optional overrides.
 """
 
 from __future__ import annotations
@@ -13,7 +14,9 @@ from simulation.variants.variant_b.models import (
     HeroCardConfig,
     HeroCardGameState,
     HeroCardRarity,
+    HeroCardState,
     PremiumPackDef,
+    PremiumPackPullRarity,
     PremiumPackSchedule,
 )
 from simulation.variants.variant_b.drop_algorithm import compute_hero_duplicates
@@ -33,23 +36,68 @@ def get_available_packs(
     return [p for p in pack_defs if p.pack_id in available_ids]
 
 
-def _pick_card_weighted(
-    card_rates: List[Tuple[str, float]],
-    total_weight: float,
+def _roll_rarity(
+    weights: PremiumPackPullRarity,
+    rng: Optional[Random] = None,
+) -> HeroCardRarity:
+    """Roll a rarity from weighted probabilities."""
+    items = [HeroCardRarity.GRAY, HeroCardRarity.BLUE, HeroCardRarity.GOLD]
+    w = [weights.gray_weight, weights.blue_weight, weights.gold_weight]
+    total = sum(w)
+    if total <= 0:
+        return HeroCardRarity.GRAY
+
+    if rng:
+        roll = rng.random() * total
+        cumulative = 0.0
+        for item, weight in zip(items, w):
+            cumulative += weight
+            if roll <= cumulative:
+                return item
+        return items[-1]
+    else:
+        best_idx = max(range(len(w)), key=lambda i: w[i])
+        return items[best_idx]
+
+
+def _pick_card_by_rarity_catchup(
+    rarity: HeroCardRarity,
+    hero_ids: List[str],
+    game_state: HeroCardGameState,
     rng: Optional[Random] = None,
 ) -> Optional[str]:
-    """Pick a card_id via weighted random selection."""
-    if not card_rates or total_weight <= 0:
+    """Pick a card of the given rarity from featured heroes' unlocked cards.
+
+    Uses lowest-level-first catch-up weighting: weight = 1/(level+1).
+    """
+    candidates: List[HeroCardState] = []
+    for hid in hero_ids:
+        hstate = game_state.heroes.get(hid)
+        if not hstate:
+            continue
+        for card in hstate.cards.values():
+            if card.unlocked and card.rarity == rarity:
+                candidates.append(card)
+
+    if not candidates:
         return None
+
+    weights = [1.0 / (c.level + 1) for c in candidates]
+    total = sum(weights)
+    if total <= 0:
+        return candidates[0].card_id
+
     if rng:
-        roll = rng.random() * total_weight
+        roll = rng.random() * total
         cumulative = 0.0
-        for card_id, rate in card_rates:
-            cumulative += rate
+        for card, w in zip(candidates, weights):
+            cumulative += w
             if roll <= cumulative:
-                return card_id
-        return card_rates[-1][0]
-    return max(card_rates, key=lambda x: x[1])[0]
+                return card.card_id
+        return candidates[-1].card_id
+    else:
+        best_idx = max(range(len(weights)), key=lambda i: weights[i])
+        return candidates[best_idx].card_id
 
 
 def _resolve_card_info(
@@ -72,11 +120,11 @@ def open_premium_pack(
     """Open a premium pack and return list of pull results.
 
     Features:
-    - Variable card count (min_cards_per_pack to max_cards_per_pack)
+    - Per-pull rarity weights that change until gold is pulled
     - Gold guarantee: at least one GOLD rarity card per pack
+    - Dupe override per rarity
     - Hero tokens gifted per pack
     - Additional probability-based rewards
-    Each pull result is a dict: {card_id, hero_id, duplicates, is_joker, reward_type, reward_amount}.
     """
     results: List[Dict[str, Any]] = []
 
@@ -86,23 +134,9 @@ def open_premium_pack(
     else:
         num_cards = (pack_def.min_cards_per_pack + pack_def.max_cards_per_pack) // 2
 
-    # Build weighted card pool from drop rates
-    card_rates = [(cr.card_id, cr.drop_rate) for cr in pack_def.card_drop_rates]
-    total_weight = sum(r for _, r in card_rates)
-
-    # Identify gold-rarity cards for gold guarantee
-    gold_card_ids = set()
-    for hid, hstate in game_state.heroes.items():
-        for cid, cstate in hstate.cards.items():
-            if cstate.rarity == HeroCardRarity.GOLD:
-                gold_card_ids.add(cid)
-
-    gold_rates = [(cid, w) for cid, w in card_rates if cid in gold_card_ids]
-    gold_total = sum(w for _, w in gold_rates)
-
     got_gold = False
 
-    for draw in range(num_cards):
+    for draw_idx in range(num_cards):
         # Check for joker
         if rng:
             is_joker = rng.random() < pack_def.joker_rate
@@ -118,10 +152,29 @@ def open_premium_pack(
             })
             continue
 
-        # Gold guarantee: force gold on last card if none yet
-        if pack_def.gold_guarantee and draw == num_cards - 1 and not got_gold and gold_rates:
-            selected_card_id = _pick_card_weighted(gold_rates, gold_total, rng)
+        # Determine rarity for this pull
+        if pack_def.pull_rarity_schedule:
+            # Gold guarantee: force gold on last card if none yet
+            if pack_def.gold_guarantee and draw_idx == num_cards - 1 and not got_gold:
+                chosen_rarity = HeroCardRarity.GOLD
+            elif got_gold:
+                chosen_rarity = _roll_rarity(pack_def.default_rarity_weights, rng)
+            elif draw_idx < len(pack_def.pull_rarity_schedule):
+                chosen_rarity = _roll_rarity(pack_def.pull_rarity_schedule[draw_idx], rng)
+            else:
+                chosen_rarity = _roll_rarity(pack_def.default_rarity_weights, rng)
+
+            if chosen_rarity == HeroCardRarity.GOLD:
+                got_gold = True
+
+            # Pick card of chosen rarity using catch-up
+            selected_card_id = _pick_card_by_rarity_catchup(
+                chosen_rarity, pack_def.featured_hero_ids, game_state, rng
+            )
         else:
+            # Legacy: fall back to card_drop_rates
+            card_rates = [(cr.card_id, cr.drop_rate) for cr in pack_def.card_drop_rates]
+            total_weight = sum(r for _, r in card_rates)
             selected_card_id = _pick_card_weighted(card_rates, total_weight, rng)
 
         if not selected_card_id:
@@ -132,8 +185,13 @@ def open_premium_pack(
         if card_rarity == HeroCardRarity.GOLD:
             got_gold = True
 
+        # Compute duplicates (with optional override)
         if card_rarity is not None:
-            dupes = compute_hero_duplicates(card_level, card_rarity, config, rng)
+            override = pack_def.dupe_override_per_rarity.get(card_rarity.value)
+            if override is not None and override > 0:
+                dupes = override
+            else:
+                dupes = compute_hero_duplicates(card_level, card_rarity, config, rng)
         else:
             dupes = 1
 
@@ -169,6 +227,25 @@ def open_premium_pack(
             })
 
     return results
+
+
+def _pick_card_weighted(
+    card_rates: List[Tuple[str, float]],
+    total_weight: float,
+    rng: Optional[Random] = None,
+) -> Optional[str]:
+    """Legacy: Pick a card_id via weighted random selection."""
+    if not card_rates or total_weight <= 0:
+        return None
+    if rng:
+        roll = rng.random() * total_weight
+        cumulative = 0.0
+        for card_id, rate in card_rates:
+            cumulative += rate
+            if roll <= cumulative:
+                return card_id
+        return card_rates[-1][0]
+    return max(card_rates, key=lambda x: x[1])[0]
 
 
 def process_premium_purchases(

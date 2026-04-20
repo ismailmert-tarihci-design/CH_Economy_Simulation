@@ -22,6 +22,7 @@ def register_variant_b() -> None:
             config_class=HeroCardConfig,
             result_class=HeroSimResult,
             extra_snapshot_fields=[
+                "shared_hero_level", "shared_hero_xp_today",
                 "hero_xp_today", "hero_levels", "hero_card_avg_levels",
                 "skill_nodes_unlocked_today", "cards_unlocked_today",
                 "jokers_received_today", "jokers_used_today",

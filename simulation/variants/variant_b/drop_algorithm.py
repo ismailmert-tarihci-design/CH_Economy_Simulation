@@ -19,6 +19,8 @@ from simulation.variants.variant_b.models import (
     HeroDuplicateRange,
     HeroProgressState,
     HeroUpgradeCostTable,
+    SharedDuplicateRange,
+    SharedUpgradeCostTable,
 )
 from simulation.variants.variant_b.hero_deck import get_unlocked_cards
 
@@ -329,3 +331,77 @@ def check_joker_drop(
     if rng:
         return rng.random() < rate
     return rate > 0.5
+
+
+# ---------------------------------------------------------------------------
+# Shared card duplicate computation — same % formula, per-category tables
+# ---------------------------------------------------------------------------
+
+def _find_shared_dupe_range(
+    config: HeroCardConfig, category: str
+) -> Optional[SharedDuplicateRange]:
+    """Find the shared duplicate range config for a given category."""
+    for dr in config.shared_duplicate_ranges:
+        if dr.category == category:
+            return dr
+    return None
+
+
+def _find_shared_upgrade_table(
+    config: HeroCardConfig, category: str
+) -> Optional[SharedUpgradeCostTable]:
+    """Find the shared upgrade cost table for a given category."""
+    for t in config.shared_upgrade_tables:
+        if t.category == category:
+            return t
+    return None
+
+
+def compute_shared_duplicates(
+    card_level: int,
+    card_category: str,
+    config: HeroCardConfig,
+    rng: Optional[Random] = None,
+) -> int:
+    """Compute duplicates received for a shared card pull.
+
+    Same formula as hero cards: dupes = round(dupe_cost * uniform(min%, max%)).
+    Returns at least 1. Returns 0 if at max level.
+    """
+    dupe_range = _find_shared_dupe_range(config, card_category)
+    upgrade_table = _find_shared_upgrade_table(config, card_category)
+
+    if not dupe_range or not upgrade_table:
+        return 1
+
+    level_idx = card_level - 1
+    if level_idx >= len(upgrade_table.duplicate_costs):
+        return 0
+    if level_idx >= len(dupe_range.min_pct):
+        return 0
+
+    base_cost = upgrade_table.duplicate_costs[level_idx]
+    min_pct = dupe_range.min_pct[level_idx]
+    max_pct = dupe_range.max_pct[level_idx]
+
+    if rng:
+        pct = rng.uniform(min_pct, max_pct)
+    else:
+        pct = (min_pct + max_pct) / 2.0
+
+    return max(1, round(base_cost * pct))
+
+
+def get_shared_coins_per_dupe(
+    card_level: int,
+    card_category: str,
+    config: HeroCardConfig,
+) -> int:
+    """Look up coins earned per duplicate for a shared card."""
+    dupe_range = _find_shared_dupe_range(config, card_category)
+    if not dupe_range or not dupe_range.coins_per_dupe:
+        return 5
+    level_idx = card_level - 1
+    if level_idx >= len(dupe_range.coins_per_dupe):
+        return dupe_range.coins_per_dupe[-1] if dupe_range.coins_per_dupe else 5
+    return dupe_range.coins_per_dupe[level_idx]

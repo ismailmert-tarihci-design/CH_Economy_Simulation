@@ -21,7 +21,10 @@ from simulation.variants.variant_b.models import (
     PremiumPackAdditionalReward,
     PremiumPackCardRate,
     PremiumPackDef,
+    PremiumPackPullRarity,
     PremiumPackSchedule,
+    SharedDuplicateRange,
+    SharedUpgradeCostTable,
     SkillTreeNode,
 )
 
@@ -85,6 +88,10 @@ def _builtin_defaults() -> HeroCardConfig:
         num_gray_cards=20,
         hero_upgrade_tables=_default_upgrade_tables(),
         hero_duplicate_ranges=_default_duplicate_ranges(),
+        shared_upgrade_tables=_default_shared_upgrade_tables(),
+        shared_duplicate_ranges=_default_shared_duplicate_ranges(),
+        shared_xp_per_level=[50 + i * 25 for i in range(50)],
+        shared_max_hero_level=50,
         joker_drop_rate_in_regular_packs=0.01,
         drop_config=HeroDropConfig(
             hero_vs_shared_base_rate=0.50,
@@ -136,11 +143,11 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 32) -> HeroDef
     # Starter cards: first 3 gray cards
     starter_ids = [c.card_id for c in cards if c.rarity == HeroCardRarity.GRAY][:3]
 
-    # Linear skill tree: 33 nodes, distributing remaining cards across them
+    # Linear skill tree: 30 nodes, distributing remaining cards across them
     # Some nodes unlock cards, others are perk-only nodes
     skill_tree = []
     remaining_cards = [c.card_id for c in cards if c.card_id not in starter_ids]
-    num_nodes = 33
+    num_nodes = 30
     # Spread cards across the first len(remaining_cards) nodes
     for node_idx in range(num_nodes):
         if remaining_cards:
@@ -170,28 +177,13 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 32) -> HeroDef
 
 
 def _create_hero_pack(hero: HeroDef) -> PremiumPackDef:
-    """Create one premium pack for a hero using their card pool."""
-    rarity_weights = {
-        HeroCardRarity.GRAY: 5.0,
-        HeroCardRarity.BLUE: 2.0,
-        HeroCardRarity.GOLD: 1.0,
-    }
-
-    card_rates = [
-        PremiumPackCardRate(
-            card_id=c.card_id,
-            drop_rate=rarity_weights.get(c.rarity, 1.0),
-        )
-        for c in hero.card_pool
-    ]
-
+    """Create one premium pack for a hero using per-pull rarity weights."""
     return PremiumPackDef(
         pack_id=hero.hero_id,
         name=f"{hero.name} Card Pack",
         featured_hero_ids=[hero.hero_id],
-        card_drop_rates=card_rates,
         min_cards_per_pack=4,
-        max_cards_per_pack=8,
+        max_cards_per_pack=4,
         diamond_cost=500,
         joker_rate=0.02,
         gold_guarantee=True,
@@ -200,6 +192,13 @@ def _create_hero_pack(hero: HeroDef) -> PremiumPackDef:
             PremiumPackAdditionalReward(reward_type="coins", amount=500, probability=0.20),
             PremiumPackAdditionalReward(reward_type="bluestars", amount=50, probability=0.10),
         ],
+        pull_rarity_schedule=[
+            PremiumPackPullRarity(gray_weight=0.64, blue_weight=0.30, gold_weight=0.06),
+            PremiumPackPullRarity(gray_weight=0.55, blue_weight=0.35, gold_weight=0.10),
+            PremiumPackPullRarity(gray_weight=0.45, blue_weight=0.35, gold_weight=0.20),
+            PremiumPackPullRarity(gray_weight=0.30, blue_weight=0.35, gold_weight=0.35),
+        ],
+        default_rarity_weights=PremiumPackPullRarity(gray_weight=0.64, blue_weight=0.30, gold_weight=0.06),
     )
 
 
@@ -284,5 +283,84 @@ def _default_duplicate_ranges() -> list[HeroDuplicateRange]:
             min_pct=[0.25, 0.25, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],
             max_pct=[0.40, 0.40, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15],
             coins_per_dupe=[25, 29, 29, 29, 23, 16, 13, 11, 8],
+        ),
+    ]
+
+
+def _default_shared_upgrade_tables() -> list[SharedUpgradeCostTable]:
+    """Default upgrade cost tables for shared cards (99 levels per category).
+
+    Shared card upgrades grant bluestars but NO hero XP.
+    """
+    num_levels = 99
+
+    def _make_dupe_costs(base: int, increment: int) -> list[int]:
+        return [base + i * increment for i in range(num_levels)]
+
+    def _make_coin_costs(base: int, increment: int) -> list[int]:
+        return [base + i * increment for i in range(num_levels)]
+
+    def _make_bluestar_rewards(base: int, step_every: int, step_amount: int) -> list[int]:
+        return [base + (i // step_every) * step_amount for i in range(num_levels)]
+
+    return [
+        SharedUpgradeCostTable(
+            category="GRAY_SHARED",
+            duplicate_costs=_make_dupe_costs(8, 2),
+            coin_costs=_make_coin_costs(25, 25),
+            bluestar_rewards=_make_bluestar_rewards(5, 10, 5),
+        ),
+        SharedUpgradeCostTable(
+            category="BLUE_SHARED",
+            duplicate_costs=_make_dupe_costs(10, 3),
+            coin_costs=_make_coin_costs(50, 50),
+            bluestar_rewards=_make_bluestar_rewards(10, 10, 5),
+        ),
+        SharedUpgradeCostTable(
+            category="GOLD_SHARED",
+            duplicate_costs=_make_dupe_costs(10, 1),
+            coin_costs=_make_coin_costs(50, 50),
+            bluestar_rewards=_make_bluestar_rewards(30, 5, 5),
+        ),
+    ]
+
+
+def _default_shared_duplicate_ranges() -> list[SharedDuplicateRange]:
+    """Default duplicate % ranges for shared card pulls, per category.
+
+    99 entries per category (one per card level). Percentages taper as level increases.
+    """
+    num_levels = 99
+
+    def _taper(start_min: float, start_max: float, floor_min: float, floor_max: float) -> tuple[list[float], list[float]]:
+        mins, maxs = [], []
+        for i in range(num_levels):
+            t = min(1.0, i / (num_levels - 1))
+            mins.append(round(start_min + t * (floor_min - start_min), 3))
+            maxs.append(round(start_max + t * (floor_max - start_max), 3))
+        return mins, maxs
+
+    def _coins(base: int, increment: float) -> list[int]:
+        return [max(1, round(base + i * increment)) for i in range(num_levels)]
+
+    gray_min, gray_max = _taper(0.80, 0.90, 0.50, 0.60)
+    blue_min, blue_max = _taper(0.80, 0.90, 0.50, 0.60)
+    gold_min, gold_max = _taper(0.80, 0.90, 0.50, 0.60)
+
+    return [
+        SharedDuplicateRange(
+            category="GRAY_SHARED",
+            min_pct=gray_min, max_pct=gray_max,
+            coins_per_dupe=_coins(3, 0.15),
+        ),
+        SharedDuplicateRange(
+            category="BLUE_SHARED",
+            min_pct=blue_min, max_pct=blue_max,
+            coins_per_dupe=_coins(5, 0.20),
+        ),
+        SharedDuplicateRange(
+            category="GOLD_SHARED",
+            min_pct=gold_min, max_pct=gold_max,
+            coins_per_dupe=_coins(5, 0.25),
         ),
     ]

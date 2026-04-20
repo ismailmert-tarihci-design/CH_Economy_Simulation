@@ -55,16 +55,15 @@ def render_variant_b_dashboard() -> None:
         st.info("No data in simulation results.", icon=":material/info:")
         return
 
-    # Build hero name lookup from config
     config = st.session_state.get("config")
     hero_name_map = {}
     if config and hasattr(config, "heroes"):
         hero_name_map = {h.hero_id: h.name for h in config.heroes}
 
-    # ─── KPI row ──────────────────────────────────────────────────────────────
-    _render_kpis(result, snapshots, hero_name_map)
+    # KPI row
+    _render_kpis(result, snapshots)
 
-    # ─── Charts in a 2-column grid ────────────────────────────────────────────
+    # Charts in a 2-column grid
     col1, col2 = st.columns(2)
     with col1:
         with st.container(border=True):
@@ -76,15 +75,15 @@ def render_variant_b_dashboard() -> None:
     col3, col4 = st.columns(2)
     with col3:
         with st.container(border=True):
-            _render_hero_level_chart(snapshots, hero_name_map)
+            _render_shared_level_chart(snapshots)
     with col4:
         with st.container(border=True):
             _render_hero_card_level_chart(snapshots, hero_name_map)
 
     with st.container(border=True):
-        _render_xp_chart(snapshots, hero_name_map)
+        _render_xp_chart(snapshots)
 
-    # ─── Summary sections ─────────────────────────────────────────────────────
+    # Summary sections
     col5, col6, col7 = st.columns(3)
     with col5:
         _render_premium_pack_summary(result, snapshots)
@@ -94,24 +93,14 @@ def render_variant_b_dashboard() -> None:
         _render_skill_tree_summary(snapshots)
 
 
-def _render_kpis(result: Any, snapshots: list, hero_name_map: dict) -> None:
+def _render_kpis(result: Any, snapshots: list) -> None:
     with st.container(horizontal=True):
         st.metric("Total bluestars", f"{result.total_bluestars:,}", border=True)
         st.metric("Coins earned", f"{result.total_coins_earned:,}", border=True)
         st.metric("Total upgrades", f"{sum(result.total_upgrades.values()):,}", border=True)
+        st.metric("Shared hero level", f"Lv {result.final_shared_hero_level}", border=True)
         st.metric("Jokers received", f"{result.total_jokers_received:,}", border=True)
         st.metric("Diamonds spent", f"{result.total_premium_diamonds_spent:,}", border=True)
-
-    # Hero level badges
-    if result.final_hero_levels:
-        with st.expander(f"Final hero levels ({len(result.final_hero_levels)} heroes)", icon=":material/person:"):
-            hero_items = list(result.final_hero_levels.items())
-            for row_start in range(0, len(hero_items), 6):
-                row = hero_items[row_start:row_start + 6]
-                cols = st.columns(len(row))
-                for i, (hero_id, level) in enumerate(row):
-                    display_name = hero_name_map.get(hero_id, hero_id.title())
-                    cols[i].metric(display_name, f"Lv {level}", border=True)
 
 
 def _render_bluestar_chart(snapshots: list) -> None:
@@ -126,20 +115,16 @@ def _render_bluestar_chart(snapshots: list) -> None:
     st.plotly_chart(fig, width="stretch")
 
 
-def _render_hero_level_chart(snapshots: list, hero_name_map: dict) -> None:
-    if not snapshots or not snapshots[0].hero_levels:
-        return
+def _render_shared_level_chart(snapshots: list) -> None:
+    """Single line chart showing shared hero level over time."""
     days = [s.day for s in snapshots]
-    hero_ids = list(snapshots[-1].hero_levels.keys())
-
-    fig = _styled_fig("Hero level progression")
-    for i, hero_id in enumerate(hero_ids):
-        levels = [s.hero_levels.get(hero_id, 0) for s in snapshots]
-        display_name = hero_name_map.get(hero_id, hero_id.title())
-        fig.add_trace(go.Scatter(
-            x=days, y=levels, mode="lines",
-            name=display_name, line=dict(color=_HERO_COLORS[i % len(_HERO_COLORS)], width=2),
-        ))
+    levels = [s.shared_hero_level for s in snapshots]
+    fig = _styled_fig("Shared hero level")
+    fig.add_trace(go.Scatter(
+        x=days, y=levels, mode="lines",
+        name="Shared level", line=dict(color=_VIOLET, width=2),
+        fill="tozeroy", fillcolor="rgba(124, 58, 237, 0.1)",
+    ))
     st.plotly_chart(fig, width="stretch")
 
 
@@ -160,21 +145,16 @@ def _render_hero_card_level_chart(snapshots: list, hero_name_map: dict) -> None:
     st.plotly_chart(fig, width="stretch")
 
 
-def _render_xp_chart(snapshots: list, hero_name_map: dict) -> None:
-    if not snapshots or not snapshots[0].hero_xp_today:
-        return
+def _render_xp_chart(snapshots: list) -> None:
+    """Single bar chart showing shared XP earned per day."""
     days = [s.day for s in snapshots]
-    hero_ids = sorted(set(h for s in snapshots for h in s.hero_xp_today.keys()))
+    xp = [s.shared_hero_xp_today for s in snapshots]
 
-    fig = _styled_fig("Daily hero XP earned")
-    for i, hero_id in enumerate(hero_ids):
-        xp = [s.hero_xp_today.get(hero_id, 0) for s in snapshots]
-        display_name = hero_name_map.get(hero_id, hero_id.title())
-        fig.add_trace(go.Bar(
-            x=days, y=xp, name=display_name,
-            marker_color=_HERO_COLORS[i % len(_HERO_COLORS)], opacity=0.8,
-        ))
-    fig.update_layout(barmode="group")
+    fig = _styled_fig("Daily shared hero XP earned")
+    fig.add_trace(go.Bar(
+        x=days, y=xp, name="Shared XP",
+        marker_color=_VIOLET, opacity=0.8,
+    ))
     st.plotly_chart(fig, width="stretch")
 
 
