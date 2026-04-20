@@ -75,13 +75,13 @@ def render_variant_b_dashboard() -> None:
     col3, col4 = st.columns(2)
     with col3:
         with st.container(border=True):
-            _render_shared_level_chart(snapshots)
+            _render_shared_level_chart(snapshots, hero_name_map)
     with col4:
         with st.container(border=True):
             _render_hero_card_level_chart(snapshots, hero_name_map)
 
     with st.container(border=True):
-        _render_xp_chart(snapshots)
+        _render_xp_chart(snapshots, hero_name_map)
 
     # Summary sections
     col5, col6, col7 = st.columns(3)
@@ -98,7 +98,12 @@ def _render_kpis(result: Any, snapshots: list) -> None:
         st.metric("Total bluestars", f"{result.total_bluestars:,}", border=True)
         st.metric("Coins earned", f"{result.total_coins_earned:,}", border=True)
         st.metric("Total upgrades", f"{sum(result.total_upgrades.values()):,}", border=True)
-        st.metric("Shared hero level", f"Lv {result.final_shared_hero_level}", border=True)
+        if result.final_hero_levels:
+            max_lvl = max(result.final_hero_levels.values())
+            avg_lvl = sum(result.final_hero_levels.values()) / len(result.final_hero_levels)
+            st.metric("Max hero level", f"Lv {max_lvl} (avg {avg_lvl:.1f})", border=True)
+        else:
+            st.metric("Max hero level", "—", border=True)
         st.metric("Jokers received", f"{result.total_jokers_received:,}", border=True)
         st.metric("Diamonds spent", f"{result.total_premium_diamonds_spent:,}", border=True)
 
@@ -115,16 +120,22 @@ def _render_bluestar_chart(snapshots: list) -> None:
     st.plotly_chart(fig, width="stretch")
 
 
-def _render_shared_level_chart(snapshots: list) -> None:
-    """Single line chart showing shared hero level over time."""
+def _render_shared_level_chart(snapshots: list, hero_name_map: dict | None = None) -> None:
+    """Per-hero level progression over time."""
+    if not snapshots or not snapshots[0].hero_levels:
+        return
     days = [s.day for s in snapshots]
-    levels = [s.shared_hero_level for s in snapshots]
-    fig = _styled_fig("Shared hero level")
-    fig.add_trace(go.Scatter(
-        x=days, y=levels, mode="lines",
-        name="Shared level", line=dict(color=_VIOLET, width=2),
-        fill="tozeroy", fillcolor="rgba(124, 58, 237, 0.1)",
-    ))
+    hero_ids = list(snapshots[-1].hero_levels.keys())
+    hero_name_map = hero_name_map or {}
+
+    fig = _styled_fig("Hero level progression")
+    for i, hero_id in enumerate(hero_ids):
+        levels = [s.hero_levels.get(hero_id, 1) for s in snapshots]
+        display_name = hero_name_map.get(hero_id, hero_id.title())
+        fig.add_trace(go.Scatter(
+            x=days, y=levels, mode="lines",
+            name=display_name, line=dict(color=_HERO_COLORS[i % len(_HERO_COLORS)], width=2),
+        ))
     st.plotly_chart(fig, width="stretch")
 
 
@@ -145,16 +156,35 @@ def _render_hero_card_level_chart(snapshots: list, hero_name_map: dict) -> None:
     st.plotly_chart(fig, width="stretch")
 
 
-def _render_xp_chart(snapshots: list) -> None:
-    """Single bar chart showing shared XP earned per day."""
+def _render_xp_chart(snapshots: list, hero_name_map: dict | None = None) -> None:
+    """Stacked bar chart showing per-hero XP earned per day."""
+    if not snapshots:
+        return
     days = [s.day for s in snapshots]
-    xp = [s.shared_hero_xp_today for s in snapshots]
+    hero_name_map = hero_name_map or {}
 
-    fig = _styled_fig("Daily shared hero XP earned")
-    fig.add_trace(go.Bar(
-        x=days, y=xp, name="Shared XP",
-        marker_color=_VIOLET, opacity=0.8,
-    ))
+    # Collect all hero_ids that earned XP at any point
+    all_hero_ids: set[str] = set()
+    for s in snapshots:
+        all_hero_ids.update(s.hero_xp_today.keys())
+
+    if not all_hero_ids:
+        # Fallback to total XP bar
+        xp = [s.shared_hero_xp_today for s in snapshots]
+        fig = _styled_fig("Daily hero XP earned")
+        fig.add_trace(go.Bar(x=days, y=xp, name="Total XP", marker_color=_VIOLET, opacity=0.8))
+        st.plotly_chart(fig, width="stretch")
+        return
+
+    fig = _styled_fig("Daily hero XP earned (per hero)")
+    for i, hero_id in enumerate(sorted(all_hero_ids)):
+        xp = [s.hero_xp_today.get(hero_id, 0) for s in snapshots]
+        display_name = hero_name_map.get(hero_id, hero_id.title())
+        fig.add_trace(go.Bar(
+            x=days, y=xp, name=display_name,
+            marker_color=_HERO_COLORS[i % len(_HERO_COLORS)], opacity=0.8,
+        ))
+    fig.update_layout(barmode="stack")
     st.plotly_chart(fig, width="stretch")
 
 

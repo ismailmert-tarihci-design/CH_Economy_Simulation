@@ -308,24 +308,24 @@ def _default_upgrade_tables() -> list[HeroUpgradeCostTable]:
     return [
         HeroUpgradeCostTable(
             rarity=HeroCardRarity.GRAY,
-            duplicate_costs=[10, 12, 16, 20, 30, 50, 70, 100, 150],
+            duplicate_costs=[10, 12, 13, 28, 32, 40, 48, 78, 150],
             coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
             bluestar_rewards=[50, 65, 80, 95, 110, 125, 150, 200, 250],
-            xp_rewards=[5, 5, 5, 10, 10, 10, 10, 15, 15],
+            xp_rewards=[10, 10, 10, 20, 20, 20, 20, 30, 30],
         ),
         HeroUpgradeCostTable(
             rarity=HeroCardRarity.BLUE,
-            duplicate_costs=[10, 12, 16, 20, 30, 50, 70, 100, 150],
+            duplicate_costs=[20, 24, 26, 55, 64, 80, 90, 160, 300],
             coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
-            bluestar_rewards=[120, 150, 210, 265, 310, 360, 400, 450, 500],
-            xp_rewards=[15, 15, 15, 30, 30, 30, 30, 45, 45],
+            bluestar_rewards=[100, 130, 160, 190, 220, 250, 300, 400, 500],
+            xp_rewards=[20, 20, 20, 40, 40, 40, 40, 60, 60],
         ),
         HeroUpgradeCostTable(
             rarity=HeroCardRarity.GOLD,
-            duplicate_costs=[10, 12, 16, 20, 30, 50, 70, 100, 150],
+            duplicate_costs=[20, 30, 36, 80, 90, 100, 120, 220, 240],
             coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
-            bluestar_rewards=[150, 200, 250, 300, 350, 400, 500, 600, 750],
-            xp_rewards=[40, 40, 40, 75, 75, 75, 75, 150, 150],
+            bluestar_rewards=[150, 195, 240, 285, 330, 375, 450, 600, 750],
+            xp_rewards=[30, 30, 30, 60, 60, 60, 60, 90, 90],
         ),
     ]
 
@@ -344,19 +344,19 @@ def _default_duplicate_ranges() -> list[HeroDuplicateRange]:
             rarity=HeroCardRarity.GRAY,
             min_pct=[0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40],
             max_pct=[0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50],
-            coins_per_dupe=[25, 29, 29, 29, 23, 16, 13, 11, 8],
+            coins_per_dupe=[25, 29, 35, 21, 22, 20, 19, 13, 8],
         ),
         HeroDuplicateRange(
             rarity=HeroCardRarity.BLUE,
-            min_pct=[0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40],
-            max_pct=[0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50],
-            coins_per_dupe=[25, 29, 29, 29, 23, 16, 13, 11, 8],
+            min_pct=[0.65, 0.60, 0.55, 0.50, 0.40, 0.35, 0.30, 0.20, 0.10],
+            max_pct=[0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40, 0.30, 0.20],
+            coins_per_dupe=[13, 15, 18, 11, 11, 10, 10, 7, 4],
         ),
         HeroDuplicateRange(
             rarity=HeroCardRarity.GOLD,
             min_pct=[0.25, 0.25, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],
             max_pct=[0.40, 0.40, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15],
-            coins_per_dupe=[25, 29, 29, 29, 23, 16, 13, 11, 8],
+            coins_per_dupe=[13, 12, 13, 8, 8, 8, 8, 5, 5],
         ),
     ]
 

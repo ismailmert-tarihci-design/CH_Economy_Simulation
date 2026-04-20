@@ -207,11 +207,14 @@ def _render_skill_tree_tab(config: HeroCardConfig) -> None:
 
 
 def _render_xp_tab(config: HeroCardConfig) -> None:
-    st.subheader("Shared Hero XP Thresholds")
-    st.caption("All heroes share one XP pool and one level. Hero card upgrades contribute to the shared pool.")
+    st.subheader("Per-Hero XP Thresholds")
+    st.caption("Each hero tracks XP and levels independently. Upgrading a hero's cards grants XP to that hero only.")
+
+    st.info("XP thresholds are configured per hero in the Hero Definitions tab (xp_per_level). "
+            "The table below sets the shared default used when creating new heroes.")
 
     config.shared_max_hero_level = st.number_input(
-        "Max shared hero level", min_value=1, max_value=200,
+        "Default max hero level", min_value=1, max_value=200,
         value=config.shared_max_hero_level, step=1, key="vb_shared_max_lvl",
     )
 

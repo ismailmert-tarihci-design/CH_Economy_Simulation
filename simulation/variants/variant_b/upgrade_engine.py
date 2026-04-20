@@ -112,23 +112,20 @@ def attempt_hero_upgrades(
             game_state.total_bluestars += bluestar_reward
             total_bluestars += bluestar_reward
 
-            # Grant Hero XP to shared pool
-            game_state.shared_hero_xp += xp_reward
+            # Grant Hero XP to the specific hero that owns this card
+            hero_state.xp += xp_reward
             total_xp += xp_reward
 
-            # Check shared hero level up
-            leveled_up = _check_shared_level_up(game_state, config)
+            # Check per-hero level up
+            leveled_up = _check_hero_level_up(hero_state, hero_def)
 
-            # Check skill tree advancement for ALL heroes on shared level-up
+            # Check skill tree advancement for this hero on level-up
             if leveled_up:
-                for check_hid, check_hstate in game_state.heroes.items():
-                    check_hdef = _get_hero_def(config, check_hid)
-                    if check_hdef:
-                        activated = check_and_advance_skill_tree(
-                            check_hdef, check_hstate, game_state.shared_hero_level
-                        )
-                        if activated:
-                            tree_activations.setdefault(check_hid, []).extend(activated)
+                activated = check_and_advance_skill_tree(
+                    hero_def, hero_state, hero_state.level
+                )
+                if activated:
+                    tree_activations.setdefault(hero_id, []).extend(activated)
 
             events.append({
                 "hero_id": hero_id,
@@ -149,20 +146,20 @@ def attempt_hero_upgrades(
     return events, total_xp, total_bluestars, tree_activations
 
 
-def _check_shared_level_up(
-    game_state: HeroCardGameState,
-    config: HeroCardConfig,
+def _check_hero_level_up(
+    hero_state: HeroProgressState,
+    hero_def: HeroDef,
 ) -> bool:
-    """Check if shared hero XP has reached the next level threshold. May level multiple times."""
+    """Check if a hero's XP has reached the next level threshold. May level multiple times."""
     leveled = False
-    while game_state.shared_hero_level < config.shared_max_hero_level:
-        level_idx = game_state.shared_hero_level - 1
-        if level_idx >= len(config.shared_xp_per_level):
+    while hero_state.level < hero_def.max_level:
+        level_idx = hero_state.level - 1
+        if level_idx >= len(hero_def.xp_per_level):
             break
-        threshold = config.shared_xp_per_level[level_idx]
-        if game_state.shared_hero_xp >= threshold:
-            game_state.shared_hero_xp -= threshold
-            game_state.shared_hero_level += 1
+        threshold = hero_def.xp_per_level[level_idx]
+        if hero_state.xp >= threshold:
+            hero_state.xp -= threshold
+            hero_state.level += 1
             leveled = True
         else:
             break

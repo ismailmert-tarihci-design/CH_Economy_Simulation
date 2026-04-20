@@ -162,10 +162,11 @@ def run_simulation(
             game_state, config
         )
         day_upgrades.extend(upgrade_events)
-        day_shared_xp = 0
+        day_hero_xp: Dict[str, int] = {}
         for evt in upgrade_events:
             hero_id = evt["hero_id"]
-            day_shared_xp += evt.get("xp_earned", 0)
+            xp_earned = evt.get("xp_earned", 0)
+            day_hero_xp[hero_id] = day_hero_xp.get(hero_id, 0) + xp_earned
             day_coins_spent += evt.get("coins_spent", 0)
             key = f"{hero_id}:{evt['card_id']}"
             all_upgrade_events[key] = all_upgrade_events.get(key, 0) + 1
@@ -212,10 +213,10 @@ def run_simulation(
             category_avg_levels=category_avg_levels,
             pull_counts_by_type=day_pull_counts,
             pack_counts_by_type=day_pack_counts,
-            shared_hero_level=game_state.shared_hero_level,
-            shared_hero_xp_today=day_shared_xp,
-            hero_xp_today={},
-            hero_levels={hid: game_state.shared_hero_level for hid in game_state.heroes},
+            shared_hero_level=max((hs.level for hs in game_state.heroes.values()), default=1),
+            shared_hero_xp_today=sum(day_hero_xp.values()),
+            hero_xp_today=day_hero_xp,
+            hero_levels={hid: hs.level for hid, hs in game_state.heroes.items()},
             hero_card_avg_levels=hero_avg_levels,
             skill_nodes_unlocked_today=day_skill_nodes,
             cards_unlocked_today=day_cards_unlocked,
@@ -234,10 +235,10 @@ def run_simulation(
         total_coins_earned=total_coins_earned,
         total_coins_spent=total_coins_spent,
         total_upgrades=all_upgrade_events,
-        final_shared_hero_level=game_state.shared_hero_level,
-        final_shared_hero_xp=game_state.shared_hero_xp,
-        final_hero_levels={hid: game_state.shared_hero_level for hid in game_state.heroes},
-        final_hero_xp={hid: game_state.shared_hero_xp for hid in game_state.heroes},
+        final_shared_hero_level=max((hs.level for hs in game_state.heroes.values()), default=1),
+        final_shared_hero_xp=sum(hs.xp for hs in game_state.heroes.values()),
+        final_hero_levels={hid: hs.level for hid, hs in game_state.heroes.items()},
+        final_hero_xp={hid: hs.xp for hid, hs in game_state.heroes.items()},
         total_premium_diamonds_spent=sum(s.premium_diamonds_spent for s in snapshots),
         total_jokers_received=sum(s.jokers_received_today for s in snapshots),
         total_hero_tokens=sum(s.hero_tokens_received for s in snapshots),
