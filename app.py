@@ -158,5 +158,5 @@ if _active and _active in st.session_state.get("configs", {}):
         from simulation.variants.variant_b.config_loader import save_config as _save_vb
         _save_vb(_cfg)
     elif _active == "variant_a":
-        from simulation.config_loader import save_defaults as _save_va
+        from simulation.config_loader import save_snapshot as _save_va
         _save_va(_cfg)

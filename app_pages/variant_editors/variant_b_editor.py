@@ -1,7 +1,7 @@
 """Variant B config editor — Hero Card System.
 
 Every parameter is editable from the frontend: heroes, card pools, skill trees,
-XP tables, upgrade costs, premium packs, drop algorithm settings, joker rates.
+XP tables, upgrade costs, premium packs, drop algorithm settings.
 """
 
 import json
@@ -59,7 +59,6 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
         ":material/percent: Hero dupe ranges",
         ":material/percent: Shared dupe ranges",
         ":material/casino: Drop algorithm",
-        ":material/playing_cards: Hero joker",
         ":material/inventory_2: Hero packs",
         ":material/calendar_today: Pack schedule",
         ":material/person: Profiles",
@@ -85,14 +84,12 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
     with tabs[8]:
         _render_drop_algorithm_tab(config)
     with tabs[9]:
-        _render_joker_tab(config)
-    with tabs[10]:
         _render_premium_packs_tab(config)
-    with tabs[11]:
+    with tabs[10]:
         _render_pack_schedule_tab(config)
-    with tabs[12]:
+    with tabs[11]:
         _render_profiles_tab(config)
-    with tabs[13]:
+    with tabs[12]:
         _render_import_export(config)
 
 
@@ -503,18 +500,6 @@ def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
             dc.streak_decay_shared = st.slider("Shared decay multiplier", min_value=0.0, max_value=1.0, value=dc.streak_decay_shared, step=0.05, key="vb_sd_shared")
 
 
-def _render_joker_tab(config: HeroCardConfig) -> None:
-    st.subheader("Hero Joker Settings")
-    config.joker_drop_rate_in_regular_packs = st.slider(
-        "Joker Drop Rate in Regular Packs",
-        min_value=0.0, max_value=0.20, value=config.joker_drop_rate_in_regular_packs,
-        step=0.005, format="%.3f",
-        help="Chance of a hero joker dropping per regular pack pull",
-        key="vb_joker_rate",
-    )
-    st.info("Hero jokers can also drop from premium packs (configured per pack).")
-
-
 def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     st.subheader("Hero Card Packs")
     st.caption("Each hero has one card pack. Rarity weights change per pull until a gold is pulled.")
@@ -530,14 +515,12 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
 
     # Pack-level settings
     st.markdown("**Pack Settings**")
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     with c1:
         pack.min_cards_per_pack = st.number_input("Min Cards", min_value=1, max_value=50, value=pack.min_cards_per_pack, step=1, key=f"vb_pp_minc_{sel}")
         pack.max_cards_per_pack = st.number_input("Max Cards", min_value=pack.min_cards_per_pack, max_value=50, value=pack.max_cards_per_pack, step=1, key=f"vb_pp_maxc_{sel}")
     with c2:
         pack.diamond_cost = st.number_input("Diamond Cost", min_value=0, value=pack.diamond_cost, step=50, key=f"vb_pp_cost_{sel}")
-    with c3:
-        pack.gold_guarantee = st.checkbox("Gold Guarantee", value=pack.gold_guarantee, key=f"vb_pp_gg_{sel}")
 
     # Additional rewards
     st.markdown("**Additional Rewards** (probability-based, amount rolled uniformly in [Min, Max])")

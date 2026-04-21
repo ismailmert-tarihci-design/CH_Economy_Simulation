@@ -5,6 +5,8 @@ Loads default configuration from JSON files in data/defaults/
 and returns a SimConfig object.
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any
@@ -77,23 +79,46 @@ def default_gear_config() -> dict[str, Any]:
     }
 
 
+def _get_snapshot_path() -> Path:
+    return _get_defaults_dir() / "variant_a_config.json"
+
+
+def load_snapshot() -> "SimConfig | None":
+    """Load a full SimConfig snapshot if one has been persisted, else None."""
+    path = _get_snapshot_path()
+    if not path.exists():
+        return None
+    try:
+        return SimConfig.model_validate_json(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def save_snapshot(config: "SimConfig") -> None:
+    """Persist the full SimConfig as a single JSON snapshot (atomic overlay)."""
+    path = _get_snapshot_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(config.model_dump_json(indent=2), encoding="utf-8")
+
+
 def load_defaults() -> SimConfig:
     """
-    Load default configuration from JSON files.
+    Load default configuration.
 
-    For backward compatibility, attempts to load pet/hero/gear configs
-    from disk. If files don't exist, uses default factory functions.
-    If files exist but are corrupt, raises ConfigValidationError with
-    clear error message.
-
-    Returns:
-        SimConfig: Configuration object with all default values loaded.
+    Prefers a full-config snapshot (variant_a_config.json) if present — this
+    captures every edit made via the UI, including fields not covered by the
+    per-file defaults (pet/hero/gear configs, num_days, initial amounts, etc.).
+    Falls back to composing a SimConfig from the per-file defaults otherwise.
 
     Raises:
         FileNotFoundError: If any required JSON file is missing.
         ValueError: If JSON structure doesn't match expected schema.
         ConfigValidationError: If new system config sections are corrupt.
     """
+    snapshot = load_snapshot()
+    if snapshot is not None:
+        return snapshot
+
     defaults_dir = _get_defaults_dir()
 
     # Load pack configs
