@@ -20,6 +20,7 @@ from simulation.variants.variant_b.models import (
 )
 from simulation.variants.variant_b import day_simulator as ds
 from simulation.variants.variant_b import season_pass as sp
+from simulation.variants.variant_b import ftue
 from simulation.variants.variant_b.premium_packs import open_premium_pack
 from simulation.variants.variant_b.upgrade_engine import (
     attempt_hero_upgrades,
@@ -53,11 +54,15 @@ def _log(lines):
 
 
 def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
-    """Mint fresh state for the simulator."""
+    """Mint fresh state for the simulator.
+
+    Day 0 = install day. Only day-0 heroes (Woody) are unlocked; Cowboy and
+    later heroes unlock on subsequent days via Next Day.
+    """
     rng = Random(seed if seed and seed > 0 else None)
     st.session_state[_STATE_KEY] = {
         "game_state": ds.init_state(config),
-        "day": 1,
+        "day": 0,
         "season_pass_step": 1,
         "paid_pass": st.session_state.get(_STATE_KEY, {}).get("paid_pass", False),
         "extras": ds.init_extras(),
@@ -67,10 +72,11 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "last_pack_results": [],
         "last_premium_result": None,
     }
-    _log([f"Day 1 — fresh simulation (seed={seed or 'random'})"])
-    # Run day-1 hero unlocks (anyone scheduled for day 1)
-    unlocks = ds.advance_day(st.session_state[_STATE_KEY]["game_state"], 1, config)
-    _log(unlocks)
+    _log([f"Day 0 (install day) — fresh simulation (seed={seed or 'random'})"])
+    # Auto-play the scripted FTUE on D0 (per design: D0 finishes the FTUE and starts playing)
+    state = st.session_state[_STATE_KEY]
+    ftue_lines = ftue.run_ftue(state["game_state"], config, state["extras"])
+    _log(ftue_lines)
 
 
 def render_variant_b_day_simulator() -> None:
