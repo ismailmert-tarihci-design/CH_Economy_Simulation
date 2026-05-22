@@ -83,12 +83,11 @@ DAILY_BUNDLE: List[str] = ["StandardPackT2", "StandardPackT1", "StandardPackT1",
 def init_extras() -> Dict[str, Any]:
     """Return a fresh extras dict.
 
-    All bonus item counters (HeroTokens, Diamonds, etc.) now live on
-    game_state.bonus_items. This dict only holds things that don't fit on
-    the game_state model: unopened pack inventory and a misc bucket.
+    All bonus item counters (HeroTokens, Diamonds, etc.) live on
+    game_state.bonus_items. Packs from season pass open immediately rather
+    than being inventoried. The `misc` bucket catches unknown reward types.
     """
     return {
-        "unopened_packs": {},
         "misc": {},
     }
 

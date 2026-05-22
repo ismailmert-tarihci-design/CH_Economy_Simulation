@@ -14,11 +14,12 @@ unopened-pack counts that the user later opens manually).
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from random import Random
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from simulation.variants.variant_b.models import HeroCardGameState
+from simulation.variants.variant_b.models import HeroCardConfig, HeroCardGameState
 
 
 class SeasonPassReward(BaseModel):
@@ -152,9 +153,17 @@ _BONUS_KEY_MAP: Dict[str, str] = {
 }
 
 
-def _apply_reward(reward: SeasonPassReward, game_state: HeroCardGameState, extras: Dict[str, Any]) -> str:
-    """Apply one reward. Mutates game_state.coins / game_state.bonus_items /
-    extras["unopened_packs"]. Returns a human-readable line."""
+def _apply_reward(
+    reward: SeasonPassReward,
+    game_state: HeroCardGameState,
+    extras: Dict[str, Any],
+    config: Optional[HeroCardConfig],
+    rng: Optional[Random],
+    opened_packs: List[Dict[str, Any]],
+) -> str:
+    """Apply one reward. Mutates game_state.coins / game_state.bonus_items.
+    Pack rewards are opened immediately and their results appended to
+    `opened_packs`. Returns a human-readable line."""
     rtype = reward.reward_type
     amt = reward.amount
 
@@ -162,8 +171,16 @@ def _apply_reward(reward: SeasonPassReward, game_state: HeroCardGameState, extra
         game_state.coins += amt
         return f"+{amt} coins"
     if rtype in _PACK_REWARD_TYPES:
-        extras["unopened_packs"][rtype] = extras["unopened_packs"].get(rtype, 0) + amt
-        return f"+{amt}x {rtype}"
+        if config is None or rng is None:
+            extras.setdefault("unopened_packs", {})[rtype] = (
+                extras.setdefault("unopened_packs", {}).get(rtype, 0) + amt
+            )
+            return f"+{amt}x {rtype} (queued — no rng/config to open)"
+        from simulation.variants.variant_b.day_simulator import open_pack_by_name
+        for _ in range(amt):
+            result = open_pack_by_name(rtype, game_state, config, rng, apply_evolution=False)
+            opened_packs.append(result)
+        return f"opened {amt}x {rtype}"
     if rtype in _BONUS_KEY_MAP:
         key = _BONUS_KEY_MAP[rtype]
         game_state.bonus_items[key] = game_state.bonus_items.get(key, 0) + amt
@@ -179,24 +196,31 @@ def apply_season_pass_step(
     paid_pass: bool,
     game_state: HeroCardGameState,
     extras: Dict[str, Any],
-) -> Tuple[bool, List[str]]:
+    config: Optional[HeroCardConfig] = None,
+    rng: Optional[Random] = None,
+) -> Tuple[bool, List[str], List[Dict[str, Any]]]:
     """Apply the rewards from one season pass step.
 
     Args:
         step_idx_1based: 1-based step number (1..len(SEASON_PASS_TABLE)).
         paid_pass: If True, both free and paid rewards apply. Otherwise only free.
-        game_state: Mutated for Coins.
-        extras: Mutated for everything else. Must have an "unopened_packs" dict key.
+        game_state: Mutated for Coins, bonus items, and (for pack rewards) cards.
+        extras: Mutated for misc bucket.
+        config / rng: Required to open pack rewards immediately. If absent,
+            pack rewards fall back to the legacy unopened-pack inventory.
 
-    Returns: (success, log_lines). success is False if step is out of range.
+    Returns: (success, log_lines, opened_packs).
+        opened_packs is a list of pack-open results (from open_pack_by_name)
+        that the UI can render. Empty if no pack rewards were granted.
     """
     if step_idx_1based < 1 or step_idx_1based > len(SEASON_PASS_TABLE):
-        return False, []
+        return False, [], []
 
     step = SEASON_PASS_TABLE[step_idx_1based - 1]
     lines: List[str] = []
+    opened: List[Dict[str, Any]] = []
     lines.append(f"Step {step.step} (PurpleStar req {step.required_purple_star}):")
-    lines.append("  Free:  " + _apply_reward(step.free, game_state, extras))
+    lines.append("  Free:  " + _apply_reward(step.free, game_state, extras, config, rng, opened))
     if paid_pass:
-        lines.append("  Paid:  " + _apply_reward(step.paid, game_state, extras))
-    return True, lines
+        lines.append("  Paid:  " + _apply_reward(step.paid, game_state, extras, config, rng, opened))
+    return True, lines, opened
