@@ -114,130 +114,185 @@ def _resolve_card_info(
     return "", 1, None
 
 
+def _randint_inclusive(lo: int, hi: int, rng: Optional[Random]) -> int:
+    """Pick an int in [lo, hi]. Deterministic = midpoint when rng is None."""
+    if hi < lo:
+        hi = lo
+    if rng:
+        return rng.randint(lo, hi)
+    return (lo + hi) // 2
+
+
+def _draw_card_for_pack(
+    pack_def: PremiumPackDef,
+    pull_since_gold: int,
+    got_gold: bool,
+    dupe_min_pct: Dict[str, float],
+    dupe_max_pct: Dict[str, float],
+    pull_kind: str,
+    game_state: HeroCardGameState,
+    config: HeroCardConfig,
+    rng: Optional[Random],
+) -> Tuple[Optional[Dict[str, Any]], bool]:
+    """Draw one card for a premium pack.
+
+    Returns (result_dict or None if no card available, gold_was_pulled).
+    pull_since_gold is 1-indexed (matches the PullSinceUniqueGold table).
+    """
+    # Determine rarity weights for this pull
+    if got_gold:
+        weights = pack_def.default_rarity_weights
+    elif pack_def.pull_rarity_schedule:
+        idx = max(0, min(pull_since_gold - 1, len(pack_def.pull_rarity_schedule) - 1))
+        weights = pack_def.pull_rarity_schedule[idx]
+    else:
+        weights = pack_def.default_rarity_weights
+
+    chosen_rarity = _roll_rarity(weights, rng)
+
+    selected_card_id = _pick_card_by_rarity_catchup(
+        chosen_rarity, pack_def.featured_hero_ids, game_state, rng
+    )
+    if not selected_card_id:
+        for fallback in HeroCardRarity:
+            if fallback != chosen_rarity:
+                selected_card_id = _pick_card_by_rarity_catchup(
+                    fallback, pack_def.featured_hero_ids, game_state, rng
+                )
+                if selected_card_id:
+                    chosen_rarity = fallback
+                    break
+    if not selected_card_id:
+        return None, False
+
+    hero_id, card_level, card_rarity = _resolve_card_info(selected_card_id, game_state)
+    if card_rarity is None:
+        card_rarity = chosen_rarity
+
+    # Compute duplicates as % of required dupes for next level, sampled from
+    # [min_pct, max_pct] for this rarity.
+    upgrade_table = _find_upgrade_table(config, card_rarity)
+    level_idx = card_level - 1
+    if upgrade_table and 0 <= level_idx < len(upgrade_table.duplicate_costs):
+        base_cost = upgrade_table.duplicate_costs[level_idx]
+        rarity_key = card_rarity.value
+        min_pct = dupe_min_pct.get(rarity_key, 1.0)
+        max_pct = dupe_max_pct.get(rarity_key, max(min_pct, 1.0))
+        if max_pct < min_pct:
+            max_pct = min_pct
+        pct = rng.uniform(min_pct, max_pct) if rng else (min_pct + max_pct) / 2.0
+        dupes = max(1, round(base_cost * pct))
+    else:
+        dupes = compute_hero_duplicates(card_level, card_rarity, config, rng) or 1
+
+    return {
+        "card_id": selected_card_id,
+        "hero_id": hero_id,
+        "duplicates": dupes,
+        "is_joker": False,
+        "rarity": card_rarity.value,
+        "pull_kind": pull_kind,
+    }, (card_rarity == HeroCardRarity.GOLD)
+
+
 def open_premium_pack(
     pack_def: PremiumPackDef,
     game_state: HeroCardGameState,
     config: HeroCardConfig,
     rng: Optional[Random] = None,
 ) -> List[Dict[str, Any]]:
-    """Open a premium pack and return list of pull results.
+    """Open a Hero Unique Pack and return list of pull results.
 
-    Features:
-    - Per-pull rarity weights that change until gold is pulled
-    - Gold guarantee: at least one GOLD rarity card per pack
-    - Dupe override per rarity
-    - Hero tokens gifted per pack
-    - Additional probability-based rewards
+    New structure:
+      - N MainUpgradeCards (count rolled in [main_cards_min, main_cards_max], dupes per main_dupe_*_pct)
+      - M BonusCards     (count rolled in [bonus_cards_min, bonus_cards_max], dupes per bonus_dupe_*_pct)
+      - Optional jokers, coins, hero tokens (pack-level probability + min/max ranges)
+
+    Rarity weights are indexed by PullSinceUniqueGold across both Main and Bonus
+    pulls. After a gold is pulled, default_rarity_weights apply.
     """
     results: List[Dict[str, Any]] = []
 
-    # Determine card count for this pack
-    if rng:
-        num_cards = rng.randint(pack_def.min_cards_per_pack, pack_def.max_cards_per_pack)
-    else:
-        num_cards = (pack_def.min_cards_per_pack + pack_def.max_cards_per_pack) // 2
+    main_count = _randint_inclusive(pack_def.main_cards_min, pack_def.main_cards_max, rng)
+    bonus_count = _randint_inclusive(pack_def.bonus_cards_min, pack_def.bonus_cards_max, rng)
 
     got_gold = False
-    card_count = 0
-    draw_idx = 0
+    pull_since_gold = 1  # 1-indexed counter aligning with the spec's PullSinceUniqueGold
 
-    while card_count < num_cards:
-        # Check for joker
-        if rng:
-            is_joker = rng.random() < pack_def.joker_rate
+    # ---- MainUpgradeCards ----
+    for _ in range(main_count):
+        result, gold_pulled = _draw_card_for_pack(
+            pack_def, pull_since_gold, got_gold,
+            pack_def.main_dupe_min_pct, pack_def.main_dupe_max_pct,
+            "main", game_state, config, rng,
+        )
+        if result is None:
+            break
+        results.append(result)
+        if gold_pulled and not got_gold:
+            got_gold = True
+            pull_since_gold = 1
         else:
-            is_joker = pack_def.joker_rate > 0.5
+            pull_since_gold += 1
 
-        if is_joker:
+    # ---- BonusCards ----
+    for _ in range(bonus_count):
+        result, gold_pulled = _draw_card_for_pack(
+            pack_def, pull_since_gold, got_gold,
+            pack_def.bonus_dupe_min_pct, pack_def.bonus_dupe_max_pct,
+            "bonus", game_state, config, rng,
+        )
+        if result is None:
+            break
+        results.append(result)
+        if gold_pulled and not got_gold:
+            got_gold = True
+            pull_since_gold = 1
+        else:
+            pull_since_gold += 1
+
+    # ---- HeroUniqueJoker (pack-level probability + count range) ----
+    joker_roll = rng.random() if rng else 0.5
+    if pack_def.joker_probability > 0 and joker_roll < pack_def.joker_probability:
+        joker_count = _randint_inclusive(pack_def.joker_min, pack_def.joker_max, rng)
+        if joker_count > 0:
             results.append({
                 "card_id": "__joker__",
                 "hero_id": pack_def.featured_hero_ids[0] if pack_def.featured_hero_ids else "",
-                "duplicates": 1,
+                "duplicates": joker_count,
                 "is_joker": True,
+                "joker_count": joker_count,
             })
-            card_count += 1
-            draw_idx += 1
-            continue
 
-        # Determine rarity for this pull
-        if pack_def.pull_rarity_schedule:
-            # Gold guarantee: force gold on last card if none yet
-            if pack_def.gold_guarantee and card_count == num_cards - 1 and not got_gold:
-                chosen_rarity = HeroCardRarity.GOLD
-            elif got_gold:
-                chosen_rarity = _roll_rarity(pack_def.default_rarity_weights, rng)
-            elif draw_idx < len(pack_def.pull_rarity_schedule):
-                chosen_rarity = _roll_rarity(pack_def.pull_rarity_schedule[draw_idx], rng)
-            else:
-                chosen_rarity = _roll_rarity(pack_def.default_rarity_weights, rng)
+    # ---- Coins ----
+    coins_roll = rng.random() if rng else 0.0
+    if pack_def.coins_probability > 0 and coins_roll < pack_def.coins_probability:
+        amount = _randint_inclusive(pack_def.coins_min, pack_def.coins_max, rng)
+        if amount > 0:
+            results.append({
+                "card_id": "__reward_coins__",
+                "hero_id": "",
+                "duplicates": 0,
+                "is_joker": False,
+                "reward_type": "coins",
+                "reward_amount": amount,
+            })
 
-            # Pick card of chosen rarity using catch-up
-            selected_card_id = _pick_card_by_rarity_catchup(
-                chosen_rarity, pack_def.featured_hero_ids, game_state, rng
-            )
+    # ---- HeroTokens ----
+    tokens_roll = rng.random() if rng else 0.0
+    if pack_def.hero_tokens_probability > 0 and tokens_roll < pack_def.hero_tokens_probability:
+        amount = _randint_inclusive(pack_def.hero_tokens_min, pack_def.hero_tokens_max, rng)
+        if amount > 0:
+            results.append({
+                "card_id": "__hero_tokens__",
+                "hero_id": pack_def.featured_hero_ids[0] if pack_def.featured_hero_ids else "",
+                "duplicates": 0,
+                "is_joker": False,
+                "reward_type": "hero_tokens",
+                "reward_amount": amount,
+            })
 
-            # Fallback: if no cards of chosen rarity, try other rarities
-            if not selected_card_id:
-                for fallback_rarity in HeroCardRarity:
-                    if fallback_rarity != chosen_rarity:
-                        selected_card_id = _pick_card_by_rarity_catchup(
-                            fallback_rarity, pack_def.featured_hero_ids, game_state, rng
-                        )
-                        if selected_card_id:
-                            break
-        else:
-            # Legacy: fall back to card_drop_rates
-            card_rates = [(cr.card_id, cr.drop_rate) for cr in pack_def.card_drop_rates]
-            total_weight = sum(r for _, r in card_rates)
-            selected_card_id = _pick_card_weighted(card_rates, total_weight, rng)
-
-        if not selected_card_id:
-            # No cards available at all — break to avoid infinite loop
-            break
-
-        hero_id, card_level, card_rarity = _resolve_card_info(selected_card_id, game_state)
-
-        if card_rarity == HeroCardRarity.GOLD:
-            got_gold = True
-
-        # Compute duplicates (with optional % override)
-        if card_rarity is not None:
-            pct_override = pack_def.dupe_pct_per_rarity.get(card_rarity.value, 0.0)
-            if pct_override > 0:
-                # % of required dupes for next level
-                upgrade_table = _find_upgrade_table(config, card_rarity)
-                level_idx = card_level - 1
-                if upgrade_table and level_idx < len(upgrade_table.duplicate_costs):
-                    base_cost = upgrade_table.duplicate_costs[level_idx]
-                    dupes = max(1, round(base_cost * pct_override))
-                else:
-                    dupes = 1
-            else:
-                dupes = compute_hero_duplicates(card_level, card_rarity, config, rng)
-        else:
-            dupes = 1
-
-        results.append({
-            "card_id": selected_card_id,
-            "hero_id": hero_id,
-            "duplicates": dupes,
-            "is_joker": False,
-        })
-        card_count += 1
-        draw_idx += 1
-
-    # Hero tokens (always gifted)
-    if pack_def.hero_tokens_per_pack > 0:
-        results.append({
-            "card_id": "__hero_tokens__",
-            "hero_id": pack_def.featured_hero_ids[0] if pack_def.featured_hero_ids else "",
-            "duplicates": 0,
-            "is_joker": False,
-            "reward_type": "hero_tokens",
-            "reward_amount": pack_def.hero_tokens_per_pack,
-        })
-
-    # Additional probability-based rewards
+    # ---- Legacy `additional_rewards` (still honored for back-compat) ----
     for reward in pack_def.additional_rewards:
         roll = rng.random() if rng else 0.5
         if roll < reward.probability:

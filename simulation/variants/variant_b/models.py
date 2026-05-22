@@ -64,6 +64,7 @@ class SkillTreeNode(BaseModel):
     hero_level_required: int
     cards_unlocked: List[str] = Field(default_factory=list, description="card_ids unlocked at this node")
     perk_label: str = Field(default="", description="Display label for perk/stat unlock (tracked as marker only)")
+    token_cost: int = Field(default=0, description="Hero Tokens required to activate this node (skill tree upgrade cost)")
 
 
 class HeroDef(BaseModel):
@@ -133,7 +134,18 @@ class PremiumPackPullRarity(BaseModel):
 
 
 class PremiumPackDef(BaseModel):
-    """Definition of a hero-specific premium card pack (single tier per hero)."""
+    """Definition of a hero-specific premium card pack (single tier per hero).
+
+    New (Hero Unique Pack) structure:
+      - 5 MainUpgradeCards (100% rate, dupes = 100-110% of required, per rarity)
+      - 1-3 BonusCards (100% rate, dupes = 20-40% of required, per rarity)
+      - 2-10 HeroUniqueJoker (25% pack-level probability)
+      - 700-2000 Coins (100% pack-level probability)
+      - 50-100 HeroTokens (100% pack-level probability)
+    Rarity for each card pull follows pull_rarity_schedule indexed by
+    PullSinceUniqueGold (1..N). Once a gold is pulled, default_rarity_weights
+    apply to all subsequent pulls in the pack.
+    """
     pack_id: str
     name: str
     featured_hero_ids: List[str] = Field(description="Hero(es) whose cards are in this pack")
@@ -141,29 +153,68 @@ class PremiumPackDef(BaseModel):
         default_factory=list,
         description="Legacy per-card drop rates (ignored when pull_rarity_schedule is set)"
     )
-    min_cards_per_pack: int = Field(default=4, description="Minimum cards drawn per pack")
-    max_cards_per_pack: int = Field(default=8, description="Maximum cards drawn per pack")
     diamond_cost: int = Field(default=500, description="Price in diamonds")
-    joker_rate: float = Field(default=0.02, description="Chance of pulling a hero joker per draw")
-    gold_guarantee: bool = Field(default=True, description="Guarantee at least one GOLD rarity card per pack")
-    hero_tokens_per_pack: int = Field(default=5, description="Hero Tokens gifted per pack opening")
+
+    # ---------- Legacy fields (kept for backward-compat with saved configs) ----------
+    min_cards_per_pack: int = Field(default=4, description="[Legacy] Min cards drawn per pack")
+    max_cards_per_pack: int = Field(default=8, description="[Legacy] Max cards drawn per pack")
+    joker_rate: float = Field(default=0.0, description="[Legacy] Per-draw joker chance (use joker_probability instead)")
+    gold_guarantee: bool = Field(default=False, description="[Legacy] Force-gold guarantee (not used by new flow)")
+    hero_tokens_per_pack: int = Field(default=0, description="[Legacy] Fixed Hero Tokens per pack (use hero_tokens_min/max instead)")
     additional_rewards: List[PremiumPackAdditionalReward] = Field(
         default_factory=list,
-        description="Probability-based additional rewards per pack"
+        description="[Legacy] Extra probability-based rewards (Coins/HeroTokens are now first-class fields)"
     )
-    # Per-pull rarity schedule (index = pull position, up to 4)
+    dupe_pct_per_rarity: Dict[str, float] = Field(
+        default_factory=dict,
+        description="[Legacy] Single-% per-rarity dupe override (use main_dupe_*_pct + bonus_dupe_*_pct instead)"
+    )
+
+    # ---------- New: MainUpgradeCards ----------
+    main_cards_min: int = Field(default=5, description="Min MainUpgradeCards per pack")
+    main_cards_max: int = Field(default=5, description="Max MainUpgradeCards per pack")
+    main_dupe_min_pct: Dict[str, float] = Field(
+        default_factory=lambda: {"GRAY": 1.0, "BLUE": 1.0, "GOLD": 1.0},
+        description="Per-rarity min % of required dupes for MainUpgradeCards",
+    )
+    main_dupe_max_pct: Dict[str, float] = Field(
+        default_factory=lambda: {"GRAY": 1.1, "BLUE": 1.1, "GOLD": 1.1},
+        description="Per-rarity max % of required dupes for MainUpgradeCards",
+    )
+
+    # ---------- New: BonusCards ----------
+    bonus_cards_min: int = Field(default=1, description="Min BonusCards per pack")
+    bonus_cards_max: int = Field(default=3, description="Max BonusCards per pack")
+    bonus_dupe_min_pct: Dict[str, float] = Field(
+        default_factory=lambda: {"GRAY": 0.2, "BLUE": 0.2, "GOLD": 0.2},
+        description="Per-rarity min % of required dupes for BonusCards",
+    )
+    bonus_dupe_max_pct: Dict[str, float] = Field(
+        default_factory=lambda: {"GRAY": 0.4, "BLUE": 0.4, "GOLD": 0.4},
+        description="Per-rarity max % of required dupes for BonusCards",
+    )
+
+    # ---------- New: pack-level rewards ----------
+    joker_probability: float = Field(default=0.25, description="Pack-level chance any HeroUniqueJokers drop")
+    joker_min: int = Field(default=2, description="Min jokers when they drop")
+    joker_max: int = Field(default=10, description="Max jokers when they drop")
+
+    coins_probability: float = Field(default=1.0, description="Pack-level chance Coins drop")
+    coins_min: int = Field(default=700, description="Min Coins when they drop")
+    coins_max: int = Field(default=2000, description="Max Coins when they drop")
+
+    hero_tokens_probability: float = Field(default=1.0, description="Pack-level chance HeroTokens drop")
+    hero_tokens_min: int = Field(default=50, description="Min HeroTokens when they drop")
+    hero_tokens_max: int = Field(default=100, description="Max HeroTokens when they drop")
+
+    # ---------- Rarity schedule (PullSinceUniqueGold = 1..N, then default after gold) ----------
     pull_rarity_schedule: List[PremiumPackPullRarity] = Field(
         default_factory=list,
-        description="Rarity weights per pull position. After gold is pulled, uses default_rarity_weights."
+        description="Rarity weights indexed by PullSinceUniqueGold (1..N). After gold is pulled, uses default_rarity_weights."
     )
     default_rarity_weights: PremiumPackPullRarity = Field(
         default_factory=PremiumPackPullRarity,
-        description="Fallback rarity weights after gold has been pulled"
-    )
-    # Dupe override: rarity name -> % of required dupes for next level (0 = use normal formula)
-    dupe_pct_per_rarity: Dict[str, float] = Field(
-        default_factory=dict,
-        description="Rarity -> % of dupe cost for next level (e.g. 0.5 = 50%). Keys: GRAY, BLUE, GOLD. Empty = use normal formula."
+        description="Rarity weights after a gold has been pulled (PullSinceUniqueGold counter applies to fresh pull stream)"
     )
 
 

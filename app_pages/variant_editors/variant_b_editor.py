@@ -20,7 +20,6 @@ from simulation.variants.variant_b.models import (
     HeroCardRarity,
     HeroCardTypesRange,
     HeroPackType,
-    PremiumPackAdditionalReward,
     PremiumPackPullRarity,
     PremiumPackSchedule,
     SharedDuplicateRange,
@@ -265,6 +264,7 @@ def _render_skill_tree_tab(config: HeroCardConfig) -> None:
                 "Level Required": n.hero_level_required,
                 "Cards Unlocked": ", ".join(n.cards_unlocked),
                 "Perk Label": n.perk_label,
+                "Token Cost": n.token_cost,
             }
             for n in hero.skill_tree
         ])
@@ -280,6 +280,7 @@ def _render_skill_tree_tab(config: HeroCardConfig) -> None:
                 hero_level_required=int(row["Level Required"]),
                 cards_unlocked=cards,
                 perk_label=str(row.get("Perk Label", "")),
+                token_cost=int(row.get("Token Cost", 0) or 0),
             ))
     else:
         st.info("No skill tree nodes configured for this hero.")
@@ -501,8 +502,12 @@ def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
 
 
 def _render_premium_packs_tab(config: HeroCardConfig) -> None:
-    st.subheader("Hero Card Packs")
-    st.caption("Each hero has one card pack. Rarity weights change per pull until a gold is pulled.")
+    st.subheader("Hero Unique Packs")
+    st.caption(
+        "Each hero has one Hero Unique Pack. Per spec: 5 MainUpgradeCards + 1-3 BonusCards, "
+        "rarity rolled per PullSinceUniqueGold. After gold, default rarity weights apply. "
+        "Pack also rolls jokers, coins, and hero tokens."
+    )
 
     if not config.premium_packs:
         st.info("No hero packs configured.")
@@ -513,71 +518,125 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     sel = st.selectbox("Select hero", range(len(pack_labels)), format_func=lambda i: pack_labels[i], key="vb_ppack_sel")
     pack = config.premium_packs[sel]
 
-    # Pack-level settings
-    st.markdown("**Pack Settings**")
+    st.markdown("**Pack-level**")
     c1, c2 = st.columns(2)
     with c1:
-        pack.min_cards_per_pack = st.number_input("Min Cards", min_value=1, max_value=50, value=pack.min_cards_per_pack, step=1, key=f"vb_pp_minc_{sel}")
-        pack.max_cards_per_pack = st.number_input("Max Cards", min_value=pack.min_cards_per_pack, max_value=50, value=pack.max_cards_per_pack, step=1, key=f"vb_pp_maxc_{sel}")
-    with c2:
         pack.diamond_cost = st.number_input("Diamond Cost", min_value=0, value=pack.diamond_cost, step=50, key=f"vb_pp_cost_{sel}")
+    with c2:
+        st.caption(f"Pack ID: `{pack.pack_id}`")
 
-    # Additional rewards
-    st.markdown("**Additional Rewards** (probability-based, amount rolled uniformly in [Min, Max])")
-    if pack.additional_rewards:
-        reward_df = pd.DataFrame([
-            {
-                "Reward Type": r.reward_type,
-                "Min Amount": r.min_amount,
-                "Max Amount": r.max_amount,
-                "Probability %": round(r.probability * 100, 1),
-            }
-            for r in pack.additional_rewards
-        ])
-    else:
-        reward_df = pd.DataFrame({"Reward Type": [], "Min Amount": [], "Max Amount": [], "Probability %": []})
-    edited_rewards = st.data_editor(
-        reward_df,
+    # ── MainUpgradeCards ─────────────────────────────────────────────────────
+    st.markdown("**MainUpgradeCards** (100% rate)")
+    m1, m2 = st.columns(2)
+    with m1:
+        pack.main_cards_min = st.number_input("Min #", min_value=0, max_value=20, value=pack.main_cards_min, step=1, key=f"vb_pp_mainmin_{sel}")
+    with m2:
+        pack.main_cards_max = st.number_input("Max #", min_value=pack.main_cards_min, max_value=20, value=max(pack.main_cards_max, pack.main_cards_min), step=1, key=f"vb_pp_mainmax_{sel}")
+
+    st.caption("Per-rarity dupe % range (% of required duplicates for next level)")
+    main_df = pd.DataFrame([
+        {
+            "Rarity": r,
+            "Min %": round(pack.main_dupe_min_pct.get(r, 1.0) * 100, 1),
+            "Max %": round(pack.main_dupe_max_pct.get(r, 1.1) * 100, 1),
+        }
+        for r in ("GRAY", "BLUE", "GOLD")
+    ])
+    edited_main = st.data_editor(
+        main_df,
         column_config={
-            "Reward Type": st.column_config.TextColumn("Reward Type"),
-            "Min Amount": st.column_config.NumberColumn("Min Amount", min_value=0, step=1),
-            "Max Amount": st.column_config.NumberColumn("Max Amount", min_value=0, step=1),
-            "Probability %": st.column_config.NumberColumn("Prob %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+            "Rarity": st.column_config.TextColumn("Rarity", disabled=True),
+            "Min %": st.column_config.NumberColumn("Min %", min_value=0.0, max_value=500.0, step=5.0, format="%.1f"),
+            "Max %": st.column_config.NumberColumn("Max %", min_value=0.0, max_value=500.0, step=5.0, format="%.1f"),
         },
-        width="stretch",
-        hide_index=True,
-        num_rows="dynamic",
-        key=f"vb_pp_rewards_{sel}",
+        width="stretch", hide_index=True, num_rows="fixed",
+        key=f"vb_pp_main_dupes_{sel}",
     )
-    new_rewards = []
-    for _, row in edited_rewards.iterrows():
-        if not str(row.get("Reward Type", "")).strip():
-            continue
-        mn = int(row["Min Amount"]) if pd.notna(row.get("Min Amount")) else 0
-        mx = int(row["Max Amount"]) if pd.notna(row.get("Max Amount")) else mn
+    pack.main_dupe_min_pct = {str(row["Rarity"]): float(row["Min %"]) / 100.0 for _, row in edited_main.iterrows()}
+    pack.main_dupe_max_pct = {str(row["Rarity"]): float(row["Max %"]) / 100.0 for _, row in edited_main.iterrows()}
+
+    # ── BonusCards ───────────────────────────────────────────────────────────
+    st.markdown("**BonusCards** (100% rate)")
+    b1, b2 = st.columns(2)
+    with b1:
+        pack.bonus_cards_min = st.number_input("Min #", min_value=0, max_value=20, value=pack.bonus_cards_min, step=1, key=f"vb_pp_bmin_{sel}")
+    with b2:
+        pack.bonus_cards_max = st.number_input("Max #", min_value=pack.bonus_cards_min, max_value=20, value=max(pack.bonus_cards_max, pack.bonus_cards_min), step=1, key=f"vb_pp_bmax_{sel}")
+
+    st.caption("Per-rarity dupe % range (% of required duplicates for next level)")
+    bonus_df = pd.DataFrame([
+        {
+            "Rarity": r,
+            "Min %": round(pack.bonus_dupe_min_pct.get(r, 0.2) * 100, 1),
+            "Max %": round(pack.bonus_dupe_max_pct.get(r, 0.4) * 100, 1),
+        }
+        for r in ("GRAY", "BLUE", "GOLD")
+    ])
+    edited_bonus = st.data_editor(
+        bonus_df,
+        column_config={
+            "Rarity": st.column_config.TextColumn("Rarity", disabled=True),
+            "Min %": st.column_config.NumberColumn("Min %", min_value=0.0, max_value=500.0, step=5.0, format="%.1f"),
+            "Max %": st.column_config.NumberColumn("Max %", min_value=0.0, max_value=500.0, step=5.0, format="%.1f"),
+        },
+        width="stretch", hide_index=True, num_rows="fixed",
+        key=f"vb_pp_bonus_dupes_{sel}",
+    )
+    pack.bonus_dupe_min_pct = {str(row["Rarity"]): float(row["Min %"]) / 100.0 for _, row in edited_bonus.iterrows()}
+    pack.bonus_dupe_max_pct = {str(row["Rarity"]): float(row["Max %"]) / 100.0 for _, row in edited_bonus.iterrows()}
+
+    # ── Pack-level extras (jokers, coins, hero tokens) ───────────────────────
+    st.markdown("**Pack-level rewards** (rolled once per pack)")
+    extras_df = pd.DataFrame([
+        {"Reward": "HeroUniqueJoker", "Probability %": round(pack.joker_probability * 100, 1),
+         "Min Amount": pack.joker_min, "Max Amount": pack.joker_max},
+        {"Reward": "Coins", "Probability %": round(pack.coins_probability * 100, 1),
+         "Min Amount": pack.coins_min, "Max Amount": pack.coins_max},
+        {"Reward": "HeroTokens", "Probability %": round(pack.hero_tokens_probability * 100, 1),
+         "Min Amount": pack.hero_tokens_min, "Max Amount": pack.hero_tokens_max},
+    ])
+    edited_extras = st.data_editor(
+        extras_df,
+        column_config={
+            "Reward": st.column_config.TextColumn("Reward", disabled=True),
+            "Probability %": st.column_config.NumberColumn("Prob %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+            "Min Amount": st.column_config.NumberColumn("Min", min_value=0, step=1),
+            "Max Amount": st.column_config.NumberColumn("Max", min_value=0, step=1),
+        },
+        width="stretch", hide_index=True, num_rows="fixed",
+        key=f"vb_pp_extras_{sel}",
+    )
+    for _, row in edited_extras.iterrows():
+        rwd = str(row["Reward"])
+        prob = float(row["Probability %"]) / 100.0
+        mn = int(row["Min Amount"]) if pd.notna(row["Min Amount"]) else 0
+        mx = int(row["Max Amount"]) if pd.notna(row["Max Amount"]) else mn
         if mx < mn:
             mx = mn
-        new_rewards.append(
-            PremiumPackAdditionalReward(
-                reward_type=str(row["Reward Type"]),
-                min_amount=mn,
-                max_amount=mx,
-                probability=float(row["Probability %"]) / 100.0,
-            )
-        )
-    pack.additional_rewards = new_rewards
+        if rwd == "HeroUniqueJoker":
+            pack.joker_probability, pack.joker_min, pack.joker_max = prob, mn, mx
+        elif rwd == "Coins":
+            pack.coins_probability, pack.coins_min, pack.coins_max = prob, mn, mx
+        elif rwd == "HeroTokens":
+            pack.hero_tokens_probability, pack.hero_tokens_min, pack.hero_tokens_max = prob, mn, mx
 
-    # Per-pull rarity schedule
-    st.markdown("**Per-pull rarity weights**")
-    st.caption("Rarity weights change per pull. After gold is pulled, remaining pulls use default weights.")
+    # ── Per-pull rarity schedule (PullSinceUniqueGold) ───────────────────────
+    st.markdown("**Rarity per PullSinceUniqueGold**")
+    st.caption("Rarity weights indexed by PullSinceUniqueGold (1..N). After a gold is pulled, default rarity weights apply.")
 
     if pack.pull_rarity_schedule:
         sched_df = pd.DataFrame([
-            {"Pull": i + 1, "Gray %": round(r.gray_weight * 100, 1), "Blue %": round(r.blue_weight * 100, 1), "Gold %": round(r.gold_weight * 100, 1)}
+            {"PullSinceUniqueGold": i + 1, "Gray %": round(r.gray_weight * 100, 1),
+             "Blue %": round(r.blue_weight * 100, 1), "Gold %": round(r.gold_weight * 100, 1)}
             for i, r in enumerate(pack.pull_rarity_schedule)
         ])
     else:
-        sched_df = pd.DataFrame({"Pull": [1, 2, 3, 4], "Gray %": [64.0, 55.0, 45.0, 30.0], "Blue %": [30.0, 35.0, 35.0, 35.0], "Gold %": [6.0, 10.0, 20.0, 35.0]})
+        sched_df = pd.DataFrame({
+            "PullSinceUniqueGold": [1, 2, 3, 4],
+            "Gray %": [9.0, 7.0, 5.0, 2.0],
+            "Blue %": [40.0, 33.0, 23.0, 12.0],
+            "Gold %": [51.0, 60.0, 72.0, 86.0],
+        })
 
     bulk = render_bulk_edit_bar(f"pp_rarity_sched_{sel}", sched_df, label="Pull Rarity Schedule")
     if bulk is not None:
@@ -585,14 +644,12 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     edited_sched = st.data_editor(
         sched_df,
         column_config={
-            "Pull": st.column_config.NumberColumn("Pull #", disabled=True),
+            "PullSinceUniqueGold": st.column_config.NumberColumn("PullSinceUniqueGold", disabled=True),
             "Gray %": st.column_config.NumberColumn("Gray %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
             "Blue %": st.column_config.NumberColumn("Blue %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
             "Gold %": st.column_config.NumberColumn("Gold %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
         },
-        width="stretch",
-        hide_index=True,
-        num_rows="dynamic",
+        width="stretch", hide_index=True, num_rows="dynamic",
         key=f"vb_pp_rarity_sched_{sel}",
     )
     pack.pull_rarity_schedule = [
@@ -605,7 +662,7 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     ]
 
     # Default rarity weights (after gold)
-    st.markdown("**Default rarity weights** (after gold pulled)")
+    st.markdown("**Default rarity weights** (after a gold is pulled)")
     dc1, dc2, dc3 = st.columns(3)
     with dc1:
         dg = st.number_input("Gray %", min_value=0.0, max_value=100.0, value=round(pack.default_rarity_weights.gray_weight * 100, 1), step=1.0, format="%.1f", key=f"vb_pp_def_gray_{sel}")
@@ -614,24 +671,6 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     with dc3:
         dd = st.number_input("Gold %", min_value=0.0, max_value=100.0, value=round(pack.default_rarity_weights.gold_weight * 100, 1), step=1.0, format="%.1f", key=f"vb_pp_def_gold_{sel}")
     pack.default_rarity_weights = PremiumPackPullRarity(gray_weight=dg / 100.0, blue_weight=db / 100.0, gold_weight=dd / 100.0)
-
-    # Dupe % override per rarity
-    st.markdown("**Dupe % of required dupes** (optional)")
-    st.caption("% of the required duplicates for the next level-up. 0 = use normal formula.")
-    ov1, ov2, ov3 = st.columns(3)
-    with ov1:
-        og = st.number_input("Gray %", min_value=0.0, max_value=200.0, value=round(pack.dupe_pct_per_rarity.get("GRAY", 0.0) * 100, 1), step=5.0, format="%.1f", key=f"vb_pp_ov_gray_{sel}")
-    with ov2:
-        ob = st.number_input("Blue %", min_value=0.0, max_value=200.0, value=round(pack.dupe_pct_per_rarity.get("BLUE", 0.0) * 100, 1), step=5.0, format="%.1f", key=f"vb_pp_ov_blue_{sel}")
-    with ov3:
-        oo = st.number_input("Gold %", min_value=0.0, max_value=200.0, value=round(pack.dupe_pct_per_rarity.get("GOLD", 0.0) * 100, 1), step=5.0, format="%.1f", key=f"vb_pp_ov_gold_{sel}")
-    pack.dupe_pct_per_rarity = {}
-    if og > 0:
-        pack.dupe_pct_per_rarity["GRAY"] = og / 100.0
-    if ob > 0:
-        pack.dupe_pct_per_rarity["BLUE"] = ob / 100.0
-    if oo > 0:
-        pack.dupe_pct_per_rarity["GOLD"] = oo / 100.0
 
 
 def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:

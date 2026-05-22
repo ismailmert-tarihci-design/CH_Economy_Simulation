@@ -74,24 +74,24 @@ def _builtin_defaults() -> HeroCardConfig:
         initial_bluestars=0,
         heroes=heroes,
         hero_unlock_schedule={
-            # Year 1
-            0: ["woody", "cowboy"],
-            14: ["barbarian"],
-            30: ["rexx"],
-            50: ["sunna"],
-            75: ["mammon"],
-            100: ["rogue"],
-            130: ["felorc"],
-            170: ["eiva"],
-            220: ["gudan"],
-            280: ["druid"],
-            340: ["yasuhiro"],
-            # Year 2
-            400: ["nova"],
-            460: ["rickie"],
-            530: ["raven"],
-            600: ["jester"],
-            680: ["munara"],
+            # DaysToReach -> hero unlocked (per spec)
+            0: ["woody"],        # hero 1
+            1: ["cowboy"],       # hero 2
+            9: ["barbarian"],    # hero 3
+            23: ["rexx"],        # hero 4
+            61: ["sunna"],       # hero 5
+            86: ["mammon"],      # hero 6
+            112: ["rogue"],      # hero 7
+            181: ["felorc"],     # hero 8
+            250: ["eiva"],       # hero 9
+            319: ["gudan"],      # hero 10
+            388: ["druid"],      # hero 11
+            457: ["yasuhiro"],   # hero 12
+            526: ["nova"],       # hero 13
+            595: ["rickie"],     # hero 14
+            664: ["raven"],      # hero 15
+            733: ["jester"],     # hero 16
+            802: ["munara"],     # hero 17
         },
         num_gold_cards=9,
         num_blue_cards=14,
@@ -100,7 +100,19 @@ def _builtin_defaults() -> HeroCardConfig:
         hero_duplicate_ranges=_default_duplicate_ranges(),
         shared_upgrade_tables=_default_shared_upgrade_tables(),
         shared_duplicate_ranges=_default_shared_duplicate_ranges(),
-        shared_xp_per_level=[50 + i * 25 for i in range(30)],
+        shared_xp_per_level=[
+            100, 100, 100, 100,
+            125, 125, 125,
+            150, 150, 150,
+            175, 175, 175,
+            200, 200,
+            250, 250,
+            300, 300,
+            350, 350,
+            400, 400,
+            450, 450,
+            500, 500, 500, 500,
+        ],
         shared_max_hero_level=30,
         joker_drop_rate_in_regular_packs=0.01,
         drop_config=HeroDropConfig(
@@ -235,42 +247,43 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 24) -> HeroDef
     # Skill tree pattern (matches real game design):
     # Levels where a card unlocks: 4, 6, 8, 10, 11, 13, 15, 17, 19, 21, 22, 24
     # Other levels have stat boosts, hero passives, deck size, etc.
+    # token_cost from the hero skill tree spec (level 2 -> 50, level 30 -> 6000).
     _TREE_TEMPLATE = [
-        # (level, reward_type)  — "card" means pop a card from remaining
-        (2, "Stat Boosts"),
-        (3, "Stat Boosts"),
-        (4, "card"),
-        (5, "Hero Passive"),
-        (6, "card"),
-        (7, "+1 Battle Deck Size"),
-        (8, "card"),
-        (9, "Hero Passive"),
-        (10, "card"),
-        (11, "card"),
-        (12, "+1 Battle Deck Size"),
-        (13, "card"),
-        (14, "Hero Passive"),
-        (15, "card"),
-        (16, "Perma Slot Upgrade"),
-        (17, "card"),
-        (18, "Hero Passive"),
-        (19, "card"),
-        (20, "+1 Battle Deck Size"),
-        (21, "card"),
-        (22, "card"),
-        (23, "Hero Passive"),
-        (24, "card"),
-        (25, "All Heroes Stat Boost"),
-        (26, "Ascension Shards"),
-        (27, "All Heroes Stat Boost"),
-        (28, "Ascension Shards"),
-        (29, "All Heroes Stat Boost"),
-        (30, "Ascension Shards"),
+        # (level, reward_type, token_cost)  — "card" means pop a card from remaining
+        (2, "Stat Boosts", 50),
+        (3, "Stat Boosts", 100),
+        (4, "card", 150),
+        (5, "Hero Passive", 200),
+        (6, "card", 200),
+        (7, "+1 Battle Deck Size", 300),
+        (8, "card", 400),
+        (9, "Hero Passive", 500),
+        (10, "card", 600),
+        (11, "card", 1000),
+        (12, "+1 Battle Deck Size", 1500),
+        (13, "card", 2000),
+        (14, "Hero Passive", 2000),
+        (15, "card", 2500),
+        (16, "Perma Slot Upgrade", 2500),
+        (17, "card", 3000),
+        (18, "Hero Passive", 3000),
+        (19, "card", 3500),
+        (20, "+1 Battle Deck Size", 3500),
+        (21, "card", 4000),
+        (22, "card", 4000),
+        (23, "Hero Passive", 4500),
+        (24, "card", 4500),
+        (25, "All Heroes Stat Boost", 5000),
+        (26, "Ascension Shards", 5000),
+        (27, "All Heroes Stat Boost", 5500),
+        (28, "Ascension Shards", 5500),
+        (29, "All Heroes Stat Boost", 6000),
+        (30, "Ascension Shards", 6000),
     ]
 
     skill_tree = []
     card_queue = list(remaining_cards)
-    for node_idx, (level_req, reward) in enumerate(_TREE_TEMPLATE):
+    for node_idx, (level_req, reward, token_cost) in enumerate(_TREE_TEMPLATE):
         if reward == "card" and card_queue:
             unlocked = [card_queue.pop(0)]
             perk = f"Unlockable Card"
@@ -282,10 +295,23 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 24) -> HeroDef
             hero_level_required=level_req,
             cards_unlocked=unlocked,
             perk_label=perk,
+            token_cost=token_cost,
         ))
 
-    # XP per level: escalating thresholds (30 levels)
-    xp_per_level = [50 + i * 25 for i in range(30)]
+    # XP per level (29 entries: XP to go from level 1->2, 2->3, ..., 29->30)
+    xp_per_level = [
+        100, 100, 100, 100,        # levels 2..5
+        125, 125, 125,             # levels 6..8
+        150, 150, 150,             # levels 9..11
+        175, 175, 175,             # levels 12..14
+        200, 200,                  # levels 15..16
+        250, 250,                  # levels 17..18
+        300, 300,                  # levels 19..20
+        350, 350,                  # levels 21..22
+        400, 400,                  # levels 23..24
+        450, 450,                  # levels 25..26
+        500, 500, 500, 500,        # levels 27..30
+    ]
 
     return HeroDef(
         hero_id=hero_id,
@@ -299,29 +325,47 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 24) -> HeroDef
 
 
 def _create_hero_pack(hero: HeroDef) -> PremiumPackDef:
-    """Create one premium pack for a hero using per-pull rarity weights."""
+    """Create one Hero Unique Pack for a hero.
+
+    Composition:
+      - 5 MainUpgradeCards (100% rate, 100-110% of required dupes per rarity)
+      - 1-3 BonusCards     (100% rate, 20-40% of required dupes per rarity)
+      - 2-10 HeroUniqueJokers @ 25% pack probability
+      - 700-2000 Coins @ 100%
+      - 50-100 HeroTokens @ 100%
+
+    PullSinceUniqueGold rarity table: Grey 9/7/5/2%, Blue 40/33/23/12%, Gold 51/60/72/86%.
+    After gold: Grey 45%, Blue 35%, Gold 20%.
+    """
     return PremiumPackDef(
         pack_id=hero.hero_id,
         name=f"{hero.name} Card Pack",
         featured_hero_ids=[hero.hero_id],
-        min_cards_per_pack=4,
-        max_cards_per_pack=4,
         diamond_cost=500,
-        joker_rate=0.02,
-        gold_guarantee=True,
-        hero_tokens_per_pack=5,
-        additional_rewards=[
-            PremiumPackAdditionalReward(reward_type="coins", amount=500, probability=0.20),
-            PremiumPackAdditionalReward(reward_type="bluestars", amount=50, probability=0.10),
-        ],
+        main_cards_min=5,
+        main_cards_max=5,
+        main_dupe_min_pct={"GRAY": 1.0, "BLUE": 1.0, "GOLD": 1.0},
+        main_dupe_max_pct={"GRAY": 1.1, "BLUE": 1.1, "GOLD": 1.1},
+        bonus_cards_min=1,
+        bonus_cards_max=3,
+        bonus_dupe_min_pct={"GRAY": 0.2, "BLUE": 0.2, "GOLD": 0.2},
+        bonus_dupe_max_pct={"GRAY": 0.4, "BLUE": 0.4, "GOLD": 0.4},
+        joker_probability=0.25,
+        joker_min=2,
+        joker_max=10,
+        coins_probability=1.0,
+        coins_min=700,
+        coins_max=2000,
+        hero_tokens_probability=1.0,
+        hero_tokens_min=50,
+        hero_tokens_max=100,
         pull_rarity_schedule=[
-            PremiumPackPullRarity(gray_weight=0.0, blue_weight=1.0, gold_weight=0.0),
-            PremiumPackPullRarity(gray_weight=0.0, blue_weight=1.0, gold_weight=0.0),
-            PremiumPackPullRarity(gray_weight=0.0, blue_weight=1.0, gold_weight=0.0),
-            PremiumPackPullRarity(gray_weight=0.0, blue_weight=0.0, gold_weight=1.0),
+            PremiumPackPullRarity(gray_weight=0.09, blue_weight=0.40, gold_weight=0.51),
+            PremiumPackPullRarity(gray_weight=0.07, blue_weight=0.33, gold_weight=0.60),
+            PremiumPackPullRarity(gray_weight=0.05, blue_weight=0.23, gold_weight=0.72),
+            PremiumPackPullRarity(gray_weight=0.02, blue_weight=0.12, gold_weight=0.86),
         ],
-        default_rarity_weights=PremiumPackPullRarity(gray_weight=0.0, blue_weight=1.0, gold_weight=0.0),
-        dupe_pct_per_rarity={"GRAY": 1.0, "BLUE": 1.0, "GOLD": 1.0},
+        default_rarity_weights=PremiumPackPullRarity(gray_weight=0.45, blue_weight=0.35, gold_weight=0.20),
     )
 
 
@@ -357,23 +401,23 @@ def _default_upgrade_tables() -> list[HeroUpgradeCostTable]:
     return [
         HeroUpgradeCostTable(
             rarity=HeroCardRarity.GRAY,
-            duplicate_costs=[10, 15, 20, 45, 50, 60, 70, 125, 150],
+            duplicate_costs=[20, 30, 40, 80, 100, 120, 140, 210, 270],
             coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
-            bluestar_rewards=[40, 55, 70, 80, 90, 100, 120, 150, 175],
+            bluestar_rewards=[40, 50, 50, 80, 100, 100, 120, 150, 180],
             xp_rewards=[10, 10, 10, 20, 20, 20, 20, 30, 30],
         ),
         HeroUpgradeCostTable(
             rarity=HeroCardRarity.BLUE,
-            duplicate_costs=[20, 30, 40, 75, 85, 100, 120, 205, 255],
+            duplicate_costs=[50, 75, 100, 140, 175, 210, 245, 385, 495],
             coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
-            bluestar_rewards=[50, 65, 80, 100, 110, 125, 140, 175, 200],
+            bluestar_rewards=[100, 125, 125, 140, 175, 175, 210, 275, 330],
             xp_rewards=[25, 25, 25, 35, 35, 35, 35, 55, 55],
         ),
         HeroUpgradeCostTable(
             rarity=HeroCardRarity.GOLD,
-            duplicate_costs=[20, 35, 50, 100, 115, 130, 150, 270, 335],
+            duplicate_costs=[60, 90, 140, 220, 275, 330, 385, 560, 720],
             coin_costs=[250, 375, 500, 625, 750, 875, 1000, 1125, 1250],
-            bluestar_rewards=[75, 80, 100, 110, 125, 140, 175, 200, 250],
+            bluestar_rewards=[120, 150, 175, 220, 275, 275, 330, 400, 480],
             xp_rewards=[30, 30, 35, 55, 55, 55, 55, 80, 80],
         ),
     ]
@@ -393,19 +437,19 @@ def _default_duplicate_ranges() -> list[HeroDuplicateRange]:
             rarity=HeroCardRarity.GRAY,
             min_pct=[0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40],
             max_pct=[0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50],
-            coins_per_dupe=[25, 29, 35, 21, 22, 20, 19, 13, 8],
+            coins_per_dupe=[13, 12, 12, 8, 7, 7, 7, 5, 5],
         ),
         HeroDuplicateRange(
             rarity=HeroCardRarity.BLUE,
             min_pct=[0.60, 0.55, 0.50, 0.45, 0.40, 0.40, 0.40, 0.40, 0.40],
             max_pct=[0.70, 0.65, 0.60, 0.55, 0.50, 0.50, 0.50, 0.50, 0.50],
-            coins_per_dupe=[13, 15, 18, 11, 11, 10, 10, 7, 4],
+            coins_per_dupe=[5, 5, 5, 5, 4, 4, 4, 3, 3],
         ),
         HeroDuplicateRange(
             rarity=HeroCardRarity.GOLD,
             min_pct=[0.55, 0.50, 0.45, 0.40, 0.40, 0.40, 0.40, 0.40, 0.40],
             max_pct=[0.65, 0.60, 0.55, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50],
-            coins_per_dupe=[13, 12, 13, 8, 8, 8, 8, 5, 5],
+            coins_per_dupe=[5, 4, 4, 3, 3, 3, 3, 2, 2],
         ),
     ]
 
@@ -417,42 +461,48 @@ def _default_shared_upgrade_tables() -> list[SharedUpgradeCostTable]:
     """
     num_levels = 99
 
-    def _make_dupe_costs(base: int, increment: int) -> list[int]:
-        return [base + i * increment for i in range(num_levels)]
+    coin_costs = [50 + 50 * i for i in range(num_levels)]  # 50, 100, ..., 4950
 
-    def _make_coin_costs(base: int, increment: int) -> list[int]:
-        return [base + i * increment for i in range(num_levels)]
+    # Gold Shared: dupes 60, 75, 90... (+15 per level)
+    gold_dupes = [60 + 15 * i for i in range(num_levels)]
+    gold_bluestars = (
+        [30] * 4 + [35] * 5 + [40] * 5 + [45] * 5 + [50] * 5 + [55] * 5 +
+        [60] * 6 + [65] * 6 + [70] * 6 + [75] * 6 + [80] * 6 + [85] * 6 +
+        [90] * 6 + [95] * 6 + [100] * 6 + [105] * 6 + [110] * 6 + [115] * 4
+    )
+    assert len(gold_bluestars) == num_levels, f"gold_bluestars len {len(gold_bluestars)}"
 
-    def _make_bluestar_rewards(base: int, step_every: int, step_amount: int) -> list[int]:
-        return [base + (i // step_every) * step_amount for i in range(num_levels)]
+    # Blue Shared: dupes 50, 60, 70... (+10 per level)
+    blue_dupes = [50 + 10 * i for i in range(num_levels)]
+    # Gray Shared: dupes 20, 25, 30... (+5 per level)
+    gray_dupes = [20 + 5 * i for i in range(num_levels)]
 
-    blue_gray_dupes = [15 + i * 3 for i in range(num_levels)]
-    blue_gray_bluestars = [
-        10, 10, 10, 10, 10, 15, 15, 15, 15, 15, 15, 20, 20, 20, 20, 20, 20, 25, 25, 25,
-        25, 25, 25, 30, 30, 30, 30, 30, 30, 35, 35, 35, 35, 35, 35, 40, 40, 40, 40, 40,
-        40, 45, 45, 45, 45, 45, 45, 45, 50, 50, 50, 50, 50, 50, 50, 55, 55, 55, 55, 55,
-        55, 55, 60, 60, 60, 60, 60, 60, 60, 65, 65, 65, 65, 65, 65, 65, 70, 70, 70, 70,
-        70, 70, 70, 75, 75, 75, 75, 75, 75, 75, 75, 80, 80, 80, 80, 80, 80, 80, 80,
-    ]
+    # Blue and Gray share the same bluestar reward pattern
+    shared_blue_gray_bluestars = (
+        [10] * 5 + [15] * 6 + [20] * 6 + [25] * 6 + [30] * 6 + [35] * 6 +
+        [40] * 6 + [45] * 7 + [50] * 7 + [55] * 7 + [60] * 7 + [65] * 7 +
+        [70] * 7 + [75] * 8 + [80] * 8
+    )
+    assert len(shared_blue_gray_bluestars) == num_levels, f"blue/gray bluestars len {len(shared_blue_gray_bluestars)}"
 
     return [
         SharedUpgradeCostTable(
             category="GRAY_SHARED",
-            duplicate_costs=blue_gray_dupes,
-            coin_costs=_make_coin_costs(50, 50),
-            bluestar_rewards=blue_gray_bluestars,
+            duplicate_costs=gray_dupes,
+            coin_costs=coin_costs,
+            bluestar_rewards=shared_blue_gray_bluestars,
         ),
         SharedUpgradeCostTable(
             category="BLUE_SHARED",
-            duplicate_costs=blue_gray_dupes,
-            coin_costs=_make_coin_costs(50, 50),
-            bluestar_rewards=blue_gray_bluestars,
+            duplicate_costs=blue_dupes,
+            coin_costs=coin_costs,
+            bluestar_rewards=shared_blue_gray_bluestars,
         ),
         SharedUpgradeCostTable(
             category="GOLD_SHARED",
-            duplicate_costs=[10 + i for i in range(num_levels)],
-            coin_costs=_make_coin_costs(50, 50),
-            bluestar_rewards=_make_bluestar_rewards(30, 5, 5),
+            duplicate_costs=gold_dupes,
+            coin_costs=coin_costs,
+            bluestar_rewards=gold_bluestars,
         ),
     ]
 
