@@ -192,6 +192,13 @@ def _draw_card_for_pack(
         "is_joker": False,
         "rarity": card_rarity.value,
         "pull_kind": pull_kind,
+        "pull_since_gold": pull_since_gold,
+        "rarity_weights": {
+            "GRAY": weights.gray_weight,
+            "BLUE": weights.blue_weight,
+            "GOLD": weights.gold_weight,
+        },
+        "post_gold": got_gold,
     }, (card_rarity == HeroCardRarity.GOLD)
 
 
