@@ -71,6 +71,9 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "rng_seed": seed,
         "last_pack_results": [],
         "last_premium_result": None,
+        # Per-button lockout for daily packs. Reset on Next Day.
+        # Keys: "bundle", "t2", "t1_0", "t1_1", "t1_2"
+        "daily_used": set(),
     }
     _log([f"Day 0 (install day) — fresh simulation (seed={seed or 'random'})"])
     # Auto-play the scripted FTUE on D0 (per design: D0 finishes the FTUE and starts playing)
@@ -122,6 +125,7 @@ def render_variant_b_day_simulator() -> None:
                     state = st.session_state[_STATE_KEY]
                     state["day"] += 1
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
+                    state["daily_used"] = set()  # reset daily-pack lockout
                     _log([f"-- Advanced to day {state['day']} --"] + unlocks)
                     st.rerun()
 
@@ -157,23 +161,24 @@ def render_variant_b_day_simulator() -> None:
 def _render_balances(game_state: HeroCardGameState, extras: Dict[str, Any]) -> None:
     st.subheader("Balances & inventory")
     total_unopened = sum(extras["unopened_packs"].values())
+    bi = game_state.bonus_items
     m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Coins", f"{game_state.coins:,}")
     m2.metric("Bluestars", f"{game_state.total_bluestars:,}")
-    m3.metric("Hero Tokens", f"{extras['hero_tokens']:,}")
-    m4.metric("Diamonds", f"{extras['diamonds']:,}")
-    m5.metric("PurpleStars", f"{extras['purple_stars']:,}")
+    m3.metric("Hero Tokens", f"{bi.get('HeroTokens', 0):,}")
+    m4.metric("Diamonds", f"{bi.get('Diamonds', 0):,}")
+    m5.metric("PurpleStars", f"{bi.get('PurpleStars', 0):,}")
     m6.metric("Unopened packs", total_unopened)
 
     with st.expander("Other resources"):
         rows = [
-            {"Resource": "S-Stone",      "Amount": extras["s_stone"]},
-            {"Resource": "SpiritStone",  "Amount": extras["spirit_stone"]},
-            {"Resource": "RandomDesign", "Amount": extras["random_design"]},
-            {"Resource": "RandomGear",   "Amount": extras["random_gear"]},
-            {"Resource": "PetFood",      "Amount": extras["pet_food"]},
-            {"Resource": "PetEgg",       "Amount": extras["pet_egg"]},
-            {"Resource": "Everstone",    "Amount": extras["everstone"]},
+            {"Resource": "S-Stone",      "Amount": bi.get("S-Stone", 0)},
+            {"Resource": "SpiritStone",  "Amount": bi.get("SpiritStone", 0)},
+            {"Resource": "RandomDesign", "Amount": bi.get("RandomDesign", 0)},
+            {"Resource": "RandomGear",   "Amount": bi.get("RandomGear", 0)},
+            {"Resource": "PetFood",      "Amount": bi.get("PetFood", 0)},
+            {"Resource": "PetEgg",       "Amount": bi.get("PetEgg", 0)},
+            {"Resource": "Everstone",    "Amount": bi.get("Everstone", 0)},
         ]
         misc = extras.get("misc") or {}
         for k, v in misc.items():
@@ -204,25 +209,33 @@ def _render_heroes_panel(game_state: HeroCardGameState) -> None:
 
 def _render_daily_packs(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
     st.subheader("Daily packs (1× T2 + 3× T1, evolution applies)")
+    st.caption("Each button is consumed on click and re-enables on Next Day. The bundle button consumes all 4.")
     bcol1, bcol2, bcol3, bcol4, bcol5 = st.columns(5)
     state = st.session_state[_STATE_KEY]
+    used = state.setdefault("daily_used", set())
+    all_keys = {"bundle", "t2", "t1_0", "t1_1", "t1_2"}
+    bundle_disabled = "bundle" in used or used >= all_keys
 
-    if bcol1.button("Open daily bundle", type="primary", key="day_sim_open_bundle"):
+    if bcol1.button("Open daily bundle", type="primary", disabled=bundle_disabled, key="day_sim_open_bundle"):
         results = ds.open_daily_bundle(game_state, config, _rng())
         state["last_pack_results"] = results
         _log_pack_results(results)
+        used.update(all_keys)
         st.rerun()
     # Per-pack one-at-a-time
-    if bcol2.button("Open 1× T2", key="day_sim_open_t2"):
+    if bcol2.button("Open 1× T2", disabled="t2" in used, key="day_sim_open_t2"):
         r = ds.open_pack_by_name("StandardPackT2", game_state, config, _rng(), apply_evolution=True)
         state["last_pack_results"] = [r]
         _log_pack_results([r])
+        used.add("t2")
         st.rerun()
     for i, label in enumerate(("T1 (#1)", "T1 (#2)", "T1 (#3)")):
-        if [bcol3, bcol4, bcol5][i].button(f"Open {label}", key=f"day_sim_open_t1_{i}"):
+        key = f"t1_{i}"
+        if [bcol3, bcol4, bcol5][i].button(f"Open {label}", disabled=key in used, key=f"day_sim_open_{key}"):
             r = ds.open_pack_by_name("StandardPackT1", game_state, config, _rng(), apply_evolution=True)
             state["last_pack_results"] = [r]
             _log_pack_results([r])
+            used.add(key)
             st.rerun()
 
     _render_pack_results(state.get("last_pack_results") or [])
@@ -234,7 +247,16 @@ def _log_pack_results(results: List[Dict[str, Any]]) -> None:
         final = r.get("final_tier")
         n = len(r["cards"])
         evo = f" (evolved {start} → {final})" if start and start != final else f" ({final})"
-        _log(f"Opened pack{evo}: {n} cards, +{r['coins_earned']} coins, +{r['jokers_received']} jokers")
+        bonus_summary = ""
+        bonuses = r.get("bonus_items") or {}
+        if bonuses:
+            bonus_summary = " | bonuses: " + ", ".join(f"+{amt} {name}" for name, amt in bonuses.items())
+        boost = r.get("unique_boost", 0.0) or r.get("shared_boost", 0.0) or 0.0
+        boost_note = f" (dupe boost +{int(boost*100)}%)" if boost else ""
+        _log(
+            f"Opened pack{evo}: {n} cards, +{r['coins_earned']} coins, "
+            f"+{r['jokers_received']} jokers{boost_note}{bonus_summary}"
+        )
 
 
 def _render_pack_results(results: List[Dict[str, Any]]) -> None:
@@ -280,41 +302,59 @@ def _render_season_pass(config: HeroCardConfig, game_state: HeroCardGameState) -
     st.subheader("Season pass")
     state = st.session_state[_STATE_KEY]
     extras = state["extras"]
-    step_idx = state["season_pass_step"]
+    next_step = state["season_pass_step"]  # 1-indexed next step to claim
     paid = state["paid_pass"]
     total = len(sp.SEASON_PASS_TABLE)
+    claimed = next_step - 1
 
-    if step_idx > total:
-        st.success("All season pass steps claimed.")
-        return
+    # Top summary row
+    m1, m2, m3 = st.columns([1, 1, 2])
+    m1.metric("Steps claimed", f"{claimed} / {total}")
+    m2.metric("Pass track", "Paid (Free + Paid)" if paid else "Free only")
+    with m3:
+        if next_step <= total:
+            target = st.number_input(
+                "Claim through step",
+                min_value=next_step,
+                max_value=total,
+                value=min(next_step, total),
+                key="day_sim_pass_target",
+            )
+            if st.button(f"Claim {target - next_step + 1} step(s) (steps {next_step}–{target})",
+                         type="primary", key="day_sim_pass_claim"):
+                log_lines: List[str] = []
+                applied = 0
+                while state["season_pass_step"] <= int(target):
+                    ok, lines = sp.apply_season_pass_step(state["season_pass_step"], paid, game_state, extras)
+                    if not ok:
+                        break
+                    log_lines.extend(lines)
+                    state["season_pass_step"] += 1
+                    applied += 1
+                _log([f"Claimed {applied} season pass step(s):"] + log_lines)
+                st.rerun()
+        else:
+            st.success("All season pass steps claimed.")
 
-    next_step = sp.SEASON_PASS_TABLE[step_idx - 1]
-    c1, c2, c3 = st.columns([2, 1, 1])
-    with c1:
-        st.markdown(
-            f"**Next: Step {next_step.step}** "
-            f"(PurpleStar req: {next_step.required_purple_star} — info only)"
-        )
-        st.caption(
-            f"Free: **{next_step.free.amount}× {next_step.free.reward_type}**  ·  "
-            f"Paid: **{next_step.paid.amount}× {next_step.paid.reward_type}** "
-            f"({'ON' if paid else 'off'})"
-        )
-    with c2:
-        n_steps = st.number_input("Steps to claim", min_value=1, max_value=total - step_idx + 1, value=1, key="day_sim_steps_n")
-    with c3:
-        if st.button("Advance", type="primary", key="day_sim_advance_pass"):
-            log_lines: List[str] = []
-            applied = 0
-            for _ in range(int(n_steps)):
-                ok, lines = sp.apply_season_pass_step(state["season_pass_step"], paid, game_state, extras)
-                if not ok:
-                    break
-                log_lines.extend(lines)
-                state["season_pass_step"] += 1
-                applied += 1
-            _log([f"Claimed {applied} season pass step(s):"] + log_lines)
-            st.rerun()
+    # Full table of all steps
+    rows = []
+    for step in sp.SEASON_PASS_TABLE:
+        if step.step < next_step:
+            status = "✔ claimed"
+        elif step.step == next_step:
+            status = "→ next"
+        else:
+            status = ""
+        rows.append({
+            "#": step.step,
+            "Status": status,
+            "PurpleStar req": step.required_purple_star,
+            "Free": f"{step.free.amount}× {step.free.reward_type}",
+            "Paid": f"{step.paid.amount}× {step.paid.reward_type}",
+        })
+    df = pd.DataFrame(rows)
+    # Scrollable view; default height shows ~12 rows
+    st.dataframe(df, hide_index=True, width="stretch", height=420)
 
 
 # ─── Unopened packs inventory ────────────────────────────────────────────────
@@ -369,7 +409,7 @@ def _render_hero_unique_pack(config: HeroCardConfig, game_state: HeroCardGameSta
         st.caption("No hero packs available for unlocked heroes.")
         return
 
-    c1, c2, c3 = st.columns([2, 1, 1])
+    c1, c2 = st.columns([2, 1])
     with c1:
         selected_hero = st.selectbox(
             "Hero",
@@ -379,11 +419,7 @@ def _render_hero_unique_pack(config: HeroCardConfig, game_state: HeroCardGameSta
         )
     pack = hero_packs[selected_hero]
     with c2:
-        st.metric("Cost", f"{pack.diamond_cost:,} diamonds")
-    with c3:
-        can_afford = extras["diamonds"] >= pack.diamond_cost
-        if st.button("Open Hero Unique Pack", type="primary", disabled=not can_afford, key="day_sim_open_premium"):
-            extras["diamonds"] -= pack.diamond_cost
+        if st.button("Open Hero Unique Pack", type="primary", key="day_sim_open_premium"):
             # Ensure hero exists in state with cards unlocked enough to receive drops
             if selected_hero not in game_state.heroes:
                 from simulation.variants.variant_b.hero_deck import initialize_hero
@@ -405,7 +441,7 @@ def _render_hero_unique_pack(config: HeroCardConfig, game_state: HeroCardGameSta
                     continue
                 if rtype == "hero_tokens":
                     amt = pull.get("reward_amount", 0)
-                    extras["hero_tokens"] += amt
+                    game_state.bonus_items["HeroTokens"] = game_state.bonus_items.get("HeroTokens", 0) + amt
                     tokens_added += amt
                     continue
                 if rtype == "bluestars":
@@ -436,7 +472,7 @@ def _render_hero_unique_pack(config: HeroCardConfig, game_state: HeroCardGameSta
                 "tokens_added": tokens_added,
             }
             _log([
-                f"Opened {pack.name} (-{pack.diamond_cost} diamonds): "
+                f"Opened {pack.name} (free): "
                 f"+{cards_added} cards, +{jokers_added} jokers, +{coins_added} coins, +{tokens_added} tokens"
             ])
             st.rerun()

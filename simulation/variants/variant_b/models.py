@@ -380,6 +380,10 @@ class HeroCardGameState(BaseModel):
     # Shared hero XP (one level for all heroes)
     shared_hero_xp: int = Field(default=0)
     shared_hero_level: int = Field(default=1)
+    # Bonus items rolled from packs and granted by season pass (HeroTokens,
+    # Diamonds, S-Stone, SpiritStone, RandomDesign, RandomGear, PetFood, PetEgg,
+    # Everstone, PurpleStars). Keyed by the canonical names in pack_bonuses.py.
+    bonus_items: Dict[str, int] = Field(default_factory=dict)
     pet_state: Optional[Any] = None
     gear_state: Optional[Any] = None
 

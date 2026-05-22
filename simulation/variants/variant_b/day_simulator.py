@@ -39,6 +39,10 @@ from simulation.variants.variant_b.upgrade_engine import (
     try_upgrade_hero_card,
     try_upgrade_shared_card,
 )
+from simulation.variants.variant_b.pack_bonuses import (
+    get_dupe_boost,
+    roll_pack_bonuses,
+)
 
 
 # Pack-evolution matrix. Starting tier -> [(final_tier, cumulative_weight)].
@@ -77,18 +81,13 @@ DAILY_BUNDLE: List[str] = ["StandardPackT2", "StandardPackT1", "StandardPackT1",
 
 
 def init_extras() -> Dict[str, Any]:
-    """Return a fresh extras dict (everything not tracked on HeroCardGameState)."""
+    """Return a fresh extras dict.
+
+    All bonus item counters (HeroTokens, Diamonds, etc.) now live on
+    game_state.bonus_items. This dict only holds things that don't fit on
+    the game_state model: unopened pack inventory and a misc bucket.
+    """
     return {
-        "diamonds": 0,
-        "hero_tokens": 0,
-        "purple_stars": 0,
-        "s_stone": 0,
-        "spirit_stone": 0,
-        "random_design": 0,
-        "random_gear": 0,
-        "pet_food": 0,
-        "pet_egg": 0,
-        "everstone": 0,
         "unopened_packs": {},
         "misc": {},
     }
@@ -238,6 +237,9 @@ def open_pack_by_name(
         min_cards, max_cards = 1, 3
     cards_in_pack = rng.randint(min_cards, max_cards)
 
+    # Per-pack duplicate boost (shared cards, unique/hero cards).
+    shared_boost, unique_boost = get_dupe_boost(final_name)
+
     pulls: List[Dict[str, Any]] = []
     jokers_received = 0
     coins_earned = 0
@@ -258,7 +260,7 @@ def open_pack_by_name(
                 card = hero_state.cards.get(card_id)
                 if card:
                     level_before = card.level
-                    dupes = compute_hero_duplicates(card.level, card.rarity, config, rng)
+                    dupes = compute_hero_duplicates(card.level, card.rarity, config, rng, boost=unique_boost)
                     card.duplicates += dupes
                     cpd = get_coins_per_dupe(card.level, card.rarity, config)
                     coin_income = max(1, dupes * cpd)
@@ -285,7 +287,7 @@ def open_pack_by_name(
             if shared_card:
                 level_before = shared_card.level
                 cat = shared_card.category.value if hasattr(shared_card.category, "value") else str(shared_card.category)
-                dupes = compute_shared_duplicates(shared_card.level, cat, config, rng)
+                dupes = compute_shared_duplicates(shared_card.level, cat, config, rng, boost=shared_boost)
                 shared_card.duplicates += dupes
                 cpd = get_shared_coins_per_dupe(shared_card.level, cat, config)
                 coin_income = max(1, dupes * cpd)
@@ -301,12 +303,20 @@ def open_pack_by_name(
                     "coins_earned": coin_income,
                 })
 
+    # Roll bonus items for this pack opening and credit to game_state.
+    bonuses = roll_pack_bonuses(final_name, rng)
+    for item, amount in bonuses.items():
+        game_state.bonus_items[item] = game_state.bonus_items.get(item, 0) + amount
+
     return {
         "start_tier": start_tier if apply_evolution else None,
         "final_tier": final_name,
         "cards": pulls,
         "jokers_received": jokers_received,
         "coins_earned": coins_earned,
+        "bonus_items": bonuses,
+        "shared_boost": shared_boost,
+        "unique_boost": unique_boost,
     }
 
 

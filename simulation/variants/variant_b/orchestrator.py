@@ -34,6 +34,10 @@ from simulation.variants.variant_b.upgrade_engine import (
 )
 from simulation.variants.variant_b.premium_packs import process_premium_purchases
 from simulation.variants.variant_b.hero_joker import add_jokers
+from simulation.variants.variant_b.pack_bonuses import (
+    get_dupe_boost,
+    roll_pack_bonuses,
+)
 from simulation.pull_logger import PullLogger, VariantBUpgradeEvent
 
 
@@ -81,34 +85,79 @@ def run_simulation(
         _process_hero_unlocks(day, config, game_state)
 
         # 2. Process regular pack pulls
-        num_pulls, day_pack_counts = _get_daily_pulls(day, config, game_state, rng)
+        num_pulls, day_pack_counts, per_pack_pulls = _get_daily_pulls(day, config, game_state, rng)
 
-        for _ in range(num_pulls):
-            pull_type = decide_hero_or_shared(game_state, config, rng)
+        for pack_name, cards_in_pack in per_pack_pulls:
+            # Per-pack duplicate boost (shared, unique).
+            shared_boost, unique_boost = get_dupe_boost(pack_name)
 
-            if pull_type == "hero":
-                game_state.pity_counter = 0
-                result = select_hero_card(game_state, config, rng)
-                if result:
-                    hero_id, card_id = result
+            for _ in range(cards_in_pack):
+                pull_type = decide_hero_or_shared(game_state, config, rng)
 
-                    # Update anti-streak tracking
-                    if hero_id == game_state.last_hero_pulled:
-                        game_state.hero_streak_count += 1
-                    else:
-                        game_state.last_hero_pulled = hero_id
-                        game_state.hero_streak_count = 1
+                if pull_type == "hero":
+                    game_state.pity_counter = 0
+                    result = select_hero_card(game_state, config, rng)
+                    if result:
+                        hero_id, card_id = result
 
-                    hero_state = game_state.heroes[hero_id]
-                    card = hero_state.cards.get(card_id)
+                        # Update anti-streak tracking
+                        if hero_id == game_state.last_hero_pulled:
+                            game_state.hero_streak_count += 1
+                        else:
+                            game_state.last_hero_pulled = hero_id
+                            game_state.hero_streak_count = 1
+
+                        hero_state = game_state.heroes[hero_id]
+                        card = hero_state.cards.get(card_id)
+                        if card:
+                            level_before = card.level
+                            dupes = compute_hero_duplicates(card.level, card.rarity, config, rng, boost=unique_boost)
+                            card.duplicates += dupes
+                            day_pull_counts["HERO"] = day_pull_counts.get("HERO", 0) + 1
+
+                            # Coin income from hero card dupe
+                            cpd = get_coins_per_dupe(card.level, card.rarity, config)
+                            coin_income = max(1, dupes * cpd)
+                            game_state.coins += coin_income
+                            day_coins_earned += coin_income
+
+                            # Log the pull
+                            pull_index += 1
+                            pull_logger.log_pull(
+                                day=day,
+                                pull_index=pull_index,
+                                card_id=card_id,
+                                card_name=_resolve_card_name(config, hero_id, card_id),
+                                card_category=f"HERO_{hero_id}",
+                                card_level_before=level_before,
+                                duplicates_received=dupes,
+                                duplicates_total_after=card.duplicates,
+                                coins_earned=coin_income,
+                                pack_name=pack_name,
+                                bluestars_earned=0,
+                                upgrades=[],
+                            )
+
+                    # Check joker drop
+                    if check_joker_drop(config, rng):
+                        best_hero = _pick_joker_hero(game_state)
+                        if best_hero:
+                            add_jokers(game_state.heroes[best_hero], 1)
+                            day_jokers_received += 1
+
+                else:
+                    game_state.pity_counter += 1
+                    card = select_shared_card(game_state, rng)
                     if card:
                         level_before = card.level
-                        dupes = compute_hero_duplicates(card.level, card.rarity, config, rng)
+                        # Per-category duplicate computation (same formula as hero cards)
+                        cat = card.category.value if hasattr(card.category, "value") else str(card.category)
+                        dupes = compute_shared_duplicates(card.level, cat, config, rng, boost=shared_boost)
                         card.duplicates += dupes
-                        day_pull_counts["HERO"] = day_pull_counts.get("HERO", 0) + 1
+                        day_pull_counts[cat] = day_pull_counts.get(cat, 0) + 1
 
-                        # Coin income from hero card dupe
-                        cpd = get_coins_per_dupe(card.level, card.rarity, config)
+                        # Coin income from shared card dupe
+                        cpd = get_shared_coins_per_dupe(card.level, cat, config)
                         coin_income = max(1, dupes * cpd)
                         game_state.coins += coin_income
                         day_coins_earned += coin_income
@@ -118,58 +167,22 @@ def run_simulation(
                         pull_logger.log_pull(
                             day=day,
                             pull_index=pull_index,
-                            card_id=card_id,
-                            card_name=_resolve_card_name(config, hero_id, card_id),
-                            card_category=f"HERO_{hero_id}",
+                            card_id=card.id,
+                            card_name=card.name,
+                            card_category=cat,
                             card_level_before=level_before,
                             duplicates_received=dupes,
                             duplicates_total_after=card.duplicates,
                             coins_earned=coin_income,
-                            pack_name="regular",
+                            pack_name=pack_name,
                             bluestars_earned=0,
                             upgrades=[],
                         )
 
-                # Check joker drop
-                if check_joker_drop(config, rng):
-                    best_hero = _pick_joker_hero(game_state)
-                    if best_hero:
-                        add_jokers(game_state.heroes[best_hero], 1)
-                        day_jokers_received += 1
-
-            else:
-                game_state.pity_counter += 1
-                card = select_shared_card(game_state, rng)
-                if card:
-                    level_before = card.level
-                    # Per-category duplicate computation (same formula as hero cards)
-                    cat = card.category.value if hasattr(card.category, "value") else str(card.category)
-                    dupes = compute_shared_duplicates(card.level, cat, config, rng)
-                    card.duplicates += dupes
-                    day_pull_counts[cat] = day_pull_counts.get(cat, 0) + 1
-
-                    # Coin income from shared card dupe
-                    cpd = get_shared_coins_per_dupe(card.level, cat, config)
-                    coin_income = max(1, dupes * cpd)
-                    game_state.coins += coin_income
-                    day_coins_earned += coin_income
-
-                    # Log the pull
-                    pull_index += 1
-                    pull_logger.log_pull(
-                        day=day,
-                        pull_index=pull_index,
-                        card_id=card.id,
-                        card_name=card.name,
-                        card_category=cat,
-                        card_level_before=level_before,
-                        duplicates_received=dupes,
-                        duplicates_total_after=card.duplicates,
-                        coins_earned=coin_income,
-                        pack_name="regular",
-                        bluestars_earned=0,
-                        upgrades=[],
-                    )
+            # Roll bonus items for this pack opening and credit to game_state.
+            pack_bonuses_rolled = roll_pack_bonuses(pack_name, rng)
+            for item, amount in pack_bonuses_rolled.items():
+                game_state.bonus_items[item] = game_state.bonus_items.get(item, 0) + amount
 
         # 3. Process premium pack purchases
         premium_pulls, diamonds_spent, jokers_from_premium, tokens_from_premium, packs_opened = process_premium_purchases(
@@ -420,14 +433,17 @@ def _get_daily_pulls(
     config: HeroCardConfig,
     game_state: HeroCardGameState,
     rng: Optional[Random] = None,
-) -> tuple[int, Dict[str, int]]:
-    """Determine number of card pulls from pack schedule + pack type definitions.
+) -> tuple[int, Dict[str, int], List[tuple[str, int]]]:
+    """Determine the day's pack openings.
 
-    Uses card_types_table per pack type to scale cards with progression.
-    Returns: (total_card_pulls, pack_counts_by_type)
+    Returns: (total_card_pulls, pack_counts_by_type, per_pack_pulls)
+        - total_card_pulls: total cards drawn across all packs for the day
+        - pack_counts_by_type: {pack_name: num_packs_opened}
+        - per_pack_pulls: [(pack_name, cards_in_this_pack), ...] in opening order
+          (used by the main loop to apply per-pack bonuses + dupe boost)
     """
     if not config.daily_pack_schedule:
-        return 0, {}
+        return 0, {}, []
 
     idx = (day - 1) % len(config.daily_pack_schedule)
     day_schedule = config.daily_pack_schedule[idx]
@@ -447,6 +463,7 @@ def _get_daily_pulls(
 
     total_pulls = 0
     pack_counts: Dict[str, int] = {}
+    per_pack_pulls: List[tuple[str, int]] = []
 
     for pack_name, daily_avg in day_schedule.items():
         # Determine how many packs of this type to open
@@ -483,9 +500,10 @@ def _get_daily_pulls(
                 cards_in_pack = rng.randint(min_cards, max_cards)
             else:
                 cards_in_pack = (min_cards + max_cards) // 2
+            per_pack_pulls.append((pack_name, cards_in_pack))
             total_pulls += cards_in_pack
 
-    return total_pulls, pack_counts
+    return total_pulls, pack_counts, per_pack_pulls
 
 
 def _pick_joker_hero(game_state: HeroCardGameState) -> Optional[str]:

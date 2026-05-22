@@ -230,7 +230,7 @@ def run_ftue(
             game_state.coins += step.coins
             log.append(f"  +{step.coins} coins")
         if step.diamonds:
-            extras["diamonds"] = extras.get("diamonds", 0) + step.diamonds
+            game_state.bonus_items["Diamonds"] = game_state.bonus_items.get("Diamonds", 0) + step.diamonds
             log.append(f"  +{step.diamonds} diamonds")
 
         # XP + level-ups

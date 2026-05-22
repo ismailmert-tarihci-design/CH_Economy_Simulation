@@ -269,11 +269,14 @@ def compute_hero_duplicates(
     card_rarity: HeroCardRarity,
     config: HeroCardConfig,
     rng: Optional[Random] = None,
+    boost: float = 0.0,
 ) -> int:
     """Compute duplicates received for a hero card pull.
 
     Uses the variant-a style mechanic: dupes = round(dupe_cost_for_next_level * pct),
     where pct is drawn from [min_pct, max_pct] for this card's level and rarity.
+    `boost` is an additive multiplier from the source pack (e.g. T4 grants
+    +10% unique-card dupes → boost=0.10 → final dupes scaled by 1.10).
     Returns at least 1 dupe. Returns 0 if card is already at max level.
     """
     dupe_range = _find_dupe_range(config, card_rarity)
@@ -300,7 +303,7 @@ def compute_hero_duplicates(
     else:
         pct = (min_pct + max_pct) / 2.0
 
-    return max(1, round(base_cost * pct))
+    return max(1, round(base_cost * pct * (1.0 + boost)))
 
 
 def get_coins_per_dupe(
@@ -362,10 +365,12 @@ def compute_shared_duplicates(
     card_category: str,
     config: HeroCardConfig,
     rng: Optional[Random] = None,
+    boost: float = 0.0,
 ) -> int:
     """Compute duplicates received for a shared card pull.
 
     Same formula as hero cards: dupes = round(dupe_cost * uniform(min%, max%)).
+    `boost` is the source pack's shared-card boost (e.g. T4 → +25% → boost=0.25).
     Returns at least 1. Returns 0 if at max level.
     """
     dupe_range = _find_shared_dupe_range(config, card_category)
@@ -389,7 +394,7 @@ def compute_shared_duplicates(
     else:
         pct = (min_pct + max_pct) / 2.0
 
-    return max(1, round(base_cost * pct))
+    return max(1, round(base_cost * pct * (1.0 + boost)))
 
 
 def get_shared_coins_per_dupe(

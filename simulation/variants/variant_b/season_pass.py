@@ -137,22 +137,24 @@ _PACK_REWARD_TYPES = {
     "HeroPack", "PetPack", "GearPack", "EndOfChapterPack",
 }
 
-# Reward types that map to a single counter key in extras (not openable, just bookkeeping)
-_EXTRAS_KEYS: Dict[str, str] = {
-    "HeroTokens":   "hero_tokens",
-    "Diamond":      "diamonds",
-    "S-Stone":      "s_stone",
-    "SpiritStone":  "spirit_stone",
-    "RandomDesign": "random_design",
-    "RandomGear":   "random_gear",
-    "PetFood":      "pet_food",
-    "PetEgg":       "pet_egg",
-    "Everstone":    "everstone",
+# Season-pass reward type → canonical bonus_items key in HeroCardGameState.
+# Note: spec uses "Diamond" (singular) for season pass, normalized to "Diamonds".
+_BONUS_KEY_MAP: Dict[str, str] = {
+    "HeroTokens":   "HeroTokens",
+    "Diamond":      "Diamonds",
+    "S-Stone":      "S-Stone",
+    "SpiritStone":  "SpiritStone",
+    "RandomDesign": "RandomDesign",
+    "RandomGear":   "RandomGear",
+    "PetFood":      "PetFood",
+    "PetEgg":       "PetEgg",
+    "Everstone":    "Everstone",
 }
 
 
 def _apply_reward(reward: SeasonPassReward, game_state: HeroCardGameState, extras: Dict[str, Any]) -> str:
-    """Apply one reward, mutating game_state or extras. Returns a human-readable line."""
+    """Apply one reward. Mutates game_state.coins / game_state.bonus_items /
+    extras["unopened_packs"]. Returns a human-readable line."""
     rtype = reward.reward_type
     amt = reward.amount
 
@@ -162,10 +164,10 @@ def _apply_reward(reward: SeasonPassReward, game_state: HeroCardGameState, extra
     if rtype in _PACK_REWARD_TYPES:
         extras["unopened_packs"][rtype] = extras["unopened_packs"].get(rtype, 0) + amt
         return f"+{amt}x {rtype}"
-    if rtype in _EXTRAS_KEYS:
-        key = _EXTRAS_KEYS[rtype]
-        extras[key] = extras.get(key, 0) + amt
-        return f"+{amt} {rtype}"
+    if rtype in _BONUS_KEY_MAP:
+        key = _BONUS_KEY_MAP[rtype]
+        game_state.bonus_items[key] = game_state.bonus_items.get(key, 0) + amt
+        return f"+{amt} {key}"
     # Unknown type — log to a misc bucket so it isn't silently lost
     misc = extras.setdefault("misc", {})
     misc[rtype] = misc.get(rtype, 0) + amt
