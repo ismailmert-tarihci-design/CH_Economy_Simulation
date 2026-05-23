@@ -113,11 +113,6 @@ def _page_docs():
     render_documentation()
 
 
-def _page_variant_b_flow():
-    from app_pages.variant_b_flow import render_variant_b_flow
-    render_variant_b_flow()
-
-
 def _page_variant_b_day_sim():
     from app_pages.variant_b_day_simulator import render_variant_b_day_simulator
     render_variant_b_day_simulator()
@@ -129,14 +124,13 @@ page = st.navigation(
         "Simulation": [
             st.Page(_page_config, title="Configuration", icon=":material/tune:"),
             st.Page(_page_simulation, title="Run simulation", icon=":material/play_arrow:"),
+            st.Page(_page_variant_b_day_sim, title="Day-by-day simulator", icon=":material/calendar_today:"),
             st.Page(_page_dashboard, title="Dashboard", icon=":material/analytics:"),
         ],
         "Tools": [
             st.Page(_page_saved_results, title="Saved results", icon=":material/bookmark:"),
             st.Page(_page_pull_logs, title="Pull logs", icon=":material/list_alt:"),
             st.Page(_page_gacha, title="Pack simulator", icon=":material/playing_cards:"),
-            st.Page(_page_variant_b_flow, title="Variant B flow", icon=":material/account_tree:"),
-            st.Page(_page_variant_b_day_sim, title="Day-by-day simulator", icon=":material/calendar_today:"),
         ],
     }
 )
