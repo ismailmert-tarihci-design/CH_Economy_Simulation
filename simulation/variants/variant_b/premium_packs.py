@@ -30,13 +30,14 @@ def get_available_packs(
     schedule: List[PremiumPackSchedule],
     pack_defs: List[PremiumPackDef],
 ) -> List[PremiumPackDef]:
-    """Return premium packs available on a given day."""
-    available_ids = {
-        s.pack_id
-        for s in schedule
-        if s.available_from_day <= day <= s.available_until_day
-    }
-    return [p for p in pack_defs if p.pack_id in available_ids]
+    """Return premium packs available on a given day.
+
+    Availability windows were dropped from the editor; every defined premium
+    pack is always available. The `schedule` arg is retained for back-compat
+    with callers that still pass it.
+    """
+    del day, schedule
+    return list(pack_defs)
 
 
 def _roll_rarity(

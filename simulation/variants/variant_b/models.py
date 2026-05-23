@@ -332,10 +332,27 @@ class HeroCardConfig(BaseModel):
 
     # Premium packs (one per hero, single tier)
     premium_packs: List[PremiumPackDef] = Field(default_factory=list)
+    # Deprecated: premium packs are always available; field retained so old
+    # saved profiles still validate.
     premium_pack_schedule: List[PremiumPackSchedule] = Field(default_factory=list)
     premium_pack_purchase_schedule: List[Dict[str, int]] = Field(
         default_factory=list,
         description="Simulated player purchases: [{pack_id: count_bought}, ...] per day"
+    )
+
+    # Pack bonus item economy (per-pack slots, drop probs, base amounts,
+    # variance multipliers, and dupe boost). Defaults are populated from
+    # simulation.variants.variant_b.pack_bonuses at config-load time.
+    pack_bonus_slots: Dict[str, int] = Field(default_factory=dict)
+    pack_bonus_probs: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+    pack_bonus_amounts: Dict[str, Dict[str, int]] = Field(default_factory=dict)
+    pack_bonus_variance: Dict[str, List[float]] = Field(
+        default_factory=dict,
+        description="pack_name -> [bottom, top] uniform multiplier",
+    )
+    pack_dupe_boost: Dict[str, List[float]] = Field(
+        default_factory=dict,
+        description="pack_name -> [shared_card_boost, unique_card_boost]",
     )
 
     # Shared subsystems (reuse existing models from Variant A)

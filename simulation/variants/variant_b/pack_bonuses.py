@@ -15,7 +15,7 @@ All tables are hardcoded per the design spec.
 from __future__ import annotations
 
 from random import Random
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Canonical bonus item keys (also used as keys in game_state.bonus_items)
 HERO_TOKENS    = "HeroTokens"
@@ -160,20 +160,80 @@ PACK_DUPE_BOOST: Dict[str, Tuple[float, float]] = {
 }
 
 
-def roll_pack_bonuses(pack_name: str, rng: Optional[Random]) -> Dict[str, int]:
+def default_pack_bonus_slots() -> Dict[str, int]:
+    """Return a copy of the built-in PACK_BONUS_SLOTS table (used as Config default)."""
+    return dict(PACK_BONUS_SLOTS)
+
+
+def default_pack_bonus_probs() -> Dict[str, Dict[str, float]]:
+    """Return a deep copy of the built-in PACK_BONUS_PROBS table."""
+    return {k: dict(v) for k, v in PACK_BONUS_PROBS.items()}
+
+
+def default_pack_bonus_amounts() -> Dict[str, Dict[str, int]]:
+    """Return a deep copy of the built-in PACK_BONUS_AMOUNTS table."""
+    return {k: dict(v) for k, v in PACK_BONUS_AMOUNTS.items()}
+
+
+def default_pack_bonus_variance() -> Dict[str, List[float]]:
+    """Return PACK_BONUS_VARIANCE as a serializable Dict[pack -> [bottom, top]]."""
+    return {k: [float(v[0]), float(v[1])] for k, v in PACK_BONUS_VARIANCE.items()}
+
+
+def default_pack_dupe_boost() -> Dict[str, List[float]]:
+    """Return PACK_DUPE_BOOST as a serializable Dict[pack -> [shared, unique]]."""
+    return {k: [float(v[0]), float(v[1])] for k, v in PACK_DUPE_BOOST.items()}
+
+
+def _config_tables(config: Any) -> Tuple[
+    Dict[str, int],
+    Dict[str, Dict[str, float]],
+    Dict[str, Dict[str, int]],
+    Dict[str, List[float]],
+    Dict[str, List[float]],
+]:
+    """Pull pack-bonus tables from a HeroCardConfig, falling back to module defaults."""
+    slots = getattr(config, "pack_bonus_slots", None) or PACK_BONUS_SLOTS
+    probs = getattr(config, "pack_bonus_probs", None) or PACK_BONUS_PROBS
+    amounts = getattr(config, "pack_bonus_amounts", None) or PACK_BONUS_AMOUNTS
+    variance = getattr(config, "pack_bonus_variance", None) or {
+        k: [float(v[0]), float(v[1])] for k, v in PACK_BONUS_VARIANCE.items()
+    }
+    dupe = getattr(config, "pack_dupe_boost", None) or {
+        k: [float(v[0]), float(v[1])] for k, v in PACK_DUPE_BOOST.items()
+    }
+    return slots, probs, amounts, variance, dupe
+
+
+def roll_pack_bonuses(
+    pack_name: str,
+    rng: Optional[Random],
+    config: Any = None,
+) -> Dict[str, int]:
     """Roll all bonus item slots for a pack opening.
 
-    Returns a dict mapping item_name -> total amount granted (or empty if no rolls
-    landed). Each of the pack's slots independently rolls each item type at the
-    per-pack probability and credits round(base_amount * uniform(bottom, top))
-    when the roll lands.
+    When `config` is provided, the per-pack tables are read from the config
+    (allowing live editing); otherwise the module-level constants are used.
+    Returns a dict mapping item_name -> total amount granted (or empty if no
+    rolls landed). Each of the pack's slots independently rolls each item type
+    at the per-pack probability and credits
+    round(base_amount * uniform(bottom, top)) when the roll lands.
     """
-    if pack_name not in PACK_BONUS_SLOTS:
+    if config is not None:
+        slots_map, probs_map, amounts_map, var_map, _ = _config_tables(config)
+    else:
+        slots_map = PACK_BONUS_SLOTS
+        probs_map = PACK_BONUS_PROBS
+        amounts_map = PACK_BONUS_AMOUNTS
+        var_map = {k: [float(v[0]), float(v[1])] for k, v in PACK_BONUS_VARIANCE.items()}
+
+    if pack_name not in slots_map:
         return {}
-    slots = PACK_BONUS_SLOTS[pack_name]
-    probs = PACK_BONUS_PROBS.get(pack_name, {})
-    amounts = PACK_BONUS_AMOUNTS.get(pack_name, {})
-    bottom, top = PACK_BONUS_VARIANCE.get(pack_name, (1.0, 1.0))
+    slots = int(slots_map[pack_name])
+    probs = probs_map.get(pack_name, {})
+    amounts = amounts_map.get(pack_name, {})
+    var_pair = var_map.get(pack_name, [1.0, 1.0])
+    bottom, top = float(var_pair[0]), float(var_pair[1])
 
     result: Dict[str, int] = {}
     midpoint = (bottom + top) / 2.0
@@ -205,6 +265,16 @@ def roll_pack_bonuses(pack_name: str, rng: Optional[Random]) -> Dict[str, int]:
     return result
 
 
-def get_dupe_boost(pack_name: str) -> Tuple[float, float]:
-    """Return (shared_card_boost, unique_card_boost) for a pack name."""
+def get_dupe_boost(pack_name: str, config: Any = None) -> Tuple[float, float]:
+    """Return (shared_card_boost, unique_card_boost) for a pack name.
+
+    When `config` is provided, the per-pack tuple is read from
+    config.pack_dupe_boost; otherwise the module-level constant is used.
+    """
+    if config is not None:
+        _, _, _, _, dupe_map = _config_tables(config)
+        pair = dupe_map.get(pack_name)
+        if pair is None:
+            return (0.0, 0.0)
+        return float(pair[0]), float(pair[1])
     return PACK_DUPE_BOOST.get(pack_name, (0.0, 0.0))

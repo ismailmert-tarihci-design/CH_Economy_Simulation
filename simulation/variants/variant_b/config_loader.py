@@ -24,10 +24,16 @@ from simulation.variants.variant_b.models import (
     HeroPackType,
     PremiumPackDef,
     PremiumPackPullRarity,
-    PremiumPackSchedule,
     SharedDuplicateRange,
     SharedUpgradeCostTable,
     SkillTreeNode,
+)
+from simulation.variants.variant_b.pack_bonuses import (
+    default_pack_bonus_amounts,
+    default_pack_bonus_probs,
+    default_pack_bonus_slots,
+    default_pack_bonus_variance,
+    default_pack_dupe_boost,
 )
 
 
@@ -194,10 +200,12 @@ def _builtin_defaults() -> HeroCardConfig:
             },
         ],
         premium_packs=premium_packs,
-        premium_pack_schedule=[
-            PremiumPackSchedule(pack_id=hero.hero_id, available_from_day=0, available_until_day=100)
-            for hero in heroes
-        ],
+        premium_pack_schedule=[],
+        pack_bonus_slots=default_pack_bonus_slots(),
+        pack_bonus_probs=default_pack_bonus_probs(),
+        pack_bonus_amounts=default_pack_bonus_amounts(),
+        pack_bonus_variance=default_pack_bonus_variance(),
+        pack_dupe_boost=default_pack_dupe_boost(),
     )
 
 
@@ -241,44 +249,76 @@ def _create_sample_hero(hero_id: str, name: str) -> HeroDef:
                 unlockable_queue.append(card_id)
 
     # Skill tree (levels 2-30, 29 nodes; level 1 has no reward).
-    # 12 "Unlockable Card" entries consume the 12 unlockable cards in order
-    # (4 Blue → 8 Gold = blue unlocks early, gold later).
+    # 12 "Unlockable Card" entries consume the 12 unlockable cards in order.
+    #
+    # Token costs follow Ivan's perk-type-keyed scheme:
+    #   - Stat Boosts Only       : free (first two bonus stat levels)
+    #   - Unlockable Card        : 250 (1st pull), 500 (2nd pull), 1000 thereafter
+    #   - +1 Battle Deck Size    : 750 (first), 1000 (subsequent)
+    #   - Hero Passive           : 1000 (first), 1500 (subsequent)
+    #   - Perma Slot Upgrade     : 2000
+    #   - All Heroes Stat Boost  : 2000
+    #   - Ascension Shards       : 5000
     _TREE_TEMPLATE = [
-        # (level, reward_type, token_cost)
-        (2,  "Stat Boosts Only",       50),
-        (3,  "Stat Boosts Only",      100),
-        (4,  "Unlockable Card",       150),
-        (5,  "Unlockable Card",       200),
-        (6,  "Hero Passive",          200),
-        (7,  "Unlockable Card",       300),
-        (8,  "Unlockable Card",       400),
-        (9,  "Hero Passive",          500),
-        (10, "Unlockable Card",       600),
-        (11, "+1 Battle Deck Size",  1000),
-        (12, "Unlockable Card",      1500),
-        (13, "Hero Passive",         2000),
-        (14, "Unlockable Card",      2000),
-        (15, "Perma Slot Upgrade",   2500),
-        (16, "Unlockable Card",      2500),
-        (17, "Hero Passive",         3000),
-        (18, "Unlockable Card",      3000),
-        (19, "+1 Battle Deck Size",  3500),
-        (20, "Unlockable Card",      3500),
-        (21, "Unlockable Card",      4000),
-        (22, "Hero Passive",         4000),
-        (23, "Unlockable Card",      4500),
-        (24, "All Heroes Stat Boost", 4500),
-        (25, "Ascension Shards",     5000),
-        (26, "All Heroes Stat Boost", 5000),
-        (27, "Ascension Shards",     5500),
-        (28, "All Heroes Stat Boost", 5500),
-        (29, "Ascension Shards",     6000),
-        (30, "All Heroes Stat Boost", 6000),
+        # (level, reward_type)
+        (2,  "Stat Boosts Only"),
+        (3,  "Stat Boosts Only"),
+        (4,  "Unlockable Card"),
+        (5,  "Unlockable Card"),
+        (6,  "Hero Passive"),
+        (7,  "Unlockable Card"),
+        (8,  "Unlockable Card"),
+        (9,  "Hero Passive"),
+        (10, "Unlockable Card"),
+        (11, "+1 Battle Deck Size"),
+        (12, "Unlockable Card"),
+        (13, "Hero Passive"),
+        (14, "Unlockable Card"),
+        (15, "Perma Slot Upgrade"),
+        (16, "Unlockable Card"),
+        (17, "Hero Passive"),
+        (18, "Unlockable Card"),
+        (19, "+1 Battle Deck Size"),
+        (20, "Unlockable Card"),
+        (21, "Unlockable Card"),
+        (22, "Hero Passive"),
+        (23, "Unlockable Card"),
+        (24, "All Heroes Stat Boost"),
+        (25, "Ascension Shards"),
+        (26, "All Heroes Stat Boost"),
+        (27, "Ascension Shards"),
+        (28, "All Heroes Stat Boost"),
+        (29, "Ascension Shards"),
+        (30, "All Heroes Stat Boost"),
     ]
+
+    def _token_cost_for(perk: str, occurrence: int) -> int:
+        # `occurrence` is 1-indexed: the Nth time we've seen this perk type.
+        if perk == "Stat Boosts Only":
+            return 0
+        if perk == "Unlockable Card":
+            if occurrence == 1:
+                return 250
+            if occurrence == 2:
+                return 500
+            return 1000
+        if perk == "+1 Battle Deck Size":
+            return 750 if occurrence == 1 else 1000
+        if perk == "Hero Passive":
+            return 1000 if occurrence == 1 else 1500
+        if perk == "Perma Slot Upgrade":
+            return 2000
+        if perk == "All Heroes Stat Boost":
+            return 2000
+        if perk == "Ascension Shards":
+            return 5000
+        return 0
+
+    _perk_counts: dict[str, int] = {}
 
     skill_tree: list[SkillTreeNode] = []
     queue = list(unlockable_queue)
-    for node_idx, (level_req, reward_type, token_cost) in enumerate(_TREE_TEMPLATE):
+    for node_idx, (level_req, reward_type) in enumerate(_TREE_TEMPLATE):
         cards_unlocked: list[str] = []
         if reward_type == "Unlockable Card":
             if not queue:
@@ -287,6 +327,8 @@ def _create_sample_hero(hero_id: str, name: str) -> HeroDef:
                     f"unlockable cards (got {len(unlockable_queue)})"
                 )
             cards_unlocked = [queue.pop(0)]
+        _perk_counts[reward_type] = _perk_counts.get(reward_type, 0) + 1
+        token_cost = _token_cost_for(reward_type, _perk_counts[reward_type])
         skill_tree.append(SkillTreeNode(
             node_index=node_idx,
             hero_level_required=level_req,
@@ -384,10 +426,22 @@ def load_saved_config() -> HeroCardConfig | None:
     if not path.exists():
         return None
     try:
-        return HeroCardConfig.model_validate_json(path.read_text(encoding="utf-8"))
+        cfg = HeroCardConfig.model_validate_json(path.read_text(encoding="utf-8"))
     except Exception as exc:
         _log.warning("Failed to load saved Variant B config: %s", exc)
         return None
+    # Backfill pack-bonus tables for configs persisted before they existed on the model.
+    if not cfg.pack_bonus_slots:
+        cfg.pack_bonus_slots = default_pack_bonus_slots()
+    if not cfg.pack_bonus_probs:
+        cfg.pack_bonus_probs = default_pack_bonus_probs()
+    if not cfg.pack_bonus_amounts:
+        cfg.pack_bonus_amounts = default_pack_bonus_amounts()
+    if not cfg.pack_bonus_variance:
+        cfg.pack_bonus_variance = default_pack_bonus_variance()
+    if not cfg.pack_dupe_boost:
+        cfg.pack_dupe_boost = default_pack_dupe_boost()
+    return cfg
 
 
 def save_config(config: HeroCardConfig) -> None:

@@ -237,7 +237,7 @@ def open_pack_by_name(
     cards_in_pack = rng.randint(min_cards, max_cards)
 
     # Per-pack duplicate boost (shared cards, unique/hero cards).
-    shared_boost, unique_boost = get_dupe_boost(final_name)
+    shared_boost, unique_boost = get_dupe_boost(final_name, config)
 
     pulls: List[Dict[str, Any]] = []
     jokers_received = 0
@@ -317,7 +317,7 @@ def open_pack_by_name(
                 })
 
     # Roll bonus items for this pack opening and credit to game_state.
-    bonuses = roll_pack_bonuses(final_name, rng)
+    bonuses = roll_pack_bonuses(final_name, rng, config)
     for item, amount in bonuses.items():
         game_state.bonus_items[item] = game_state.bonus_items.get(item, 0) + amount
 

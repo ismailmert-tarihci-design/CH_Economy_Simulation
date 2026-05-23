@@ -89,7 +89,7 @@ def run_simulation(
 
         for pack_name, cards_in_pack in per_pack_pulls:
             # Per-pack duplicate boost (shared, unique).
-            shared_boost, unique_boost = get_dupe_boost(pack_name)
+            shared_boost, unique_boost = get_dupe_boost(pack_name, config)
 
             for _ in range(cards_in_pack):
                 pull_type = decide_hero_or_shared(game_state, config, rng, pull_index=pull_index)
@@ -180,7 +180,7 @@ def run_simulation(
                         )
 
             # Roll bonus items for this pack opening and credit to game_state.
-            pack_bonuses_rolled = roll_pack_bonuses(pack_name, rng)
+            pack_bonuses_rolled = roll_pack_bonuses(pack_name, rng, config)
             for item, amount in pack_bonuses_rolled.items():
                 game_state.bonus_items[item] = game_state.bonus_items.get(item, 0) + amount
 

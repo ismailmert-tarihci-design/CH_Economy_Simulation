@@ -97,7 +97,10 @@ def try_upgrade_hero_card(
     leveled_up = _check_hero_level_up(hero_state, hero_def)
     tree_activations: List = []
     if leveled_up:
-        activated = check_and_advance_skill_tree(hero_def, hero_state, hero_state.level)
+        activated = check_and_advance_skill_tree(
+            hero_def, hero_state, hero_state.level,
+            bonus_items=game_state.bonus_items,
+        )
         if activated:
             tree_activations.extend(activated)
 

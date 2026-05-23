@@ -21,7 +21,6 @@ from simulation.variants.variant_b.models import (
     HeroCardTypesRange,
     HeroPackType,
     PremiumPackPullRarity,
-    PremiumPackSchedule,
     SkillTreeNode,
 )
 
@@ -57,6 +56,7 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
         ":material/percent: Shared dupe ranges",
         ":material/casino: Drop algorithm",
         ":material/inventory_2: Hero packs",
+        ":material/redeem: Pack bonuses",
         ":material/calendar_today: Pack schedule",
         ":material/person: Profiles",
         ":material/swap_horiz: Import / export",
@@ -83,10 +83,12 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
     with tabs[9]:
         _render_premium_packs_tab(config)
     with tabs[10]:
-        _render_pack_schedule_tab(config)
+        _render_pack_bonuses_tab(config)
     with tabs[11]:
-        _render_profiles_tab(config)
+        _render_pack_schedule_tab(config)
     with tabs[12]:
+        _render_profiles_tab(config)
+    with tabs[13]:
         _render_import_export(config)
 
 
@@ -858,6 +860,210 @@ def _render_shared_dupe_ranges_tab(config: HeroCardConfig) -> None:
     dr.coins_per_dupe = [int(row["Coins/Dupe"]) for _, row in edited.iterrows()]
 
 
+def _render_pack_bonuses_tab(config: HeroCardConfig) -> None:
+    """Editor for per-pack bonus item economy.
+
+    Five tables, all keyed by pack name:
+      - Slots + variance multiplier
+      - Dupe boost (shared / unique)
+      - Drop probability per bonus item
+      - Base amount per bonus item
+    """
+    from simulation.variants.variant_b.pack_bonuses import (
+        BONUS_ITEM_KEYS,
+        default_pack_bonus_amounts,
+        default_pack_bonus_probs,
+        default_pack_bonus_slots,
+        default_pack_bonus_variance,
+        default_pack_dupe_boost,
+    )
+
+    st.subheader("Pack Bonuses")
+    st.caption(
+        "Every regular pack open rolls a number of bonus item slots. Each slot "
+        "independently rolls every bonus item type at the configured probability; "
+        "rolled items grant `base_amount × uniform(bottom, top)` rounded. Pack "
+        "dupe boost multiplies dropped-card duplicates by `1 + boost` (shared / unique)."
+    )
+
+    # Backfill on first render if a profile loaded with empty maps.
+    if not config.pack_bonus_slots:
+        config.pack_bonus_slots = default_pack_bonus_slots()
+    if not config.pack_bonus_probs:
+        config.pack_bonus_probs = default_pack_bonus_probs()
+    if not config.pack_bonus_amounts:
+        config.pack_bonus_amounts = default_pack_bonus_amounts()
+    if not config.pack_bonus_variance:
+        config.pack_bonus_variance = default_pack_bonus_variance()
+    if not config.pack_dupe_boost:
+        config.pack_dupe_boost = default_pack_dupe_boost()
+
+    pack_names = sorted(set(config.pack_bonus_slots) | set(config.pack_bonus_probs))
+    if not pack_names:
+        st.info("No packs configured.")
+        return
+
+    # ── Slots + variance ────────────────────────────────────────────────────
+    st.markdown("**Slots & variance**")
+    st.caption(
+        "Slots = independent bonus rolls per pack. Variance Bottom/Top bound the "
+        "uniform multiplier applied to each rolled base amount."
+    )
+    rows = []
+    for pack in pack_names:
+        var = config.pack_bonus_variance.get(pack, [1.0, 1.0])
+        rows.append({
+            "Pack": pack,
+            "Slots": int(config.pack_bonus_slots.get(pack, 0)),
+            "Variance Bottom": float(var[0]) if len(var) > 0 else 1.0,
+            "Variance Top": float(var[1]) if len(var) > 1 else 1.0,
+        })
+    slots_df = pd.DataFrame(rows)
+    bulk = render_bulk_edit_bar("pack_bonus_slots", slots_df, label="Pack Bonus Slots & Variance")
+    if bulk is not None:
+        slots_df = bulk
+    edited_slots = st.data_editor(
+        slots_df,
+        column_config={
+            "Pack": st.column_config.TextColumn("Pack", disabled=True),
+            "Slots": st.column_config.NumberColumn("Slots", min_value=0, max_value=20, step=1),
+            "Variance Bottom": st.column_config.NumberColumn("Bottom", min_value=0.0, max_value=5.0, step=0.05, format="%.2f"),
+            "Variance Top": st.column_config.NumberColumn("Top", min_value=0.0, max_value=5.0, step=0.05, format="%.2f"),
+        },
+        width="stretch",
+        hide_index=True,
+        num_rows="fixed",
+        key="vb_pack_bonus_slots_table",
+    )
+    new_slots: dict[str, int] = {}
+    new_variance: dict[str, list[float]] = {}
+    for _, row in edited_slots.iterrows():
+        pack = str(row["Pack"])
+        new_slots[pack] = int(row["Slots"])
+        bot = float(row["Variance Bottom"])
+        top = float(row["Variance Top"])
+        if top < bot:
+            top = bot
+        new_variance[pack] = [bot, top]
+    config.pack_bonus_slots = new_slots
+    config.pack_bonus_variance = new_variance
+
+    st.divider()
+
+    # ── Dupe boost ──────────────────────────────────────────────────────────
+    st.markdown("**Dupe boost** (applied to dropped card duplicates)")
+    st.caption(
+        "`final_dupes = round(base_dupes × (1 + boost))`. Shared boost affects "
+        "shared/gold/blue/gray cards; unique boost affects hero-unique cards."
+    )
+    boost_rows = []
+    for pack in pack_names:
+        b = config.pack_dupe_boost.get(pack, [0.0, 0.0])
+        boost_rows.append({
+            "Pack": pack,
+            "Shared boost %": round(float(b[0]) * 100, 1) if len(b) > 0 else 0.0,
+            "Unique boost %": round(float(b[1]) * 100, 1) if len(b) > 1 else 0.0,
+        })
+    boost_df = pd.DataFrame(boost_rows)
+    bulk = render_bulk_edit_bar("pack_dupe_boost", boost_df, label="Pack Dupe Boost")
+    if bulk is not None:
+        boost_df = bulk
+    edited_boost = st.data_editor(
+        boost_df,
+        column_config={
+            "Pack": st.column_config.TextColumn("Pack", disabled=True),
+            "Shared boost %": st.column_config.NumberColumn("Shared boost %", min_value=0.0, max_value=500.0, step=5.0, format="%.1f"),
+            "Unique boost %": st.column_config.NumberColumn("Unique boost %", min_value=0.0, max_value=500.0, step=5.0, format="%.1f"),
+        },
+        width="stretch",
+        hide_index=True,
+        num_rows="fixed",
+        key="vb_pack_dupe_boost_table",
+    )
+    new_boost: dict[str, list[float]] = {}
+    for _, row in edited_boost.iterrows():
+        new_boost[str(row["Pack"])] = [
+            float(row["Shared boost %"]) / 100.0,
+            float(row["Unique boost %"]) / 100.0,
+        ]
+    config.pack_dupe_boost = new_boost
+
+    st.divider()
+
+    # ── Drop probabilities ──────────────────────────────────────────────────
+    st.markdown("**Drop probabilities (per slot, per item)**")
+    st.caption("Each slot rolls every item independently at this probability.")
+    item_cols = [k for k in BONUS_ITEM_KEYS if k != "PurpleStars"]
+    prob_rows = []
+    for pack in pack_names:
+        per_pack = config.pack_bonus_probs.get(pack, {})
+        row = {"Pack": pack}
+        for item in item_cols:
+            row[item] = round(float(per_pack.get(item, 0.0)) * 100, 1)
+        prob_rows.append(row)
+    prob_df = pd.DataFrame(prob_rows)
+    bulk = render_bulk_edit_bar("pack_bonus_probs", prob_df, label="Pack Bonus Drop Probabilities (%)")
+    if bulk is not None:
+        prob_df = bulk
+    prob_col_config = {"Pack": st.column_config.TextColumn("Pack", disabled=True)}
+    for item in item_cols:
+        prob_col_config[item] = st.column_config.NumberColumn(
+            item, min_value=0.0, max_value=100.0, step=1.0, format="%.1f",
+        )
+    edited_probs = st.data_editor(
+        prob_df, column_config=prob_col_config,
+        width="stretch", hide_index=True, num_rows="fixed",
+        key="vb_pack_bonus_probs_table",
+    )
+    new_probs: dict[str, dict[str, float]] = {}
+    for _, row in edited_probs.iterrows():
+        pack = str(row["Pack"])
+        new_probs[pack] = {
+            item: float(row[item]) / 100.0
+            for item in item_cols
+            if item in row
+        }
+    config.pack_bonus_probs = new_probs
+
+    st.divider()
+
+    # ── Base amounts ────────────────────────────────────────────────────────
+    st.markdown("**Base amounts (per item, per pack)**")
+    st.caption(
+        "When an item drops, the player receives `round(base_amount × uniform(bottom, top))`."
+    )
+    amt_rows = []
+    for pack in pack_names:
+        per_pack = config.pack_bonus_amounts.get(pack, {})
+        row = {"Pack": pack}
+        for item in item_cols:
+            row[item] = int(per_pack.get(item, 0))
+        amt_rows.append(row)
+    amt_df = pd.DataFrame(amt_rows)
+    bulk = render_bulk_edit_bar("pack_bonus_amounts", amt_df, label="Pack Bonus Base Amounts")
+    if bulk is not None:
+        amt_df = bulk
+    amt_col_config = {"Pack": st.column_config.TextColumn("Pack", disabled=True)}
+    for item in item_cols:
+        amt_col_config[item] = st.column_config.NumberColumn(
+            item, min_value=0, max_value=100000, step=5, format="%d",
+        )
+    edited_amts = st.data_editor(
+        amt_df, column_config=amt_col_config,
+        width="stretch", hide_index=True, num_rows="fixed",
+        key="vb_pack_bonus_amts_table",
+    )
+    new_amts: dict[str, dict[str, int]] = {}
+    for _, row in edited_amts.iterrows():
+        pack = str(row["Pack"])
+        new_amts[pack] = {
+            item: int(row[item])
+            for item in item_cols
+            if item in row
+        }
+    config.pack_bonus_amounts = new_amts
+
+
 def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
     # --- Pack type definitions ---
     st.subheader("Pack Types")
@@ -950,26 +1156,6 @@ def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
         ]
     else:
         st.info("No daily pack schedule configured. Add pack types above first.")
-
-    st.divider()
-    st.subheader("Premium Pack Availability Schedule")
-    if config.premium_pack_schedule:
-        avail_df = pd.DataFrame([
-            {"Pack ID": s.pack_id, "From Day": s.available_from_day, "Until Day": s.available_until_day}
-            for s in config.premium_pack_schedule
-        ])
-        bulk = render_bulk_edit_bar("pp_avail_sched", avail_df, label="Premium Pack Availability")
-        if bulk is not None:
-            avail_df = bulk
-        edited = st.data_editor(avail_df, width="stretch", hide_index=True, num_rows="dynamic", key="vb_pp_sched")
-        config.premium_pack_schedule = [
-            PremiumPackSchedule(
-                pack_id=str(row["Pack ID"]),
-                available_from_day=int(row["From Day"]),
-                available_until_day=int(row["Until Day"]),
-            )
-            for _, row in edited.iterrows()
-        ]
 
     st.divider()
     st.subheader("Simulated Premium Purchases")

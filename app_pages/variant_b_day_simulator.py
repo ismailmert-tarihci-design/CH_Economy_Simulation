@@ -31,6 +31,16 @@ from simulation.variants.variant_b.hero_deck import (
     get_unlocked_cards,
     hero_card_avg_level,
 )
+from simulation.variants.variant_b.skill_tree import check_and_advance_skill_tree
+from simulation.variants.variant_b.scripted_run import (
+    ScriptedRunConfig,
+    ScriptedRunDay,
+    delete_scripted_run,
+    list_scripted_runs,
+    load_scripted_run,
+    save_scripted_run,
+)
+from simulation.variants.variant_b.scripted_runner import run_one_day as scripted_run_one_day
 
 
 _STATE_KEY = "day_sim"
@@ -107,6 +117,7 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "last_pack_results": [],
         "last_premium_result": None,
         "daily_used": set(),
+        "chapters_beaten": 0,
     }
     _log([f"Day 0 (install day) — fresh simulation (seed={seed or 'random'})"])
     state = st.session_state[_STATE_KEY]
@@ -148,8 +159,9 @@ def render_variant_b_day_simulator() -> None:
     _render_balances(game_state)
     _render_heroes_panel(config, game_state)
 
-    tab_packs, tab_pass, tab_hero_pack, tab_upgrades, tab_charts, tab_log = st.tabs(
-        ["🎴 Daily Packs", "🏆 Season Pass", "⭐ Hero Pack", "⚒ Upgrades", "📈 Charts", "📜 Activity Log"]
+    tab_packs, tab_pass, tab_hero_pack, tab_upgrades, tab_scripted, tab_charts, tab_log = st.tabs(
+        ["🎴 Daily Packs", "🏆 Season Pass", "⭐ Hero Pack", "⚒ Upgrades",
+         "🤖 Scripted run", "📈 Charts", "📜 Activity Log"]
     )
     with tab_packs:
         _render_daily_packs(config, game_state)
@@ -159,6 +171,8 @@ def render_variant_b_day_simulator() -> None:
         _render_hero_unique_pack(config, game_state)
     with tab_upgrades:
         _render_upgrades(config, game_state)
+    with tab_scripted:
+        _render_scripted_run(config, game_state)
     with tab_charts:
         _render_charts(config, game_state)
     with tab_log:
@@ -169,7 +183,7 @@ def render_variant_b_day_simulator() -> None:
 
 def _render_top_bar(config: HeroCardConfig) -> None:
     with st.container(border=True):
-        c_seed, c_reset, c_paid, c_day, c_next = st.columns([1.2, 1.1, 1.4, 0.8, 1.2])
+        c_seed, c_reset, c_paid, c_day, c_chap, c_next = st.columns([1.2, 1.1, 1.4, 0.7, 0.9, 1.2])
         with c_seed:
             seed = st.number_input(
                 "Seed (0 = random)", min_value=0, max_value=999999, value=0, key="day_sim_seed"
@@ -190,6 +204,12 @@ def _render_top_bar(config: HeroCardConfig) -> None:
         with c_day:
             if _STATE_KEY in st.session_state:
                 st.metric("Day", st.session_state[_STATE_KEY]["day"])
+        with c_chap:
+            if _STATE_KEY in st.session_state:
+                st.metric(
+                    "Chapters",
+                    st.session_state[_STATE_KEY].get("chapters_beaten", 0),
+                )
         with c_next:
             st.write("")
             if _STATE_KEY in st.session_state:
@@ -366,6 +386,27 @@ def _render_daily_packs(config: HeroCardConfig, game_state: HeroCardGameState) -
                 _log_pack_results([r])
                 used.add(key)
                 st.rerun()
+
+    with st.container(border=True):
+        st.markdown("**Story progression**")
+        st.caption("Each chapter beaten opens one EndOfChapter pack. No daily cap.")
+        b_beat, b_beat_n = st.columns([1.4, 1])
+        if b_beat.button(
+            "⚔️ Beat chapter (open EndOfChapter pack)",
+            type="primary",
+            key="day_sim_beat_chapter",
+            width="stretch",
+        ):
+            r = ds.open_pack_by_name(
+                "EndOfChapterPack", game_state, config, _rng(), apply_evolution=False
+            )
+            state["last_pack_results"] = [r]
+            state["chapters_beaten"] = state.get("chapters_beaten", 0) + 1
+            _log([f"Beat chapter #{state['chapters_beaten']} → EndOfChapter pack opened"])
+            _log_pack_results([r])
+            st.rerun()
+        with b_beat_n:
+            st.caption(f"Total chapters beaten: **{state.get('chapters_beaten', 0)}**")
 
     _render_pack_results(state.get("last_pack_results") or [], header="Last pack results")
 
@@ -655,6 +696,9 @@ def _render_upgrades(config: HeroCardConfig, game_state: HeroCardGameState) -> N
         with bc2:
             st.caption("Auto-upgrade spends dupes + coins greedily (lowest-level first), mirroring the daily orchestrator.")
 
+    if game_state.heroes:
+        _render_skill_tree_panel(config, game_state)
+
     if not game_state.heroes and not game_state.shared_cards:
         st.caption("Nothing to upgrade yet.")
         return
@@ -668,6 +712,248 @@ def _render_upgrades(config: HeroCardConfig, game_state: HeroCardGameState) -> N
             _render_hero_upgrade_table(config, game_state, hero_id)
     with tabs[-1]:
         _render_shared_upgrade_table(config, game_state)
+
+
+def _render_skill_tree_panel(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
+    """Per-hero skill-tree status + 'buy next node' button.
+
+    The next node activates only when (a) the hero meets its level requirement
+    and (b) the player has enough Hero Tokens. Activation debits tokens via
+    `check_and_advance_skill_tree`.
+    """
+    tokens = int(game_state.bonus_items.get("HeroTokens", 0))
+    with st.container(border=True):
+        st.markdown(f"**Skill tree** — Hero Tokens: **{tokens:,}**")
+        st.caption(
+            "Each hero progresses through a linear skill tree. The next node "
+            "unlocks when the hero meets the level requirement AND the player "
+            "can pay its Hero Token cost."
+        )
+
+        rows = []
+        for hero_id, hs in game_state.heroes.items():
+            hero_def = _hero_def(config, hero_id)
+            if hero_def is None or not hero_def.skill_tree:
+                continue
+            next_idx = hs.skill_tree_progress + 1
+            if next_idx >= len(hero_def.skill_tree):
+                rows.append((hero_id, hero_def.name, None, None, None, None, "MAX"))
+                continue
+            node = hero_def.skill_tree[next_idx]
+            level_ok = hs.level >= node.hero_level_required
+            token_ok = tokens >= node.token_cost
+            rows.append((
+                hero_id, hero_def.name, node, level_ok, token_ok, hs.level,
+                None,
+            ))
+
+        if not rows:
+            st.caption("No heroes with skill trees yet.")
+            return
+
+        for hero_id, name, node, level_ok, token_ok, hero_level, status in rows:
+            if status == "MAX":
+                cols = st.columns([2, 1, 3, 1])
+                cols[0].write(f"**{name}**")
+                cols[1].write(f"L{hero_level if hero_level is not None else '-'}")
+                cols[2].caption("Skill tree complete")
+                cols[3].caption("✓")
+                continue
+            cols = st.columns([2, 1, 3, 1])
+            cols[0].write(f"**{name}**")
+            cols[1].write(f"L{hero_level} → L{node.hero_level_required}")
+            req_bits = []
+            if not level_ok:
+                req_bits.append(f"needs L{node.hero_level_required}")
+            if not token_ok:
+                req_bits.append(f"needs {node.token_cost - tokens:,} more tokens")
+            req_label = " · ".join(req_bits) if req_bits else "ready"
+            cols[2].caption(
+                f"Node #{node.node_index} · {node.perk_label or '—'} · "
+                f"cost {node.token_cost:,} tokens · {req_label}"
+            )
+            with cols[3]:
+                if st.button(
+                    "Buy", key=f"day_sim_buy_node_{hero_id}",
+                    disabled=not (level_ok and token_ok),
+                ):
+                    hero_def = _hero_def(config, hero_id)
+                    activated = check_and_advance_skill_tree(
+                        hero_def, game_state.heroes[hero_id],
+                        game_state.heroes[hero_id].level,
+                        bonus_items=game_state.bonus_items,
+                    )
+                    for node_idx, card_ids, perk in activated:
+                        _log([
+                            f"Activated skill node #{node_idx} for {name}: "
+                            f"perk={perk!r}, unlocked {len(card_ids)} card(s)"
+                        ])
+                    st.rerun()
+
+
+_SCRIPTED_KEY = "day_sim_scripted_cfg"
+
+
+def _ensure_scripted_cfg() -> ScriptedRunConfig:
+    """Return the in-memory scripted-run config, creating a blank one if needed."""
+    cfg = st.session_state.get(_SCRIPTED_KEY)
+    if cfg is None or not isinstance(cfg, ScriptedRunConfig):
+        cfg = ScriptedRunConfig(name="untitled", schedule=[])
+        st.session_state[_SCRIPTED_KEY] = cfg
+    return cfg
+
+
+def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
+    """Auto-pilot mode: each scripted day opens packs, claims season pass, beats
+    chapters, and spends Hero Tokens per a saved policy.
+    """
+    cfg = _ensure_scripted_cfg()
+
+    with st.container(border=True):
+        st.markdown("**Scripted-run preset**")
+        c_name, c_save, c_delete = st.columns([3, 1, 1])
+        with c_name:
+            new_name = st.text_input(
+                "Preset name", value=cfg.name, key="day_sim_scripted_name",
+            )
+            cfg.name = new_name.strip() or "untitled"
+        with c_save:
+            st.write("")
+            if st.button("💾 Save preset", key="day_sim_scripted_save", width="stretch"):
+                save_scripted_run(cfg)
+                st.toast(f"Saved preset '{cfg.name}'")
+        with c_delete:
+            st.write("")
+            if st.button("🗑 Delete", key="day_sim_scripted_delete", width="stretch"):
+                if delete_scripted_run(cfg.name):
+                    st.toast(f"Deleted '{cfg.name}'")
+                st.rerun()
+
+        saved = list_scripted_runs()
+        if saved:
+            c_pick, c_load = st.columns([3, 1])
+            with c_pick:
+                pick = st.selectbox(
+                    "Load existing preset", saved, key="day_sim_scripted_pick",
+                )
+            with c_load:
+                st.write("")
+                if st.button("📂 Load", key="day_sim_scripted_load", width="stretch"):
+                    loaded = load_scripted_run(pick)
+                    if loaded is not None:
+                        st.session_state[_SCRIPTED_KEY] = loaded
+                        st.rerun()
+
+    with st.container(border=True):
+        st.markdown("**Run-wide options**")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            cfg.paid_season_pass = st.toggle(
+                "💎 Paid season pass", value=cfg.paid_season_pass,
+                key="day_sim_scripted_paid",
+            )
+        with c2:
+            cfg.auto_open_daily_packs = st.toggle(
+                "🎁 Auto-open daily packs", value=cfg.auto_open_daily_packs,
+                key="day_sim_scripted_autopacks",
+            )
+        with c3:
+            cfg.token_spend_policy = st.selectbox(
+                "Token spend policy",
+                options=["cheapest_first", "focus_hero", "round_robin"],
+                index=["cheapest_first", "focus_hero", "round_robin"].index(cfg.token_spend_policy),
+                key="day_sim_scripted_policy",
+            )
+        if cfg.token_spend_policy == "focus_hero":
+            hero_ids = [h.hero_id for h in config.heroes]
+            if hero_ids:
+                if cfg.focus_hero_id not in hero_ids:
+                    cfg.focus_hero_id = hero_ids[0]
+                cfg.focus_hero_id = st.selectbox(
+                    "Focus hero", hero_ids,
+                    index=hero_ids.index(cfg.focus_hero_id),
+                    format_func=lambda hid: next((h.name for h in config.heroes if h.hero_id == hid), hid),
+                    key="day_sim_scripted_focus_hero",
+                )
+
+    with st.container(border=True):
+        st.markdown("**Daily schedule**")
+        st.caption(
+            "One row per day. Days not listed run baseline (auto-pack only). "
+            "Day 0 is the FTUE day (FTUE auto-runs on Start/Reset)."
+        )
+        rows = []
+        for d in sorted(cfg.schedule, key=lambda d: d.day):
+            rows.append({
+                "Day": d.day,
+                "Chapters beaten": d.chapters_beaten,
+                "Season pass target step": d.season_pass_target_step or 0,
+            })
+        if not rows:
+            rows = [{"Day": 0, "Chapters beaten": 0, "Season pass target step": 0}]
+        sched_df = pd.DataFrame(rows)
+        edited = st.data_editor(
+            sched_df,
+            column_config={
+                "Day": st.column_config.NumberColumn("Day", min_value=0, max_value=2000, step=1),
+                "Chapters beaten": st.column_config.NumberColumn("Chapters beaten", min_value=0, max_value=50, step=1),
+                "Season pass target step": st.column_config.NumberColumn(
+                    "SP target step (0 = skip)", min_value=0, max_value=200, step=1,
+                ),
+            },
+            width="stretch", hide_index=True, num_rows="dynamic",
+            key="day_sim_scripted_schedule",
+        )
+        new_sched: List[ScriptedRunDay] = []
+        seen_days: set[int] = set()
+        for _, row in edited.iterrows():
+            try:
+                day = int(row["Day"])
+            except (ValueError, TypeError):
+                continue
+            if day in seen_days:
+                continue
+            seen_days.add(day)
+            target = int(row["Season pass target step"] or 0)
+            new_sched.append(ScriptedRunDay(
+                day=day,
+                chapters_beaten=int(row["Chapters beaten"] or 0),
+                season_pass_target_step=target if target > 0 else None,
+            ))
+        cfg.schedule = sorted(new_sched, key=lambda d: d.day)
+
+    with st.container(border=True):
+        st.markdown("**Run**")
+        c_n, c_btn = st.columns([1, 1])
+        with c_n:
+            num_days = st.number_input(
+                "Days to advance", min_value=1, max_value=730, value=7, step=1,
+                key="day_sim_scripted_num_days",
+            )
+        with c_btn:
+            st.write("")
+            if st.button("▶ Run scripted days", type="primary",
+                         key="day_sim_scripted_run", width="stretch"):
+                state = st.session_state[_STATE_KEY]
+                rng = _rng()
+                schedule_by_day = {d.day: d for d in cfg.schedule}
+                opened_all: List[Dict[str, Any]] = []
+                for _ in range(int(num_days)):
+                    current_day = state["day"]
+                    day_entry = schedule_by_day.get(current_day)
+                    summary = scripted_run_one_day(state, config, cfg, day_entry, rng)
+                    _log(summary["log_lines"])
+                    opened_all.extend(summary["opened_packs"])
+                    # Advance day counter (mirrors the manual top-bar Next Day flow).
+                    _snapshot_history(state)
+                    state["day"] += 1
+                    unlocks = ds.advance_day(state["game_state"], state["day"], config)
+                    state["daily_used"] = set()
+                    _log([f"── Advanced to day {state['day']} (scripted) ──"] + unlocks)
+                    _snapshot_history(state)
+                if opened_all:
+                    state["last_pack_results"] = opened_all[-10:]
+                st.rerun()
 
 
 def _get_hero_upgrade_table(config: HeroCardConfig, rarity_value: str):
