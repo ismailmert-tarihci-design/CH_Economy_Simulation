@@ -173,6 +173,8 @@ def _draw_card_for_pack(
     # [min_pct, max_pct] for this rarity.
     upgrade_table = _find_upgrade_table(config, card_rarity)
     level_idx = card_level - 1
+    pct_rolled = 0.0
+    base_cost = 0
     if upgrade_table and 0 <= level_idx < len(upgrade_table.duplicate_costs):
         base_cost = upgrade_table.duplicate_costs[level_idx]
         rarity_key = card_rarity.value
@@ -180,8 +182,8 @@ def _draw_card_for_pack(
         max_pct = dupe_max_pct.get(rarity_key, max(min_pct, 1.0))
         if max_pct < min_pct:
             max_pct = min_pct
-        pct = rng.uniform(min_pct, max_pct) if rng else (min_pct + max_pct) / 2.0
-        dupes = max(1, round(base_cost * pct))
+        pct_rolled = rng.uniform(min_pct, max_pct) if rng else (min_pct + max_pct) / 2.0
+        dupes = max(1, round(base_cost * pct_rolled))
     else:
         dupes = compute_hero_duplicates(card_level, card_rarity, config, rng) or 1
 
@@ -189,6 +191,9 @@ def _draw_card_for_pack(
         "card_id": selected_card_id,
         "hero_id": hero_id,
         "duplicates": dupes,
+        "dupe_pct": pct_rolled,
+        "dupe_effective_pct": pct_rolled,
+        "dupe_base_cost": base_cost,
         "is_joker": False,
         "rarity": card_rarity.value,
         "pull_kind": pull_kind,

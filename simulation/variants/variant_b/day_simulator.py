@@ -26,8 +26,8 @@ from simulation.variants.variant_b.hero_deck import (
 )
 from simulation.variants.variant_b.drop_algorithm import (
     check_joker_drop,
-    compute_hero_duplicates,
-    compute_shared_duplicates,
+    compute_hero_duplicates_meta,
+    compute_shared_duplicates_meta,
     decide_hero_or_shared,
     get_coins_per_dupe,
     get_shared_coins_per_dupe,
@@ -259,7 +259,10 @@ def open_pack_by_name(
                 card = hero_state.cards.get(card_id)
                 if card:
                     level_before = card.level
-                    dupes = compute_hero_duplicates(card.level, card.rarity, config, rng, boost=unique_boost)
+                    meta = compute_hero_duplicates_meta(
+                        card.level, card.rarity, config, rng, boost=unique_boost
+                    )
+                    dupes = meta["dupes"]
                     card.duplicates += dupes
                     cpd = get_coins_per_dupe(card.level, card.rarity, config)
                     coin_income = max(1, dupes * cpd)
@@ -273,6 +276,10 @@ def open_pack_by_name(
                         "rarity": card.rarity.value,
                         "level_before": level_before,
                         "duplicates_received": dupes,
+                        "dupe_pct": meta["pct"],
+                        "dupe_boost": meta["boost"],
+                        "dupe_effective_pct": meta["effective_pct"],
+                        "dupe_base_cost": meta["base_cost"],
                         "coins_earned": coin_income,
                     })
             if check_joker_drop(config, rng):
@@ -286,7 +293,10 @@ def open_pack_by_name(
             if shared_card:
                 level_before = shared_card.level
                 cat = shared_card.category.value if hasattr(shared_card.category, "value") else str(shared_card.category)
-                dupes = compute_shared_duplicates(shared_card.level, cat, config, rng, boost=shared_boost)
+                meta = compute_shared_duplicates_meta(
+                    shared_card.level, cat, config, rng, boost=shared_boost
+                )
+                dupes = meta["dupes"]
                 shared_card.duplicates += dupes
                 cpd = get_shared_coins_per_dupe(shared_card.level, cat, config)
                 coin_income = max(1, dupes * cpd)
@@ -299,6 +309,10 @@ def open_pack_by_name(
                     "category": cat,
                     "level_before": level_before,
                     "duplicates_received": dupes,
+                    "dupe_pct": meta["pct"],
+                    "dupe_boost": meta["boost"],
+                    "dupe_effective_pct": meta["effective_pct"],
+                    "dupe_base_cost": meta["base_cost"],
                     "coins_earned": coin_income,
                 })
 

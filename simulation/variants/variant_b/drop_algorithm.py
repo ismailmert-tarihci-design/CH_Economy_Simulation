@@ -274,6 +274,54 @@ def _find_upgrade_table(
     return cache.get(rarity)
 
 
+def compute_hero_duplicates_meta(
+    card_level: int,
+    card_rarity: HeroCardRarity,
+    config: HeroCardConfig,
+    rng: Optional[Random] = None,
+    boost: float = 0.0,
+) -> Dict[str, Any]:
+    """Compute duplicates received with full sanity-check metadata.
+
+    Returns dict with:
+        dupes: final dupe count granted
+        pct: the raw rolled % of next-level cost (before boost)
+        boost: per-pack additive multiplier applied
+        base_cost: dupe cost to reach the next level (denominator)
+        effective_pct: pct * (1 + boost) — what fraction of next-level cost
+            this single pull actually covered.
+    """
+    dupe_range = _find_dupe_range(config, card_rarity)
+    upgrade_table = _find_upgrade_table(config, card_rarity)
+
+    if not dupe_range or not upgrade_table:
+        return {"dupes": 1, "pct": 0.0, "boost": boost, "base_cost": 0, "effective_pct": 0.0}
+
+    level_idx = card_level - 1
+
+    if level_idx >= len(upgrade_table.duplicate_costs) or level_idx >= len(dupe_range.min_pct):
+        return {"dupes": 0, "pct": 0.0, "boost": boost, "base_cost": 0, "effective_pct": 0.0}
+
+    base_cost = upgrade_table.duplicate_costs[level_idx]
+    min_pct = dupe_range.min_pct[level_idx]
+    max_pct = dupe_range.max_pct[level_idx]
+
+    if rng:
+        pct = rng.uniform(min_pct, max_pct)
+    else:
+        pct = (min_pct + max_pct) / 2.0
+
+    effective_pct = pct * (1.0 + boost)
+    dupes = max(1, round(base_cost * effective_pct))
+    return {
+        "dupes": dupes,
+        "pct": pct,
+        "boost": boost,
+        "base_cost": base_cost,
+        "effective_pct": effective_pct,
+    }
+
+
 def compute_hero_duplicates(
     card_level: int,
     card_rarity: HeroCardRarity,
@@ -289,31 +337,7 @@ def compute_hero_duplicates(
     +10% unique-card dupes → boost=0.10 → final dupes scaled by 1.10).
     Returns at least 1 dupe. Returns 0 if card is already at max level.
     """
-    dupe_range = _find_dupe_range(config, card_rarity)
-    upgrade_table = _find_upgrade_table(config, card_rarity)
-
-    if not dupe_range or not upgrade_table:
-        # Fallback: 1 dupe if config is missing
-        return 1
-
-    level_idx = card_level - 1
-
-    # Card is at or above max configured level
-    if level_idx >= len(upgrade_table.duplicate_costs):
-        return 0
-    if level_idx >= len(dupe_range.min_pct):
-        return 0
-
-    base_cost = upgrade_table.duplicate_costs[level_idx]
-    min_pct = dupe_range.min_pct[level_idx]
-    max_pct = dupe_range.max_pct[level_idx]
-
-    if rng:
-        pct = rng.uniform(min_pct, max_pct)
-    else:
-        pct = (min_pct + max_pct) / 2.0
-
-    return max(1, round(base_cost * pct * (1.0 + boost)))
+    return compute_hero_duplicates_meta(card_level, card_rarity, config, rng, boost)["dupes"]
 
 
 def get_coins_per_dupe(
@@ -372,6 +396,47 @@ def _find_shared_upgrade_table(
     return cache.get(category)
 
 
+def compute_shared_duplicates_meta(
+    card_level: int,
+    card_category: str,
+    config: HeroCardConfig,
+    rng: Optional[Random] = None,
+    boost: float = 0.0,
+) -> Dict[str, Any]:
+    """Compute shared-card duplicates received with full sanity-check metadata.
+
+    See compute_hero_duplicates_meta for field semantics.
+    """
+    dupe_range = _find_shared_dupe_range(config, card_category)
+    upgrade_table = _find_shared_upgrade_table(config, card_category)
+
+    if not dupe_range or not upgrade_table:
+        return {"dupes": 1, "pct": 0.0, "boost": boost, "base_cost": 0, "effective_pct": 0.0}
+
+    level_idx = card_level - 1
+    if level_idx >= len(upgrade_table.duplicate_costs) or level_idx >= len(dupe_range.min_pct):
+        return {"dupes": 0, "pct": 0.0, "boost": boost, "base_cost": 0, "effective_pct": 0.0}
+
+    base_cost = upgrade_table.duplicate_costs[level_idx]
+    min_pct = dupe_range.min_pct[level_idx]
+    max_pct = dupe_range.max_pct[level_idx]
+
+    if rng:
+        pct = rng.uniform(min_pct, max_pct)
+    else:
+        pct = (min_pct + max_pct) / 2.0
+
+    effective_pct = pct * (1.0 + boost)
+    dupes = max(1, round(base_cost * effective_pct))
+    return {
+        "dupes": dupes,
+        "pct": pct,
+        "boost": boost,
+        "base_cost": base_cost,
+        "effective_pct": effective_pct,
+    }
+
+
 def compute_shared_duplicates(
     card_level: int,
     card_category: str,
@@ -385,28 +450,7 @@ def compute_shared_duplicates(
     `boost` is the source pack's shared-card boost (e.g. T4 → +25% → boost=0.25).
     Returns at least 1. Returns 0 if at max level.
     """
-    dupe_range = _find_shared_dupe_range(config, card_category)
-    upgrade_table = _find_shared_upgrade_table(config, card_category)
-
-    if not dupe_range or not upgrade_table:
-        return 1
-
-    level_idx = card_level - 1
-    if level_idx >= len(upgrade_table.duplicate_costs):
-        return 0
-    if level_idx >= len(dupe_range.min_pct):
-        return 0
-
-    base_cost = upgrade_table.duplicate_costs[level_idx]
-    min_pct = dupe_range.min_pct[level_idx]
-    max_pct = dupe_range.max_pct[level_idx]
-
-    if rng:
-        pct = rng.uniform(min_pct, max_pct)
-    else:
-        pct = (min_pct + max_pct) / 2.0
-
-    return max(1, round(base_cost * pct * (1.0 + boost)))
+    return compute_shared_duplicates_meta(card_level, card_category, config, rng, boost)["dupes"]
 
 
 def get_shared_coins_per_dupe(

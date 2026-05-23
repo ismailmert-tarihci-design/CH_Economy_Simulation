@@ -37,6 +37,46 @@ _STATE_KEY = "day_sim"
 _MAX_LOG = 120
 
 
+def _snapshot_history(state: Dict[str, Any]) -> None:
+    """Capture a per-day snapshot for the history charts."""
+    game_state: HeroCardGameState = state["game_state"]
+    snap = {
+        "day": state["day"],
+        "bluestars": game_state.total_bluestars,
+        "coins": game_state.coins,
+        "heroes": {
+            hero_id: {
+                "level": hs.level,
+                "xp": hs.xp,
+                "jokers": hs.joker_count,
+                "unlocked_cards": len(get_unlocked_cards(hs)),
+                "avg_card_level": hero_card_avg_level(hs),
+            }
+            for hero_id, hs in game_state.heroes.items()
+        },
+    }
+    history = state.setdefault("history", [])
+    # Replace if we already have a snapshot for this day (FTUE / reset cases).
+    if history and history[-1]["day"] == state["day"]:
+        history[-1] = snap
+    else:
+        history.append(snap)
+
+
+def _hero_def(config: HeroCardConfig, hero_id: str):
+    return next((h for h in config.heroes if h.hero_id == hero_id), None)
+
+
+def _xp_to_next_level(hero_def, hero_level: int) -> int:
+    """Return the XP threshold needed to reach the next level, or 0 if maxed."""
+    if hero_def is None or hero_level >= hero_def.max_level:
+        return 0
+    idx = hero_level - 1
+    if idx < 0 or idx >= len(hero_def.xp_per_level):
+        return 0
+    return hero_def.xp_per_level[idx]
+
+
 # ─── State helpers ───────────────────────────────────────────────────────────
 
 def _rng() -> Random:
@@ -70,8 +110,10 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     }
     _log([f"Day 0 (install day) — fresh simulation (seed={seed or 'random'})"])
     state = st.session_state[_STATE_KEY]
+    state["history"] = []
     ftue_lines = ftue.run_ftue(state["game_state"], config, state["extras"])
     _log(ftue_lines)
+    _snapshot_history(state)
 
 
 # ─── Top-level render ────────────────────────────────────────────────────────
@@ -104,10 +146,10 @@ def render_variant_b_day_simulator() -> None:
     game_state: HeroCardGameState = state["game_state"]
 
     _render_balances(game_state)
-    _render_heroes_panel(game_state)
+    _render_heroes_panel(config, game_state)
 
-    tab_packs, tab_pass, tab_hero_pack, tab_upgrades, tab_log = st.tabs(
-        ["🎴 Daily Packs", "🏆 Season Pass", "⭐ Hero Pack", "⚒ Upgrades", "📜 Activity Log"]
+    tab_packs, tab_pass, tab_hero_pack, tab_upgrades, tab_charts, tab_log = st.tabs(
+        ["🎴 Daily Packs", "🏆 Season Pass", "⭐ Hero Pack", "⚒ Upgrades", "📈 Charts", "📜 Activity Log"]
     )
     with tab_packs:
         _render_daily_packs(config, game_state)
@@ -117,6 +159,8 @@ def render_variant_b_day_simulator() -> None:
         _render_hero_unique_pack(config, game_state)
     with tab_upgrades:
         _render_upgrades(config, game_state)
+    with tab_charts:
+        _render_charts(config, game_state)
     with tab_log:
         _render_activity_log()
 
@@ -151,10 +195,13 @@ def _render_top_bar(config: HeroCardConfig) -> None:
             if _STATE_KEY in st.session_state:
                 if st.button("Next day →", key="day_sim_next_day", type="secondary", width="stretch"):
                     state = st.session_state[_STATE_KEY]
+                    # Snapshot the *current* (about-to-end) day before advancing.
+                    _snapshot_history(state)
                     state["day"] += 1
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
                     state["daily_used"] = set()
                     _log([f"── Advanced to day {state['day']} ──"] + unlocks)
+                    _snapshot_history(state)
                     st.rerun()
 
 
@@ -163,13 +210,12 @@ def _render_top_bar(config: HeroCardConfig) -> None:
 def _render_balances(game_state: HeroCardGameState) -> None:
     bi = game_state.bonus_items
     with st.container(border=True):
-        m1, m2, m3, m4, m5, m6 = st.columns(6)
+        m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("🪙 Coins", f"{game_state.coins:,}")
         m2.metric("⭐ Bluestars", f"{game_state.total_bluestars:,}")
         m3.metric("🎟 Hero Tokens", f"{bi.get('HeroTokens', 0):,}")
         m4.metric("💎 Diamonds", f"{bi.get('Diamonds', 0):,}")
-        m5.metric("🟣 PurpleStars", f"{bi.get('PurpleStars', 0):,}")
-        m6.metric("🔮 SpiritStone", f"{bi.get('SpiritStone', 0):,}")
+        m5.metric("🔮 SpiritStone", f"{bi.get('SpiritStone', 0):,}")
 
         with st.expander("Other resources", expanded=False):
             rows = [
@@ -186,23 +232,90 @@ def _render_balances(game_state: HeroCardGameState) -> None:
             st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
 
 
-def _render_heroes_panel(game_state: HeroCardGameState) -> None:
+_RARITY_COLORS = {"GRAY": "#9aa0a6", "BLUE": "#4f8bf9", "GOLD": "#f5b042"}
+
+
+def _render_heroes_panel(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
     if not game_state.heroes:
         return
     with st.container(border=True):
-        st.markdown("**Heroes**")
-        rows = []
-        for hero_id, hs in game_state.heroes.items():
-            unlocked = get_unlocked_cards(hs)
-            rows.append({
-                "Hero": hero_id,
-                "Level": hs.level,
-                "XP": hs.xp,
-                "Jokers": hs.joker_count,
-                "Unlocked cards": len(unlocked),
-                "Avg card level": round(hero_card_avg_level(hs), 2),
-            })
-        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+        st.markdown("**Hero state**")
+        st.caption("Per-hero level, XP-to-next, jokers, and card-level breakdown by rarity.")
+
+        hero_ids = list(game_state.heroes.keys())
+        # 2-column grid of hero cards
+        for row_start in range(0, len(hero_ids), 2):
+            cols = st.columns(2)
+            for col_idx, hero_id in enumerate(hero_ids[row_start:row_start + 2]):
+                with cols[col_idx]:
+                    _render_single_hero_card(config, game_state.heroes[hero_id])
+
+
+def _render_single_hero_card(config: HeroCardConfig, hs) -> None:
+    hero_def = _hero_def(config, hs.hero_id)
+    name = hero_def.name if hero_def else hs.hero_id
+    max_lvl = hero_def.max_level if hero_def else 50
+    needed = _xp_to_next_level(hero_def, hs.level)
+    pct = (hs.xp / needed) if needed > 0 else 1.0
+    pct = max(0.0, min(1.0, pct))
+
+    cards = list(hs.cards.values())
+    unlocked = [c for c in cards if c.unlocked]
+    locked = [c for c in cards if not c.unlocked]
+    by_rarity: Dict[str, List[Any]] = {"GRAY": [], "BLUE": [], "GOLD": []}
+    for c in unlocked:
+        by_rarity.setdefault(c.rarity.value, []).append(c)
+
+    avg = round(hero_card_avg_level(hs), 2)
+
+    with st.container(border=True):
+        st.markdown(f"### {name}  &nbsp;<span style='opacity:0.6;font-size:0.7em;'>({hs.hero_id})</span>",
+                    unsafe_allow_html=True)
+        h1, h2, h3, h4 = st.columns(4)
+        h1.metric("Level", f"{hs.level} / {max_lvl}")
+        h2.metric("Jokers", hs.joker_count)
+        h3.metric("Cards", f"{len(unlocked)} / {len(cards)}")
+        h4.metric("Avg card lvl", avg)
+
+        if needed > 0:
+            st.progress(pct, text=f"XP {hs.xp:,} / {needed:,} ({pct*100:.0f}%) → L{hs.level + 1}")
+        else:
+            st.success("Hero is at max level.")
+
+        # Rarity breakdown row
+        st.caption("Cards by rarity (unlocked / total in pool):")
+        pool_by_rarity: Dict[str, int] = {"GRAY": 0, "BLUE": 0, "GOLD": 0}
+        for c in cards:
+            pool_by_rarity[c.rarity.value] = pool_by_rarity.get(c.rarity.value, 0) + 1
+        rc = st.columns(3)
+        for i, rarity in enumerate(["GRAY", "BLUE", "GOLD"]):
+            color = _RARITY_COLORS.get(rarity, "#888")
+            unl = len(by_rarity.get(rarity, []))
+            tot = pool_by_rarity.get(rarity, 0)
+            avg_lvl = (sum(c.level for c in by_rarity.get(rarity, [])) / unl) if unl else 0.0
+            rc[i].markdown(
+                f"<div style='background:{color}22;border-left:4px solid {color};"
+                f"padding:6px 10px;border-radius:4px;'>"
+                f"<b style='color:{color}'>{rarity}</b><br>"
+                f"{unl} / {tot} unlocked<br>"
+                f"<small>avg L{avg_lvl:.1f}</small></div>",
+                unsafe_allow_html=True,
+            )
+
+        # Card-level histogram (unlocked only)
+        if unlocked:
+            with st.expander(f"Card levels ({len(unlocked)} unlocked)", expanded=False):
+                rows = []
+                for c in sorted(unlocked, key=lambda x: (x.rarity.value, -x.level, x.card_id)):
+                    rows.append({
+                        "Card": c.card_id,
+                        "Rarity": c.rarity.value,
+                        "Level": c.level,
+                        "Dupes": c.duplicates,
+                    })
+                st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch", height=240)
+        if locked:
+            st.caption(f"🔒 {len(locked)} card(s) still locked (skill tree).")
 
 
 # ─── Daily packs ─────────────────────────────────────────────────────────────
@@ -288,19 +401,34 @@ def _render_pack_results(results: List[Dict[str, Any]], header: str = "Pack resu
             ):
                 rows = []
                 for c in r["cards"]:
+                    base = c.get("dupe_base_cost", 0) or 0
+                    eff = c.get("dupe_effective_pct", 0.0) or 0.0
+                    raw = c.get("dupe_pct", 0.0) or 0.0
+                    boost = c.get("dupe_boost", 0.0) or 0.0
+                    pct_label = f"{eff * 100:.1f}%" if base else "—"
+                    if boost:
+                        pct_label += f" (raw {raw*100:.1f}% +{int(boost*100)}%)"
+                    need_label = f"{c['duplicates_received']} / {base}" if base else f"{c['duplicates_received']}"
                     if c["kind"] == "hero":
                         rows.append({
                             "Kind": "Hero", "Owner": c["hero_id"], "Card": c["card_name"],
                             "Rarity": c["rarity"], "Lvl before": c["level_before"],
-                            "Dupes": c["duplicates_received"], "Coins": c["coins_earned"],
+                            "Dupes/Need": need_label, "% of next lvl": pct_label,
+                            "Coins": c["coins_earned"],
                         })
                     else:
                         rows.append({
                             "Kind": "Shared", "Owner": c["category"], "Card": c["card_name"],
                             "Rarity": "—", "Lvl before": c["level_before"],
-                            "Dupes": c["duplicates_received"], "Coins": c["coins_earned"],
+                            "Dupes/Need": need_label, "% of next lvl": pct_label,
+                            "Coins": c["coins_earned"],
                         })
                 if rows:
+                    st.caption(
+                        "**Dupes/Need** = dupes pulled / dupes required to reach next level. "
+                        "**% of next lvl** = effective % of next-level cost this single pull covered "
+                        "(pack boost applied)."
+                    )
                     st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
                 bonuses = r.get("bonus_items") or {}
                 if bonuses:
@@ -373,7 +501,6 @@ def _render_season_pass(config: HeroCardConfig, game_state: HeroCardGameState) -
             rows.append({
                 "#": step.step,
                 "Status": status,
-                "PurpleStar req": step.required_purple_star,
                 "Free": f"{step.free.amount}× {step.free.reward_type}",
                 "Paid": f"{step.paid.amount}× {step.paid.reward_type}",
             })
@@ -427,11 +554,14 @@ def _render_hero_unique_pack(config: HeroCardConfig, game_state: HeroCardGameSta
                 for pull in last["pulls"]:
                     if pull.get("reward_type") or pull.get("is_joker"):
                         continue
+                    base = pull.get("dupe_base_cost", 0) or 0
+                    eff = pull.get("dupe_effective_pct", 0.0) or 0.0
                     rows.append({
                         "Kind": pull.get("pull_kind", "?"),
                         "Card": pull.get("card_id", ""),
                         "Rarity": pull.get("rarity", "?"),
-                        "Dupes": pull.get("duplicates", 0),
+                        "Dupes/Need": f"{pull.get('duplicates', 0)} / {base}" if base else f"{pull.get('duplicates', 0)}",
+                        "% of next lvl": f"{eff * 100:.1f}%" if base else "—",
                         "PullSinceGold": pull.get("pull_since_gold", 0),
                     })
                 if rows:
@@ -632,6 +762,100 @@ def _render_shared_upgrade_table(config: HeroCardConfig, game_state: HeroCardGam
                         f"(-{evt['dupes_spent']} dupes, -{evt['coins_spent']} coins, +{evt['bluestars_earned']} bluestars)"
                     )
                 st.rerun()
+
+
+# ─── Charts ──────────────────────────────────────────────────────────────────
+
+def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
+    history = st.session_state[_STATE_KEY].get("history") or []
+    if len(history) < 2:
+        st.info(
+            "Charts populate once you have at least two day-snapshots. "
+            "Click **Next day →** to advance time, then return here."
+        )
+        return
+
+    # --- Bluestars over time ---
+    with st.container(border=True):
+        st.markdown("**Bluestars over time**")
+        bs_df = pd.DataFrame(
+            [{"Day": s["day"], "Bluestars": s["bluestars"]} for s in history]
+        ).set_index("Day")
+        st.line_chart(bs_df, height=260)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Current", f"{history[-1]['bluestars']:,}")
+        c2.metric("Δ since day 0", f"{history[-1]['bluestars'] - history[0]['bluestars']:,}")
+        days_span = max(1, history[-1]["day"] - history[0]["day"])
+        c3.metric("Avg / day", f"{(history[-1]['bluestars'] - history[0]['bluestars']) / days_span:,.1f}")
+
+    # --- Hero XP / level ---
+    with st.container(border=True):
+        st.markdown("**Hero progression (fractional level over time)**")
+        st.caption(
+            "Plotted value = `hero_level + xp / xp_to_next_level`, so a smooth line "
+            "across level-ups. Pick heroes to compare."
+        )
+        all_heroes = sorted({hero_id for s in history for hero_id in s["heroes"]})
+        if not all_heroes:
+            st.caption("No heroes unlocked yet.")
+            return
+        default = all_heroes[: min(4, len(all_heroes))]
+        picked = st.multiselect(
+            "Heroes",
+            options=all_heroes,
+            default=default,
+            key="day_sim_chart_hero_pick",
+            format_func=lambda hid: (_hero_def(config, hid).name if _hero_def(config, hid) else hid),
+        )
+        if picked:
+            level_rows = []
+            xp_rows = []
+            avg_rows = []
+            for s in history:
+                level_entry = {"Day": s["day"]}
+                xp_entry = {"Day": s["day"]}
+                avg_entry = {"Day": s["day"]}
+                for hid in picked:
+                    h = s["heroes"].get(hid)
+                    if h is None:
+                        continue
+                    hd = _hero_def(config, hid)
+                    needed = _xp_to_next_level(hd, h["level"])
+                    frac = (h["xp"] / needed) if needed > 0 else 0.0
+                    label = hd.name if hd else hid
+                    level_entry[label] = h["level"] + frac
+                    xp_entry[label] = h["xp"]
+                    avg_entry[label] = h["avg_card_level"]
+                level_rows.append(level_entry)
+                xp_rows.append(xp_entry)
+                avg_rows.append(avg_entry)
+
+            st.line_chart(pd.DataFrame(level_rows).set_index("Day"), height=280)
+
+            with st.expander("Raw XP (resets on level-up)", expanded=False):
+                st.line_chart(pd.DataFrame(xp_rows).set_index("Day"), height=240)
+            with st.expander("Average card level per hero", expanded=False):
+                st.line_chart(pd.DataFrame(avg_rows).set_index("Day"), height=240)
+
+            # Snapshot table for the latest day
+            st.caption(f"Latest snapshot (day {history[-1]['day']}):")
+            snap_rows = []
+            for hid in picked:
+                h = history[-1]["heroes"].get(hid)
+                if h is None:
+                    continue
+                hd = _hero_def(config, hid)
+                needed = _xp_to_next_level(hd, h["level"])
+                snap_rows.append({
+                    "Hero": hd.name if hd else hid,
+                    "Level": h["level"],
+                    "XP toward next": f"{h['xp']:,} / {needed:,}" if needed else "MAX",
+                    "Jokers": h["jokers"],
+                    "Unlocked cards": h["unlocked_cards"],
+                    "Avg card lvl": round(h["avg_card_level"], 2),
+                })
+            if snap_rows:
+                st.dataframe(pd.DataFrame(snap_rows), hide_index=True, width="stretch")
 
 
 # ─── Activity log ────────────────────────────────────────────────────────────
