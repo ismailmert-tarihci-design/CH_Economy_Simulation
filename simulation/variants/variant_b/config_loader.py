@@ -42,23 +42,23 @@ def load_defaults() -> HeroCardConfig:
 def _builtin_defaults() -> HeroCardConfig:
     """Built-in default Variant B configuration with all 17 heroes (24 cards each, 408 total)."""
     heroes = [
-        _create_sample_hero("woody", "Woody", num_cards=24),
-        _create_sample_hero("cowboy", "Cowboy", num_cards=24),
-        _create_sample_hero("barbarian", "Barbarian", num_cards=24),
-        _create_sample_hero("rexx", "Rexx", num_cards=24),
-        _create_sample_hero("sunna", "Sunna", num_cards=24),
-        _create_sample_hero("mammon", "Mammon", num_cards=24),
-        _create_sample_hero("rogue", "Rogue", num_cards=24),
-        _create_sample_hero("felorc", "Felorc", num_cards=24),
-        _create_sample_hero("eiva", "Eiva", num_cards=24),
-        _create_sample_hero("gudan", "Gudan", num_cards=24),
-        _create_sample_hero("druid", "Druid", num_cards=24),
-        _create_sample_hero("yasuhiro", "Yasuhiro", num_cards=24),
-        _create_sample_hero("nova", "Nova", num_cards=24),
-        _create_sample_hero("rickie", "Rickie", num_cards=24),
-        _create_sample_hero("raven", "Raven", num_cards=24),
-        _create_sample_hero("jester", "Jester", num_cards=24),
-        _create_sample_hero("munara", "Munara", num_cards=24),
+        _create_sample_hero("woody", "Woody"),
+        _create_sample_hero("cowboy", "Cowboy"),
+        _create_sample_hero("barbarian", "Barbarian"),
+        _create_sample_hero("rexx", "Rexx"),
+        _create_sample_hero("sunna", "Sunna"),
+        _create_sample_hero("mammon", "Mammon"),
+        _create_sample_hero("rogue", "Rogue"),
+        _create_sample_hero("felorc", "Felorc"),
+        _create_sample_hero("eiva", "Eiva"),
+        _create_sample_hero("gudan", "Gudan"),
+        _create_sample_hero("druid", "Druid"),
+        _create_sample_hero("yasuhiro", "Yasuhiro"),
+        _create_sample_hero("nova", "Nova"),
+        _create_sample_hero("rickie", "Rickie"),
+        _create_sample_hero("raven", "Raven"),
+        _create_sample_hero("jester", "Jester"),
+        _create_sample_hero("munara", "Munara"),
     ]
 
     # One premium pack per hero (card pool auto-derived from hero's cards)
@@ -201,100 +201,103 @@ def _builtin_defaults() -> HeroCardConfig:
     )
 
 
-def _create_sample_hero(hero_id: str, name: str, num_cards: int = 24) -> HeroDef:
-    """Create a hero with a balanced card pool and real skill tree pattern.
+def _create_sample_hero(hero_id: str, name: str) -> HeroDef:
+    """Create a hero with the canonical card pool + skill tree.
 
-    Default: 24 cards per hero (17 heroes x 24 = 408 total).
-    12 starter cards (all GRAY), 12 unlocked via skill tree.
-    Rarity distribution and skill tree are fully editable in the UI.
+    Uniform across all heroes:
+      Cards (25 total): 13 Gold, 10 Blue, 2 Gray
+      Starters (13):     5 Gold, 6 Blue, 2 Gray
+      Unlockables (12):  8 Gold, 4 Blue, 0 Gray  — granted by skill tree
     """
-    # Distribute cards across rarities: ~50% gray, 30% blue, 20% gold
-    num_gray = max(1, round(num_cards * 0.50))   # 12
-    num_blue = max(1, round(num_cards * 0.30))    # 7
-    num_gold = max(1, num_cards - num_gray - num_blue)  # 5
-    rarity_dist = [
-        (HeroCardRarity.GRAY, num_gray),
-        (HeroCardRarity.BLUE, num_blue),
-        (HeroCardRarity.GOLD, num_gold),
+    # (rarity, total, num_starters)
+    rarity_spec = [
+        (HeroCardRarity.GOLD, 13, 5),
+        (HeroCardRarity.BLUE, 10, 6),
+        (HeroCardRarity.GRAY, 2, 2),
     ]
 
-    cards = []
     xp_values = {
         HeroCardRarity.GRAY: 5,
         HeroCardRarity.BLUE: 15,
         HeroCardRarity.GOLD: 40,
     }
-    card_idx = 1
-    for rarity, count in rarity_dist:
-        for j in range(count):
+
+    cards: list[HeroCardDef] = []
+    starter_ids: list[str] = []
+    unlockable_queue: list[str] = []
+    for rarity, total, starter_count in rarity_spec:
+        for j in range(total):
+            card_id = f"{hero_id}_{rarity.value.lower()}_{j+1}"
             cards.append(HeroCardDef(
-                card_id=f"{hero_id}_card_{card_idx}",
+                card_id=card_id,
                 hero_id=hero_id,
                 rarity=rarity,
                 name=f"{name} {rarity.value.title()} {j+1}",
                 base_xp_on_upgrade=xp_values[rarity],
             ))
-            card_idx += 1
+            if j < starter_count:
+                starter_ids.append(card_id)
+            else:
+                unlockable_queue.append(card_id)
 
-    # Starter cards: all GRAY cards (12 starters)
-    starter_ids = [c.card_id for c in cards if c.rarity == HeroCardRarity.GRAY]
-
-    # Remaining 12 cards (BLUE + GOLD) unlock via skill tree
-    remaining_cards = [c.card_id for c in cards if c.card_id not in starter_ids]
-
-    # Skill tree pattern (matches real game design):
-    # Levels where a card unlocks: 4, 6, 8, 10, 11, 13, 15, 17, 19, 21, 22, 24
-    # Other levels have stat boosts, hero passives, deck size, etc.
-    # token_cost from the hero skill tree spec (level 2 -> 50, level 30 -> 6000).
+    # Skill tree (levels 2-30, 29 nodes; level 1 has no reward).
+    # 12 "Unlockable Card" entries consume the 12 unlockable cards in order
+    # (4 Blue → 8 Gold = blue unlocks early, gold later).
     _TREE_TEMPLATE = [
-        # (level, reward_type, token_cost)  — "card" means pop a card from remaining
-        (2, "Stat Boosts", 50),
-        (3, "Stat Boosts", 100),
-        (4, "card", 150),
-        (5, "Hero Passive", 200),
-        (6, "card", 200),
-        (7, "+1 Battle Deck Size", 300),
-        (8, "card", 400),
-        (9, "Hero Passive", 500),
-        (10, "card", 600),
-        (11, "card", 1000),
-        (12, "+1 Battle Deck Size", 1500),
-        (13, "card", 2000),
-        (14, "Hero Passive", 2000),
-        (15, "card", 2500),
-        (16, "Perma Slot Upgrade", 2500),
-        (17, "card", 3000),
-        (18, "Hero Passive", 3000),
-        (19, "card", 3500),
-        (20, "+1 Battle Deck Size", 3500),
-        (21, "card", 4000),
-        (22, "card", 4000),
-        (23, "Hero Passive", 4500),
-        (24, "card", 4500),
-        (25, "All Heroes Stat Boost", 5000),
-        (26, "Ascension Shards", 5000),
-        (27, "All Heroes Stat Boost", 5500),
-        (28, "Ascension Shards", 5500),
-        (29, "All Heroes Stat Boost", 6000),
-        (30, "Ascension Shards", 6000),
+        # (level, reward_type, token_cost)
+        (2,  "Stat Boosts Only",       50),
+        (3,  "Stat Boosts Only",      100),
+        (4,  "Unlockable Card",       150),
+        (5,  "Unlockable Card",       200),
+        (6,  "Hero Passive",          200),
+        (7,  "Unlockable Card",       300),
+        (8,  "Unlockable Card",       400),
+        (9,  "Hero Passive",          500),
+        (10, "Unlockable Card",       600),
+        (11, "+1 Battle Deck Size",  1000),
+        (12, "Unlockable Card",      1500),
+        (13, "Hero Passive",         2000),
+        (14, "Unlockable Card",      2000),
+        (15, "Perma Slot Upgrade",   2500),
+        (16, "Unlockable Card",      2500),
+        (17, "Hero Passive",         3000),
+        (18, "Unlockable Card",      3000),
+        (19, "+1 Battle Deck Size",  3500),
+        (20, "Unlockable Card",      3500),
+        (21, "Unlockable Card",      4000),
+        (22, "Hero Passive",         4000),
+        (23, "Unlockable Card",      4500),
+        (24, "All Heroes Stat Boost", 4500),
+        (25, "Ascension Shards",     5000),
+        (26, "All Heroes Stat Boost", 5000),
+        (27, "Ascension Shards",     5500),
+        (28, "All Heroes Stat Boost", 5500),
+        (29, "Ascension Shards",     6000),
+        (30, "All Heroes Stat Boost", 6000),
     ]
 
-    skill_tree = []
-    card_queue = list(remaining_cards)
-    for node_idx, (level_req, reward, token_cost) in enumerate(_TREE_TEMPLATE):
-        if reward == "card" and card_queue:
-            unlocked = [card_queue.pop(0)]
-            perk = "Unlockable Card"
-        else:
-            unlocked = []
-            perk = reward
+    skill_tree: list[SkillTreeNode] = []
+    queue = list(unlockable_queue)
+    for node_idx, (level_req, reward_type, token_cost) in enumerate(_TREE_TEMPLATE):
+        cards_unlocked: list[str] = []
+        if reward_type == "Unlockable Card":
+            if not queue:
+                raise RuntimeError(
+                    f"{hero_id}: skill tree expects more Unlockable Card slots than available "
+                    f"unlockable cards (got {len(unlockable_queue)})"
+                )
+            cards_unlocked = [queue.pop(0)]
         skill_tree.append(SkillTreeNode(
             node_index=node_idx,
             hero_level_required=level_req,
-            cards_unlocked=unlocked,
-            perk_label=perk,
+            cards_unlocked=cards_unlocked,
+            perk_label=reward_type,
             token_cost=token_cost,
         ))
+    if queue:
+        raise RuntimeError(
+            f"{hero_id}: {len(queue)} unlockable cards left unassigned by skill tree"
+        )
 
     # XP per level (29 entries: XP to go from level 1->2, 2->3, ..., 29->30)
     xp_per_level = [
