@@ -33,6 +33,8 @@ def render_config_sharing(config: SimConfig) -> None:
             try:
                 content = uploaded.read().decode("utf-8")
                 imported = SimConfig.model_validate_json(content)
+                active = st.session_state.get("active_variant", "variant_a")
+                st.session_state.configs[active] = imported
                 st.session_state.config = imported
                 st.success("Config imported successfully. Reloading...")
                 st.rerun()

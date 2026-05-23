@@ -63,6 +63,7 @@ def decide_hero_or_shared(
     game_state: HeroCardGameState,
     config: HeroCardConfig,
     rng: Optional[Random] = None,
+    pull_index: int = 0,
 ) -> str:
     """Decide whether the next pull is a hero card or a shared card.
 
@@ -78,8 +79,11 @@ def decide_hero_or_shared(
     if rng:
         roll = rng.random()
     else:
-        # Deterministic: hash-based
-        h = hashlib.md5(f"hero_or_shared_{game_state.day}_{game_state.pity_counter}".encode())
+        # Deterministic: hash on (day, pity, pull_index) so consecutive pulls within
+        # a day don't all return the same decision. Falls back to a stable EV approach.
+        h = hashlib.md5(
+            f"hero_or_shared_{game_state.day}_{game_state.pity_counter}_{pull_index}".encode()
+        )
         roll = int(h.hexdigest()[:8], 16) / 0xFFFFFFFF
 
     return "hero" if roll < base_hero else "shared"
@@ -247,21 +251,27 @@ def select_shared_card(
 def _find_dupe_range(
     config: HeroCardConfig, rarity: HeroCardRarity
 ) -> Optional[HeroDuplicateRange]:
-    """Find the duplicate range config for a given rarity."""
-    for dr in config.hero_duplicate_ranges:
-        if dr.rarity == rarity:
-            return dr
-    return None
+    """Find the duplicate range config for a given rarity.
+
+    Memoized per (config_id, rarity) so the hot pull loop doesn't scan the
+    full hero_duplicate_ranges list on every card.
+    """
+    cache = getattr(config, "_hero_dupe_range_cache", None)
+    if cache is None:
+        cache = {dr.rarity: dr for dr in config.hero_duplicate_ranges}
+        object.__setattr__(config, "_hero_dupe_range_cache", cache)
+    return cache.get(rarity)
 
 
 def _find_upgrade_table(
     config: HeroCardConfig, rarity: HeroCardRarity
 ) -> Optional[HeroUpgradeCostTable]:
-    """Find the upgrade cost table for a given rarity."""
-    for t in config.hero_upgrade_tables:
-        if t.rarity == rarity:
-            return t
-    return None
+    """Find the upgrade cost table for a given rarity (memoized — see above)."""
+    cache = getattr(config, "_hero_upgrade_table_cache", None)
+    if cache is None:
+        cache = {t.rarity: t for t in config.hero_upgrade_tables}
+        object.__setattr__(config, "_hero_upgrade_table_cache", cache)
+    return cache.get(rarity)
 
 
 def compute_hero_duplicates(
@@ -343,21 +353,23 @@ def check_joker_drop(
 def _find_shared_dupe_range(
     config: HeroCardConfig, category: str
 ) -> Optional[SharedDuplicateRange]:
-    """Find the shared duplicate range config for a given category."""
-    for dr in config.shared_duplicate_ranges:
-        if dr.category == category:
-            return dr
-    return None
+    """Find the shared duplicate range config for a given category (memoized)."""
+    cache = getattr(config, "_shared_dupe_range_cache", None)
+    if cache is None:
+        cache = {dr.category: dr for dr in config.shared_duplicate_ranges}
+        object.__setattr__(config, "_shared_dupe_range_cache", cache)
+    return cache.get(category)
 
 
 def _find_shared_upgrade_table(
     config: HeroCardConfig, category: str
 ) -> Optional[SharedUpgradeCostTable]:
-    """Find the shared upgrade cost table for a given category."""
-    for t in config.shared_upgrade_tables:
-        if t.category == category:
-            return t
-    return None
+    """Find the shared upgrade cost table for a given category (memoized)."""
+    cache = getattr(config, "_shared_upgrade_table_cache", None)
+    if cache is None:
+        cache = {t.category: t for t in config.shared_upgrade_tables}
+        object.__setattr__(config, "_shared_upgrade_table_cache", cache)
+    return cache.get(category)
 
 
 def compute_shared_duplicates(

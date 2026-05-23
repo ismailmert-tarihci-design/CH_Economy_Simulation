@@ -1,7 +1,7 @@
 """Saved results manager for comparing simulation runs."""
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, List
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -13,7 +13,7 @@ from simulation.config_loader import (
     load_result,
     delete_result,
 )
-from simulation.models import SavedResult, SimConfig
+from simulation.models import SavedResult
 
 
 def render_saved_results_manager() -> None:
@@ -251,7 +251,10 @@ def save_current_result(name: str, description: str = "") -> str:
 
     result = st.session_state.sim_result
     mode = st.session_state.get("sim_mode", "deterministic")
-    config = st.session_state.get("config")
+    active = st.session_state.get("active_variant", "variant_a")
+    config = st.session_state.get("configs", {}).get(active) or st.session_state.get(
+        "config"
+    )
 
     if config is None:
         raise ValueError("No configuration found")

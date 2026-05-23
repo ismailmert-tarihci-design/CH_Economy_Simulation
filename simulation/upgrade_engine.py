@@ -7,7 +7,7 @@ Implements greedy auto-upgrade strategy with priority ordering and resource chec
 from dataclasses import dataclass
 
 from simulation.coin_economy import CoinLedger
-from simulation.models import Card, CardCategory, GameState, SimConfig, UpgradeTable
+from simulation.models import Card, CardCategory, GameState, SimConfig
 from simulation.progression import can_upgrade_unique, compute_category_progression
 
 
@@ -43,22 +43,40 @@ def attempt_upgrades(
     """
     events = []
 
+    # Average shared-level is the gating input for UNIQUE upgrades. It only
+    # changes when a SHARED card levels up, so we cache it and invalidate
+    # only when needed — saves an O(N) scan per UNIQUE candidate per cycle.
+    avg_shared_level = _compute_avg_shared_level(game_state, config)
+
     while True:
         # Get candidates in priority order
         candidates = get_upgrade_candidates(game_state, config)
 
         upgraded = False
         for card in candidates:
-            if _can_upgrade(card, game_state, config, coin_ledger):
+            if _can_upgrade(card, game_state, config, coin_ledger, avg_shared_level):
                 event = _execute_upgrade(card, game_state, config, coin_ledger)
                 events.append(event)
                 upgraded = True
+                if card.category != CardCategory.UNIQUE:
+                    avg_shared_level = _compute_avg_shared_level(game_state, config)
                 break  # Restart candidate scan after upgrade
 
         if not upgraded:
             break  # No more upgrades possible
 
     return events
+
+
+def _compute_avg_shared_level(game_state: GameState, config: SimConfig) -> float:
+    """Single-pass average shared-level for unique-upgrade gating."""
+    gold_prog = compute_category_progression(
+        game_state.cards, CardCategory.GOLD_SHARED, config.progression_mapping
+    )
+    blue_prog = compute_category_progression(
+        game_state.cards, CardCategory.BLUE_SHARED, config.progression_mapping
+    )
+    return ((gold_prog + blue_prog) / 2.0) * 100.0
 
 
 def get_upgrade_candidates(game_state: GameState, config: SimConfig) -> list[Card]:
@@ -98,7 +116,11 @@ def get_upgrade_candidates(game_state: GameState, config: SimConfig) -> list[Car
 
 
 def _can_upgrade(
-    card: Card, game_state: GameState, config: SimConfig, coin_ledger: CoinLedger
+    card: Card,
+    game_state: GameState,
+    config: SimConfig,
+    coin_ledger: CoinLedger,
+    avg_shared_level: float | None = None,
 ) -> bool:
     """
     Check ALL 4 conditions for upgrade eligibility.
@@ -114,6 +136,8 @@ def _can_upgrade(
         game_state: Current game state
         config: Simulation configuration
         coin_ledger: Coin ledger for balance checking
+        avg_shared_level: Optional precomputed gating input. If None, recomputed
+            from current cards (slower — used by direct callers / tests).
 
     Returns:
         True if all conditions pass, False otherwise
@@ -142,17 +166,8 @@ def _can_upgrade(
 
     # Gating check (unique only)
     if card.category == CardCategory.UNIQUE:
-        # Compute average shared progression
-        gold_prog = compute_category_progression(
-            game_state.cards, CardCategory.GOLD_SHARED, config.progression_mapping
-        )
-        blue_prog = compute_category_progression(
-            game_state.cards, CardCategory.BLUE_SHARED, config.progression_mapping
-        )
-        avg_shared = (gold_prog + blue_prog) / 2.0
-
-        # Convert to average shared level (0.0-1.0 → 0-100)
-        avg_shared_level = avg_shared * 100.0
+        if avg_shared_level is None:
+            avg_shared_level = _compute_avg_shared_level(game_state, config)
 
         if not can_upgrade_unique(card, avg_shared_level, config.progression_mapping):
             return False
@@ -188,7 +203,14 @@ def _execute_upgrade(
     # Deduct resources
     card.duplicates -= dupe_cost
     success = coin_ledger.spend(coin_cost, card.id, game_state.day)
-    assert success, "Coin spend should succeed after can_afford check"
+    if not success:
+        # _can_upgrade already checked balance — getting here means a bug.
+        # Restore dupes so state is consistent for the caller.
+        card.duplicates += dupe_cost
+        raise RuntimeError(
+            f"Coin spend failed for {card.id} at day {game_state.day} despite "
+            f"can_afford check (balance={coin_ledger.balance}, cost={coin_cost})"
+        )
 
     # Increment level
     card.level += 1

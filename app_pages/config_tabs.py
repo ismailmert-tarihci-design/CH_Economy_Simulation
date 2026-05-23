@@ -407,6 +407,14 @@ def render_drop_algorithm(config: SimConfig) -> None:
             help="Unique pull ratio when balanced. Should equal 1 - Base Shared Rate.",
         )
 
+    base_sum = config.base_shared_rate + config.base_unique_rate
+    if abs(base_sum - 1.0) > 0.01:
+        st.warning(
+            f"Base Shared + Base Unique = {base_sum:.2f}; values are renormalized "
+            f"per pull but the balance assumes they sum to 1.0.",
+            icon=":material/info:",
+        )
+
     st.divider()
     st.markdown("**Streak Decay Rates**")
     st.caption("Lower values = stronger penalty for consecutive same-type drops.")

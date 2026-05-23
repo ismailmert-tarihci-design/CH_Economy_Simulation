@@ -343,13 +343,9 @@ def run_simulation(config: SimConfig, rng: Optional[Random] = None) -> SimResult
         )
         daily_snapshots.append(snapshot)
 
-    # Compute aggregate statistics
-    total_coins_earned = sum(
-        t.amount for t in coin_ledger.transactions if t.source == "income"
-    )
-    total_coins_spent = sum(
-        t.amount for t in coin_ledger.transactions if t.source == "spend"
-    )
+    # Coin totals are kept incrementally in CoinLedger; reading them is O(1).
+    total_coins_earned = coin_ledger.total_income
+    total_coins_spent = coin_ledger.total_spent
 
     total_upgrades: Dict[str, Any] = {}
     for snapshot in daily_snapshots:

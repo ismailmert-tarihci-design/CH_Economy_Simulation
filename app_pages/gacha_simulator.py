@@ -15,7 +15,6 @@ import streamlit as st
 from simulation.variants.variant_b.models import (
     HeroCardConfig,
     HeroCardGameState,
-    HeroCardRarity,
     PremiumPackDef,
 )
 from simulation.variants.variant_b.hero_deck import initialize_hero

@@ -92,7 +92,7 @@ def run_simulation(
             shared_boost, unique_boost = get_dupe_boost(pack_name)
 
             for _ in range(cards_in_pack):
-                pull_type = decide_hero_or_shared(game_state, config, rng)
+                pull_type = decide_hero_or_shared(game_state, config, rng, pull_index=pull_index)
 
                 if pull_type == "hero":
                     game_state.pity_counter = 0
@@ -196,6 +196,10 @@ def run_simulation(
         # Apply premium pull results to game state
         for pull in premium_pulls:
             if pull.get("reward_type") == "hero_tokens":
+                amt = int(pull.get("reward_amount", 0))
+                game_state.bonus_items["HeroTokens"] = (
+                    game_state.bonus_items.get("HeroTokens", 0) + amt
+                )
                 continue
             if pull.get("reward_type") == "coins":
                 game_state.coins += pull.get("reward_amount", 0)
@@ -343,6 +347,11 @@ def run_simulation(
         )
         snapshots.append(snapshot)
 
+    # `final_shared_hero_xp` reports CUMULATIVE XP earned across the run, not the
+    # current remaining XP toward next level — otherwise dashboards would see this
+    # number drop every time a hero levels up.
+    lifetime_hero_xp = sum(s.shared_hero_xp_today for s in snapshots)
+
     return HeroSimResult(
         daily_snapshots=snapshots,
         total_bluestars=game_state.total_bluestars,
@@ -351,7 +360,7 @@ def run_simulation(
         total_upgrades=all_upgrade_events,
         pull_logs=pull_logger.events,
         final_shared_hero_level=max((hs.level for hs in game_state.heroes.values()), default=1),
-        final_shared_hero_xp=sum(hs.xp for hs in game_state.heroes.values()),
+        final_shared_hero_xp=lifetime_hero_xp,
         final_hero_levels={hid: hs.level for hid, hs in game_state.heroes.items()},
         final_hero_xp={hid: hs.xp for hid, hs in game_state.heroes.items()},
         total_premium_diamonds_spent=sum(s.premium_diamonds_spent for s in snapshots),

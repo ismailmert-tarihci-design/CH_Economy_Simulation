@@ -22,14 +22,25 @@ class CoinTransaction:
 
 @dataclass
 class CoinLedger:
-    """Tracks all coin income and spending."""
+    """Tracks all coin income and spending.
+
+    Maintains running per-day totals so `daily_summary` is O(1) — the previous
+    O(T) full-transactions scan turned end-of-day rollups into O(days × total_T)
+    work on large Monte Carlo runs.
+    """
 
     balance: int = 0
     transactions: List[CoinTransaction] = field(default_factory=list)
+    _income_by_day: Dict[int, int] = field(default_factory=dict)
+    _spend_by_day: Dict[int, int] = field(default_factory=dict)
+    total_income: int = 0
+    total_spent: int = 0
 
     def add_income(self, amount: int, card_id: str, day: int) -> None:
         """Add coin income to the ledger."""
         self.balance += amount
+        self.total_income += amount
+        self._income_by_day[day] = self._income_by_day.get(day, 0) + amount
         self.transactions.append(
             CoinTransaction(amount=amount, source="income", card_id=card_id, day=day)
         )
@@ -44,6 +55,8 @@ class CoinLedger:
         if self.balance < amount:
             return False
         self.balance -= amount
+        self.total_spent += amount
+        self._spend_by_day[day] = self._spend_by_day.get(day, 0) + amount
         self.transactions.append(
             CoinTransaction(amount=amount, source="spend", card_id=card_id, day=day)
         )
@@ -51,12 +64,9 @@ class CoinLedger:
 
     def daily_summary(self, day: int) -> Dict[str, int]:
         """Get daily income and spending summary for a specific day."""
-        daily_transactions = [t for t in self.transactions if t.day == day]
-        total_income = sum(t.amount for t in daily_transactions if t.source == "income")
-        total_spent = sum(t.amount for t in daily_transactions if t.source == "spend")
         return {
-            "total_income": total_income,
-            "total_spent": total_spent,
+            "total_income": self._income_by_day.get(day, 0),
+            "total_spent": self._spend_by_day.get(day, 0),
             "balance": self.balance,
         }
 

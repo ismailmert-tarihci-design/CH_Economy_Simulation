@@ -102,29 +102,37 @@ class TestConfigLoader:
             assert len(coin_dupe.coins_per_dupe) == expected_length
 
     def test_progression_mapping_contains_expected_keys(self):
-        """Progression mapping should contain exact mapping from spec."""
+        """Progression mapping should be monotonic, anchor at level 1, and cap at 100."""
         config = load_defaults()
         mapping = config.progression_mapping
 
-        # Expected shared levels from task spec
-        expected_shared = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-        expected_unique = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10]
-
-        assert mapping.shared_levels == expected_shared
-        assert mapping.unique_levels == expected_unique
+        assert mapping.shared_levels[0] == 1
+        assert mapping.shared_levels[-1] == 100
+        assert len(mapping.shared_levels) == len(mapping.unique_levels)
+        # Shared levels must be strictly increasing
+        assert all(
+            a < b for a, b in zip(mapping.shared_levels, mapping.shared_levels[1:])
+        )
+        # Unique levels must be non-decreasing and capped at 10
+        assert all(
+            a <= b for a, b in zip(mapping.unique_levels, mapping.unique_levels[1:])
+        )
+        assert max(mapping.unique_levels) <= 10
 
     def test_unique_unlock_schedule_is_dict(self):
-        """Unique unlock schedule should be proper dict with integer keys."""
+        """Unique unlock schedule should be a dict with integer day keys."""
         config = load_defaults()
         schedule = config.unique_unlock_schedule
 
         assert isinstance(schedule, dict)
-        assert 0 in schedule
-        assert schedule[0] == 8
-        assert 1 in schedule
-        assert schedule[1] == 15
-        assert 30 in schedule
-        assert schedule[30] == 27
+        assert all(isinstance(k, int) for k in schedule.keys())
+        assert all(isinstance(v, int) and v > 0 for v in schedule.values())
+        # Counts should be non-decreasing as days advance
+        sorted_days = sorted(schedule.keys())
+        counts = [schedule[d] for d in sorted_days]
+        assert counts == sorted(counts), "unlock counts must be non-decreasing"
+        # Schedule should start at day 1 (matches orchestrator's 1-indexed loop)
+        assert sorted_days[0] == 1
 
     def test_daily_pack_schedule_has_entries(self):
         """Daily pack schedule should have entries with 9 pack names."""

@@ -12,10 +12,10 @@ from math import sqrt
 from random import Random
 from typing import Any, Dict, List
 
-import numpy as np
+from simulation.orchestrator import run_simulation
 
-from simulation.models import SimConfig
-from simulation.orchestrator import DailySnapshot, run_simulation as _default_run_simulation
+# Backward-compat alias for callers that want to override per-run sim function
+_default_run_simulation = run_simulation
 
 
 class WelfordAccumulator:
@@ -259,7 +259,9 @@ def run_monte_carlo(
         ValueError: If num_runs < 1 or num_runs > 500
     """
     if run_fn is None:
-        run_fn = _default_run_simulation
+        # Module-level lookup so `mock.patch("simulation.monte_carlo.run_simulation")`
+        # transparently substitutes the simulator without callers passing run_fn.
+        run_fn = run_simulation
     # Validation
     if num_runs < 1 or num_runs > 500:
         raise ValueError(f"num_runs must be between 1 and 500, got {num_runs}")
@@ -280,9 +282,7 @@ def run_monte_carlo(
 
     # Run Monte Carlo simulations
     for run_idx in range(1, num_runs + 1):
-        rng = Random()
-        rng.seed(run_idx)
-        np.random.seed(run_idx)
+        rng = Random(run_idx)
         result = run_fn(config, rng=rng)
 
         # Update final bluestar accumulator

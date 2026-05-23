@@ -243,8 +243,8 @@ def open_pack_by_name(
     jokers_received = 0
     coins_earned = 0
 
-    for _ in range(cards_in_pack):
-        pull_type = decide_hero_or_shared(game_state, config, rng)
+    for pull_i in range(cards_in_pack):
+        pull_type = decide_hero_or_shared(game_state, config, rng, pull_index=pull_i)
         if pull_type == "hero":
             game_state.pity_counter = 0
             result = select_hero_card(game_state, config, rng)

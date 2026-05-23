@@ -48,7 +48,10 @@ def render_simulation_controls(config: Any) -> None:
             if num_runs > 200:
                 st.caption(":material/info: More than 200 runs may be slow. Consider 100 for quick results.")
             if num_days > 365:
-                st.caption(":material/info: MC mode capped at 365 days for performance.")
+                st.warning(
+                    f"MC mode capped at 365 days for performance — using 365 instead of {num_days}.",
+                    icon=":material/info:",
+                )
                 num_days = 365
 
     # ─── Goal mode ────────────────────────────────────────────────────────────
@@ -150,8 +153,9 @@ def render_simulation_controls(config: Any) -> None:
                     if v_config is None:
                         v_config = v.load_defaults()
                     v_config.num_days = num_days
+                    v_hash = hashlib.md5(v_config.model_dump_json().encode()).hexdigest()
                     with st.spinner(f"Running {v.display_name}..."):
-                        result = v.run_simulation(v_config, rng=None)
+                        result = _run_cached_simulation(v_hash, v_config, v.variant_id)
                     comparison_results["variants"][v.variant_id] = result
                 st.session_state.comparison_results = comparison_results
                 st.success("Comparison complete. Switch to Dashboard to view.", icon=":material/check_circle:")

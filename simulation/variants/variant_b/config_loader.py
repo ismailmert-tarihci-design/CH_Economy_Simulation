@@ -22,8 +22,6 @@ from simulation.variants.variant_b.models import (
     HeroUpgradeCostTable,
     HeroCardTypesRange,
     HeroPackType,
-    PremiumPackAdditionalReward,
-    PremiumPackCardRate,
     PremiumPackDef,
     PremiumPackPullRarity,
     PremiumPackSchedule,
@@ -286,7 +284,7 @@ def _create_sample_hero(hero_id: str, name: str, num_cards: int = 24) -> HeroDef
     for node_idx, (level_req, reward, token_cost) in enumerate(_TREE_TEMPLATE):
         if reward == "card" and card_queue:
             unlocked = [card_queue.pop(0)]
-            perk = f"Unlockable Card"
+            perk = "Unlockable Card"
         else:
             unlocked = []
             perk = reward

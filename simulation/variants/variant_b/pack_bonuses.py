@@ -176,8 +176,20 @@ def roll_pack_bonuses(pack_name: str, rng: Optional[Random]) -> Dict[str, int]:
     bottom, top = PACK_BONUS_VARIANCE.get(pack_name, (1.0, 1.0))
 
     result: Dict[str, int] = {}
+    midpoint = (bottom + top) / 2.0
+
     if rng is None:
-        return result  # No bonuses in deterministic mode
+        # Deterministic: grant expected value — slots * prob * base * midpoint
+        # per item, rounded. This keeps the bonus economy intact in det runs.
+        for item, prob in probs.items():
+            base = amounts.get(item, 0)
+            if prob <= 0 or base <= 0:
+                continue
+            expected = slots * prob * base * midpoint
+            granted = int(round(expected))
+            if granted > 0:
+                result[item] = granted
+        return result
 
     for _ in range(slots):
         for item, prob in probs.items():

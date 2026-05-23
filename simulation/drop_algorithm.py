@@ -8,11 +8,23 @@ Implements the exponential gap formula from the Revamp Master Doc:
 with streak penalties applied as multiplicative weight modifiers.
 """
 
+import hashlib
 from random import Random
 from typing import List, Optional
 
 from simulation.models import Card, CardCategory, GameState, SimConfig, StreakState
 from simulation.progression import compute_mapping_aware_score
+
+
+def _stable_unit_hash(*parts) -> float:
+    """Stable [0,1) hash that survives Python session restarts.
+
+    Python's built-in hash() is salted per-process (PYTHONHASHSEED), so any
+    deterministic logic that needs reproducibility across runs/machines must
+    use a content-addressed hash like MD5.
+    """
+    key = "|".join(str(p) for p in parts).encode()
+    return int(hashlib.md5(key).hexdigest()[:8], 16) / 0xFFFFFFFF
 
 STREAK_DECAY_SHARED = 0.6
 STREAK_DECAY_UNIQUE = 0.3
@@ -40,14 +52,11 @@ def _deterministic_weighted_choice(
         running += w
         cumulative.append(running)
 
-    hash_val = hash(
-        (
-            game_state.day,
-            tuple(c.level for c in cards),
-            tuple(c.duplicates for c in cards),
-        )
-    )
-    position = abs(hash_val) % 10000 / 10000.0 * total
+    position = _stable_unit_hash(
+        game_state.day,
+        tuple(c.level for c in cards),
+        tuple(c.duplicates for c in cards),
+    ) * total
 
     for i, thresh in enumerate(cumulative):
         if position <= thresh:
@@ -113,8 +122,15 @@ def decide_rarity(
 
     # Step 6: Roll
     if rng is None:
-        hash_val = hash((game_state.day, int(s_shared * 1000), int(s_unique * 1000)))
-        position = abs(hash_val) % 10000 / 10000.0
+        # Include streak counts so successive pulls within a day produce different
+        # rolls (otherwise the rarity decision would be constant for the whole day).
+        position = _stable_unit_hash(
+            game_state.day,
+            int(s_shared * 1000),
+            int(s_unique * 1000),
+            streak_state.streak_shared,
+            streak_state.streak_unique,
+        )
         return (
             CardCategory.GOLD_SHARED if position < prob_shared else CardCategory.UNIQUE
         )

@@ -8,8 +8,7 @@ with any variant without importing its concrete types.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checkable
-from random import Random
+from typing import Any, Callable, Dict, List, Protocol, runtime_checkable
 
 
 @runtime_checkable

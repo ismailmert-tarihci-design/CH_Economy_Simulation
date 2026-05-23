@@ -22,8 +22,6 @@ from simulation.variants.variant_b.models import (
     HeroPackType,
     PremiumPackPullRarity,
     PremiumPackSchedule,
-    SharedDuplicateRange,
-    SharedUpgradeCostTable,
     SkillTreeNode,
 )
 
@@ -176,7 +174,6 @@ def _render_unlock_timeline_tab(config: HeroCardConfig) -> None:
         return
 
     # Build a flat list: one row per hero with their unlock day
-    hero_id_to_name = {h.hero_id: h.name for h in config.heroes}
     # Invert schedule: hero_id -> day
     hero_day_map: dict[str, int] = {}
     for day, hids in config.hero_unlock_schedule.items():
@@ -464,6 +461,9 @@ def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
             dc.rarity_weight_gray = st.slider("Gray", min_value=0.0, max_value=1.0, value=dc.rarity_weight_gray, step=0.01, key="vb_rw_c")
             dc.rarity_weight_blue = st.slider("Blue", min_value=0.0, max_value=1.0, value=dc.rarity_weight_blue, step=0.01, key="vb_rw_r")
             dc.rarity_weight_gold = st.slider("Gold", min_value=0.0, max_value=1.0, value=dc.rarity_weight_gold, step=0.01, key="vb_rw_e")
+            rarity_sum = dc.rarity_weight_gray + dc.rarity_weight_blue + dc.rarity_weight_gold
+            if abs(rarity_sum - 1.0) > 0.01:
+                st.warning(f"Rarity weights sum to {rarity_sum:.2f} -- should be 1.0")
 
         st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
