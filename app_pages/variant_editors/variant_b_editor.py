@@ -111,13 +111,20 @@ def _render_heroes_tab(config: HeroCardConfig) -> None:
 
         # Card pool table
         st.markdown(f"**Card Pool** ({len(hero.card_pool)} cards)")
+        st.caption(
+            "XP rewards per upgrade are defined per-level in the **Hero upgrade costs** tab "
+            "(one value per card level, per rarity)."
+        )
         if hero.card_pool:
+            # Preserve each card's existing base_xp_on_upgrade so it survives the round-trip;
+            # it's not shown here because XP is per-level, not per-card.
+            existing_xp = {c.card_id: c.base_xp_on_upgrade for c in hero.card_pool}
+
             card_df = pd.DataFrame([
                 {
                     "Card ID": c.card_id,
                     "Name": c.name,
                     "Rarity": c.rarity.value,
-                    "XP on Upgrade": c.base_xp_on_upgrade,
                     "Starter": c.card_id in hero.starter_card_ids,
                 }
                 for c in hero.card_pool
@@ -133,7 +140,6 @@ def _render_heroes_tab(config: HeroCardConfig) -> None:
                     "Rarity": st.column_config.SelectboxColumn(
                         "Rarity", options=[r.value for r in HeroCardRarity], required=True
                     ),
-                    "XP on Upgrade": st.column_config.NumberColumn("XP on Upgrade", min_value=0, step=1),
                     "Starter": st.column_config.CheckboxColumn("Starter"),
                 },
                 width="stretch",
@@ -146,15 +152,16 @@ def _render_heroes_tab(config: HeroCardConfig) -> None:
             new_cards = []
             new_starters = []
             for _, row in edited.iterrows():
+                card_id = str(row["Card ID"])
                 new_cards.append(HeroCardDef(
-                    card_id=str(row["Card ID"]),
+                    card_id=card_id,
                     hero_id=hero.hero_id,
                     rarity=HeroCardRarity(row["Rarity"]),
                     name=str(row["Name"]),
-                    base_xp_on_upgrade=int(row["XP on Upgrade"]),
+                    base_xp_on_upgrade=existing_xp.get(card_id, 0),
                 ))
                 if row.get("Starter", False):
-                    new_starters.append(str(row["Card ID"]))
+                    new_starters.append(card_id)
             hero.card_pool = new_cards
             hero.starter_card_ids = new_starters
 
@@ -533,7 +540,10 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     with m2:
         pack.main_cards_max = st.number_input("Max #", min_value=pack.main_cards_min, max_value=20, value=max(pack.main_cards_max, pack.main_cards_min), step=1, key=f"vb_pp_mainmax_{sel}")
 
-    st.caption("Per-rarity dupe % range (% of required duplicates for next level)")
+    st.caption(
+        "Per-rarity dupe % range. Dupes received = round(dupe-cost-for-next-level × random(min%, max%)). "
+        "100% means the card jumps exactly one level; 50% means half the dupes needed."
+    )
     main_df = pd.DataFrame([
         {
             "Rarity": r,
@@ -555,6 +565,11 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     pack.main_dupe_min_pct = {str(row["Rarity"]): float(row["Min %"]) / 100.0 for _, row in edited_main.iterrows()}
     pack.main_dupe_max_pct = {str(row["Rarity"]): float(row["Max %"]) / 100.0 for _, row in edited_main.iterrows()}
 
+    _render_dupe_pct_preview(
+        config, pack.main_dupe_min_pct, pack.main_dupe_max_pct,
+        caption="Sanity check — dupes one MainUpgradeCard pull would yield at the listed card level:",
+    )
+
     # ── BonusCards ───────────────────────────────────────────────────────────
     st.markdown("**BonusCards** (100% rate)")
     b1, b2 = st.columns(2)
@@ -563,7 +578,10 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     with b2:
         pack.bonus_cards_max = st.number_input("Max #", min_value=pack.bonus_cards_min, max_value=20, value=max(pack.bonus_cards_max, pack.bonus_cards_min), step=1, key=f"vb_pp_bmax_{sel}")
 
-    st.caption("Per-rarity dupe % range (% of required duplicates for next level)")
+    st.caption(
+        "Per-rarity dupe % range. Same formula as MainUpgradeCards — BonusCards typically use much lower % "
+        "(e.g. 20–40%) so a single bonus card alone doesn't level a card up."
+    )
     bonus_df = pd.DataFrame([
         {
             "Rarity": r,
@@ -584,6 +602,11 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     )
     pack.bonus_dupe_min_pct = {str(row["Rarity"]): float(row["Min %"]) / 100.0 for _, row in edited_bonus.iterrows()}
     pack.bonus_dupe_max_pct = {str(row["Rarity"]): float(row["Max %"]) / 100.0 for _, row in edited_bonus.iterrows()}
+
+    _render_dupe_pct_preview(
+        config, pack.bonus_dupe_min_pct, pack.bonus_dupe_max_pct,
+        caption="Sanity check — dupes one BonusCard pull would yield at the listed card level:",
+    )
 
     # ── Pack-level extras (jokers, coins, hero tokens) ───────────────────────
     st.markdown("**Pack-level rewards** (rolled once per pack)")
@@ -673,11 +696,56 @@ def _render_premium_packs_tab(config: HeroCardConfig) -> None:
     pack.default_rarity_weights = PremiumPackPullRarity(gray_weight=dg / 100.0, blue_weight=db / 100.0, gold_weight=dd / 100.0)
 
 
+def _render_dupe_pct_preview(
+    config: HeroCardConfig,
+    min_pct_by_rarity: dict[str, float],
+    max_pct_by_rarity: dict[str, float],
+    caption: str,
+) -> None:
+    """Show a small preview table converting per-rarity % ranges into actual dupe counts
+    at representative card levels. Helps sanity-check that the configured % values
+    produce sane dupe yields against the upgrade cost tables."""
+    cost_by_rarity: dict[str, list[int]] = {}
+    for tbl in config.hero_upgrade_tables:
+        cost_by_rarity[tbl.rarity.value] = list(tbl.duplicate_costs)
+    if not cost_by_rarity:
+        return
+
+    # Pick up to 4 representative card levels spaced across the upgrade table.
+    any_costs = next(iter(cost_by_rarity.values()))
+    num_levels = len(any_costs)
+    if num_levels == 0:
+        return
+    if num_levels <= 4:
+        sample_levels = list(range(1, num_levels + 1))
+    else:
+        sample_levels = sorted({1, num_levels // 3, (2 * num_levels) // 3, num_levels})
+
+    rows = []
+    for rarity in ("GRAY", "BLUE", "GOLD"):
+        costs = cost_by_rarity.get(rarity, [])
+        if not costs:
+            continue
+        mn = min_pct_by_rarity.get(rarity, 0.0)
+        mx = max_pct_by_rarity.get(rarity, 0.0)
+        row: dict[str, str] = {"Rarity": rarity}
+        for lvl in sample_levels:
+            idx = min(lvl - 1, len(costs) - 1)
+            cost = costs[idx]
+            row[f"L{lvl} (need {cost})"] = f"{round(cost * mn)}–{round(cost * mx)}"
+        rows.append(row)
+
+    if rows:
+        st.caption(caption)
+        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+
+
 def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
     st.subheader("Hero Card Duplicate Ranges (per Rarity)")
     st.caption(
-        "When a hero card is pulled, dupes received = round(dupe_cost_for_next_level x random(min%, max%)). "
-        "One row per card level."
+        "When a hero card is pulled, dupes received = round(dupe-cost-for-next-level × random(min%, max%)). "
+        "One row per card level. The **Dupes (min–max)** column resolves the % against the upgrade-cost table "
+        "so you can sanity-check the actual number of dupes a single pull will deliver."
     )
 
     if not config.hero_duplicate_ranges:
@@ -692,10 +760,27 @@ def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
     coins_list = dr.coins_per_dupe if dr.coins_per_dupe else [5] * num_levels
     while len(coins_list) < num_levels:
         coins_list.append(coins_list[-1] if coins_list else 5)
+
+    # Resolve next-level dupe cost for this rarity (used to preview dupes-per-pull)
+    cost_table = next(
+        (t.duplicate_costs for t in config.hero_upgrade_tables if t.rarity == dr.rarity),
+        [],
+    )
+    dupe_costs_aligned = list(cost_table[:num_levels])
+    while len(dupe_costs_aligned) < num_levels:
+        dupe_costs_aligned.append(dupe_costs_aligned[-1] if dupe_costs_aligned else 0)
+
+    preview = [
+        f"{round(dupe_costs_aligned[i] * dr.min_pct[i])}–{round(dupe_costs_aligned[i] * dr.max_pct[i])}"
+        for i in range(num_levels)
+    ]
+
     df = pd.DataFrame({
         "Card Level": range(1, num_levels + 1),
+        "Dupes Needed": dupe_costs_aligned,
         "Min %": [round(v * 100, 1) for v in dr.min_pct],
         "Max %": [round(v * 100, 1) for v in dr.max_pct],
+        "Dupes (min–max)": preview,
         "Coins/Dupe": coins_list[:num_levels],
     })
     bulk = render_bulk_edit_bar(f"hero_duperange_{sel}", df, label=f"{rarity_names[sel]} Dupe Ranges")
@@ -705,8 +790,16 @@ def _render_duplicate_ranges_tab(config: HeroCardConfig) -> None:
         df,
         column_config={
             "Card Level": st.column_config.NumberColumn("Card Level", disabled=True),
+            "Dupes Needed": st.column_config.NumberColumn(
+                "Dupes Needed", disabled=True,
+                help="Dupes required to reach the next level (from the upgrade cost table). Read-only.",
+            ),
             "Min %": st.column_config.NumberColumn("Min %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
             "Max %": st.column_config.NumberColumn("Max %", min_value=0.0, max_value=100.0, step=1.0, format="%.1f"),
+            "Dupes (min–max)": st.column_config.TextColumn(
+                "Dupes (min–max)", disabled=True,
+                help="Resolved dupe range per pull = round(Dupes Needed × Min/Max %). Read-only sanity check.",
+            ),
             "Coins/Dupe": st.column_config.NumberColumn("Coins/Dupe", min_value=0, step=1),
         },
         width="stretch",

@@ -210,16 +210,14 @@ def _render_top_bar(config: HeroCardConfig) -> None:
 def _render_balances(game_state: HeroCardGameState) -> None:
     bi = game_state.bonus_items
     with st.container(border=True):
-        m1, m2, m3, m4, m5 = st.columns(5)
+        m1, m2, m3, m4 = st.columns(4)
         m1.metric("🪙 Coins", f"{game_state.coins:,}")
         m2.metric("⭐ Bluestars", f"{game_state.total_bluestars:,}")
         m3.metric("🎟 Hero Tokens", f"{bi.get('HeroTokens', 0):,}")
         m4.metric("💎 Diamonds", f"{bi.get('Diamonds', 0):,}")
-        m5.metric("🔮 SpiritStone", f"{bi.get('SpiritStone', 0):,}")
 
         with st.expander("Other resources", expanded=False):
             rows = [
-                {"Resource": "S-Stone",      "Amount": bi.get("S-Stone", 0)},
                 {"Resource": "RandomDesign", "Amount": bi.get("RandomDesign", 0)},
                 {"Resource": "RandomGear",   "Amount": bi.get("RandomGear", 0)},
                 {"Resource": "PetFood",      "Amount": bi.get("PetFood", 0)},
@@ -228,11 +226,10 @@ def _render_balances(game_state: HeroCardGameState) -> None:
             ]
             misc = st.session_state[_STATE_KEY]["extras"].get("misc") or {}
             for k, v in misc.items():
+                if k in ("SpiritStone", "S-Stone"):
+                    continue
                 rows.append({"Resource": f"(misc) {k}", "Amount": v})
             st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
-
-
-_RARITY_COLORS = {"GRAY": "#9aa0a6", "BLUE": "#4f8bf9", "GOLD": "#f5b042"}
 
 
 def _render_heroes_panel(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
@@ -240,82 +237,96 @@ def _render_heroes_panel(config: HeroCardConfig, game_state: HeroCardGameState) 
         return
     with st.container(border=True):
         st.markdown("**Hero state**")
-        st.caption("Per-hero level, XP-to-next, jokers, and card-level breakdown by rarity.")
+        st.caption(
+            "Per-hero level, XP-to-next, jokers, and card-level breakdown by rarity. "
+            "Use the selector to focus on a subset of heroes."
+        )
 
         hero_ids = list(game_state.heroes.keys())
-        # 2-column grid of hero cards
-        for row_start in range(0, len(hero_ids), 2):
-            cols = st.columns(2)
-            for col_idx, hero_id in enumerate(hero_ids[row_start:row_start + 2]):
-                with cols[col_idx]:
-                    _render_single_hero_card(config, game_state.heroes[hero_id])
+        name_by_id = {hid: (_hero_def(config, hid).name if _hero_def(config, hid) else hid)
+                      for hid in hero_ids}
 
+        default_pick = st.session_state.get("day_sim_hero_pick")
+        if not default_pick:
+            default_pick = hero_ids
+        # Drop any selections that no longer exist
+        default_pick = [h for h in default_pick if h in hero_ids]
 
-def _render_single_hero_card(config: HeroCardConfig, hs) -> None:
-    hero_def = _hero_def(config, hs.hero_id)
-    name = hero_def.name if hero_def else hs.hero_id
-    max_lvl = hero_def.max_level if hero_def else 50
-    needed = _xp_to_next_level(hero_def, hs.level)
-    pct = (hs.xp / needed) if needed > 0 else 1.0
-    pct = max(0.0, min(1.0, pct))
+        picked = st.multiselect(
+            "Heroes to show",
+            options=hero_ids,
+            default=default_pick,
+            format_func=lambda hid: name_by_id.get(hid, hid),
+            key="day_sim_hero_pick",
+        )
+        if not picked:
+            st.caption("No heroes selected.")
+            return
 
-    cards = list(hs.cards.values())
-    unlocked = [c for c in cards if c.unlocked]
-    locked = [c for c in cards if not c.unlocked]
-    by_rarity: Dict[str, List[Any]] = {"GRAY": [], "BLUE": [], "GOLD": []}
-    for c in unlocked:
-        by_rarity.setdefault(c.rarity.value, []).append(c)
+        rows: List[Dict[str, Any]] = []
+        for hid in picked:
+            hs = game_state.heroes[hid]
+            hero_def = _hero_def(config, hid)
+            max_lvl = hero_def.max_level if hero_def else 50
+            needed = _xp_to_next_level(hero_def, hs.level)
+            cards = list(hs.cards.values())
+            unlocked = [c for c in cards if c.unlocked]
+            locked_count = len(cards) - len(unlocked)
 
-    avg = round(hero_card_avg_level(hs), 2)
+            pool_by_rarity: Dict[str, int] = {"GRAY": 0, "BLUE": 0, "GOLD": 0}
+            unl_by_rarity: Dict[str, List[Any]] = {"GRAY": [], "BLUE": [], "GOLD": []}
+            for c in cards:
+                pool_by_rarity[c.rarity.value] = pool_by_rarity.get(c.rarity.value, 0) + 1
+            for c in unlocked:
+                unl_by_rarity.setdefault(c.rarity.value, []).append(c)
 
-    with st.container(border=True):
-        st.markdown(f"### {name}  &nbsp;<span style='opacity:0.6;font-size:0.7em;'>({hs.hero_id})</span>",
-                    unsafe_allow_html=True)
-        h1, h2, h3, h4 = st.columns(4)
-        h1.metric("Level", f"{hs.level} / {max_lvl}")
-        h2.metric("Jokers", hs.joker_count)
-        h3.metric("Cards", f"{len(unlocked)} / {len(cards)}")
-        h4.metric("Avg card lvl", avg)
+            def _rarity_cell(r: str) -> str:
+                u = len(unl_by_rarity.get(r, []))
+                t = pool_by_rarity.get(r, 0)
+                if u == 0:
+                    return f"0 / {t}"
+                avg_lvl = sum(c.level for c in unl_by_rarity[r]) / u
+                return f"{u} / {t} · avg L{avg_lvl:.1f}"
 
-        if needed > 0:
-            st.progress(pct, text=f"XP {hs.xp:,} / {needed:,} ({pct*100:.0f}%) → L{hs.level + 1}")
-        else:
-            st.success("Hero is at max level.")
+            rows.append({
+                "Hero": name_by_id.get(hid, hid),
+                "Level": f"{hs.level} / {max_lvl}",
+                "XP → next": (f"{hs.xp:,} / {needed:,} ({(hs.xp / needed * 100):.0f}%)"
+                              if needed > 0 else "MAX"),
+                "Jokers": hs.joker_count,
+                "Cards unlocked": f"{len(unlocked)} / {len(cards)}",
+                "Avg card lvl": round(hero_card_avg_level(hs), 2),
+                "GRAY": _rarity_cell("GRAY"),
+                "BLUE": _rarity_cell("BLUE"),
+                "GOLD": _rarity_cell("GOLD"),
+                "Locked": locked_count,
+            })
 
-        # Rarity breakdown row
-        st.caption("Cards by rarity (unlocked / total in pool):")
-        pool_by_rarity: Dict[str, int] = {"GRAY": 0, "BLUE": 0, "GOLD": 0}
-        for c in cards:
-            pool_by_rarity[c.rarity.value] = pool_by_rarity.get(c.rarity.value, 0) + 1
-        rc = st.columns(3)
-        for i, rarity in enumerate(["GRAY", "BLUE", "GOLD"]):
-            color = _RARITY_COLORS.get(rarity, "#888")
-            unl = len(by_rarity.get(rarity, []))
-            tot = pool_by_rarity.get(rarity, 0)
-            avg_lvl = (sum(c.level for c in by_rarity.get(rarity, [])) / unl) if unl else 0.0
-            rc[i].markdown(
-                f"<div style='background:{color}22;border-left:4px solid {color};"
-                f"padding:6px 10px;border-radius:4px;'>"
-                f"<b style='color:{color}'>{rarity}</b><br>"
-                f"{unl} / {tot} unlocked<br>"
-                f"<small>avg L{avg_lvl:.1f}</small></div>",
-                unsafe_allow_html=True,
+        st.dataframe(
+            pd.DataFrame(rows),
+            hide_index=True,
+            width="stretch",
+            height=min(560, 80 + 36 * len(rows)),
+        )
+
+        # Optional card-level drill-down for one of the picked heroes
+        with st.expander("Card-level detail (pick one hero)", expanded=False):
+            drill_hid = st.selectbox(
+                "Hero",
+                options=picked,
+                format_func=lambda hid: name_by_id.get(hid, hid),
+                key="day_sim_hero_drill",
             )
-
-        # Card-level histogram (unlocked only)
-        if unlocked:
-            with st.expander(f"Card levels ({len(unlocked)} unlocked)", expanded=False):
-                rows = []
-                for c in sorted(unlocked, key=lambda x: (x.rarity.value, -x.level, x.card_id)):
-                    rows.append({
-                        "Card": c.card_id,
-                        "Rarity": c.rarity.value,
-                        "Level": c.level,
-                        "Dupes": c.duplicates,
-                    })
-                st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch", height=240)
-        if locked:
-            st.caption(f"🔒 {len(locked)} card(s) still locked (skill tree).")
+            hs = game_state.heroes[drill_hid]
+            unlocked = [c for c in hs.cards.values() if c.unlocked]
+            if unlocked:
+                detail_rows = [
+                    {"Card": c.card_id, "Rarity": c.rarity.value, "Level": c.level, "Dupes": c.duplicates}
+                    for c in sorted(unlocked, key=lambda x: (x.rarity.value, -x.level, x.card_id))
+                ]
+                st.dataframe(pd.DataFrame(detail_rows), hide_index=True, width="stretch", height=280)
+            else:
+                st.caption("No cards unlocked yet for this hero.")
 
 
 # ─── Daily packs ─────────────────────────────────────────────────────────────
