@@ -8,6 +8,8 @@ upgrades individual cards. State lives entirely in st.session_state.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from random import Random
 from typing import Any, Dict, List, Optional
 
@@ -103,9 +105,67 @@ def _log(lines):
         del log[: len(log) - _MAX_LOG]
 
 
+# ─── Player-cohort chapter cadence ───────────────────────────────────────────
+#
+# The chapter-completion rhythm comes from the chosen player cohort profile
+# (Average / P75 / P90) — same data that drives the daily pack schedule.
+# Each profile JSON ships a 26-day `chapters_per_day: list[int]` field (CSV
+# day 0 → simulator day 1). When the user presses "Next day", we auto-beat
+# that many chapters before advancing, so manual stepping mirrors the
+# scripted Monte Carlo behaviour.
+
+_COHORT_PROFILES = ["Average", "P75", "P90"]
+_DEFAULT_COHORT = "Average"
+
+
+def _load_cohort_chapters(name: str) -> list[int]:
+    """Read `chapters_per_day` from a Variant B profile JSON. Empty on miss."""
+    p = Path(__file__).resolve().parents[1] / "data" / "profiles_variant_b" / f"{name}.json"
+    if not p.exists():
+        return []
+    try:
+        data = json.loads(p.read_text())
+    except json.JSONDecodeError:
+        return []
+    chapters = data.get("chapters_per_day")
+    if not chapters:
+        chapters = (data.get("full_config") or {}).get("chapters_per_day", [])
+    return [int(x) for x in (chapters or [])]
+
+
+def _chapters_for_sim_day(chapters_per_day: list[int], sim_day: int) -> int:
+    """Look up chapters to beat on the given 1-indexed sim day.
+
+    Day 0 is the install/FTUE day and yields 0. Day N≥1 maps to index
+    `(N - 1) % len`, matching the orchestrator's schedule indexing.
+    """
+    if sim_day < 1 or not chapters_per_day:
+        return 0
+    return int(chapters_per_day[(sim_day - 1) % len(chapters_per_day)])
+
+
+def _auto_beat_chapters(state: Dict[str, Any], config: HeroCardConfig, n: int) -> None:
+    """Beat `n` chapters: open n EndOfChapter packs, update counters, log."""
+    if n <= 0:
+        return
+    last_results: List[Dict[str, Any]] = []
+    for _ in range(n):
+        r = ds.open_pack_by_name(
+            "EndOfChapterPack", state["game_state"], config, _rng(), apply_evolution=False
+        )
+        last_results.append(r)
+    state["chapters_beaten"] = state.get("chapters_beaten", 0) + n
+    state["last_pack_results"] = last_results
+    _log([f"Auto-beat {n} chapter(s) on day {state['day']} → {n} EndOfChapter pack(s) opened"])
+    _log_pack_results(last_results)
+
+
 def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     rng = Random(seed if seed and seed > 0 else None)
-    paid_pass = st.session_state.get(_STATE_KEY, {}).get("paid_pass", False)
+    prev = st.session_state.get(_STATE_KEY, {})
+    paid_pass = prev.get("paid_pass", False)
+    cohort = prev.get("cohort") or _DEFAULT_COHORT
+    chapters_per_day = _load_cohort_chapters(cohort)
     st.session_state[_STATE_KEY] = {
         "game_state": ds.init_state(config),
         "day": 0,
@@ -119,6 +179,8 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "last_premium_result": None,
         "daily_used": set(),
         "chapters_beaten": 0,
+        "cohort": cohort,
+        "chapters_per_day": chapters_per_day,
     }
     _log([f"Day 0 (install day) — fresh simulation (seed={seed or 'random'})"])
     state = st.session_state[_STATE_KEY]
@@ -204,7 +266,9 @@ def render_variant_b_day_simulator() -> None:
 
 def _render_top_bar(config: HeroCardConfig) -> None:
     with st.container(border=True):
-        c_seed, c_reset, c_paid, c_day, c_chap, c_next = st.columns([1.2, 1.1, 1.4, 0.7, 0.9, 1.2])
+        c_seed, c_reset, c_cohort, c_paid, c_day, c_chap, c_next = st.columns(
+            [1.0, 1.0, 1.1, 1.2, 0.7, 0.9, 1.2]
+        )
         with c_seed:
             seed = st.number_input(
                 "Seed (0 = random)", min_value=0, max_value=999999, value=0, key="day_sim_seed"
@@ -214,6 +278,23 @@ def _render_top_bar(config: HeroCardConfig) -> None:
             if st.button("🔄 Start / Reset", type="primary", key="day_sim_reset", width="stretch"):
                 _reset(config, int(seed) if seed else None)
                 st.rerun()
+        with c_cohort:
+            current_cohort = (
+                st.session_state.get(_STATE_KEY, {}).get("cohort")
+                or _DEFAULT_COHORT
+            )
+            picked_cohort = st.selectbox(
+                "Player cohort",
+                options=_COHORT_PROFILES,
+                index=_COHORT_PROFILES.index(current_cohort)
+                    if current_cohort in _COHORT_PROFILES else 0,
+                key="day_sim_cohort",
+                help="Drives chapters-per-day on 'Next day'. Source: matching profile JSON.",
+            )
+            if _STATE_KEY in st.session_state and picked_cohort != current_cohort:
+                st.session_state[_STATE_KEY]["cohort"] = picked_cohort
+                st.session_state[_STATE_KEY]["chapters_per_day"] = _load_cohort_chapters(picked_cohort)
+                _log([f"Cohort switched to **{picked_cohort}** — chapters-per-day reloaded."])
         with c_paid:
             st.write("")
             if _STATE_KEY in st.session_state:
@@ -242,6 +323,15 @@ def _render_top_bar(config: HeroCardConfig) -> None:
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
                     state["daily_used"] = set()
                     _log([f"── Advanced to day {state['day']} ──"] + unlocks)
+                    # Auto-beat the cohort's chapters for this new day. This
+                    # is what makes manual play mirror scripted Monte Carlo
+                    # behaviour: the chapter rhythm comes from the chosen
+                    # player cohort instead of relying on the user to click
+                    # the "Beat chapter" button N times.
+                    chapters_today = _chapters_for_sim_day(
+                        state.get("chapters_per_day", []), state["day"]
+                    )
+                    _auto_beat_chapters(state, config, chapters_today)
                     _snapshot_history(state)
                     st.rerun()
 
@@ -971,6 +1061,15 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
                     state["daily_used"] = set()
                     _log([f"── Advanced to day {state['day']} (scripted) ──"] + unlocks)
+                    # Auto-beat the cohort's chapters on the new day — same
+                    # rule as the manual "Next day" flow, so scripted runs
+                    # don't silently skip the chapter rhythm.
+                    chapters_today = _chapters_for_sim_day(
+                        state.get("chapters_per_day", []), state["day"]
+                    )
+                    if chapters_today > 0:
+                        _auto_beat_chapters(state, config, chapters_today)
+                        opened_all.extend(state.get("last_pack_results") or [])
                     _snapshot_history(state)
                 if opened_all:
                     state["last_pack_results"] = opened_all[-10:]

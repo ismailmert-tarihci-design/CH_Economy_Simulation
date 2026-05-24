@@ -121,6 +121,11 @@ class UserProfile(BaseModel):
 
     name: str
     daily_pack_schedule: List[Dict[str, float]] = Field(default_factory=list)
+    chapters_per_day: List[int] = Field(
+        default_factory=list,
+        description="Per-day chapter completion counts (integer), 0-indexed. "
+        "Derived from CSV EndOfChapter avg rounded to nearest int.",
+    )
     unique_unlock_schedule: Dict[int, int] = Field(default_factory=dict)
     full_config: Optional[Dict[str, Any]] = Field(
         default=None,

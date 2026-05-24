@@ -10,7 +10,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.0,
       "GearPack": 0.0,
-      "EndOfChapterPack": 0.0
+      "EndOfChapterPack": 1.0
     },
     {
       "StandardPackT5": 0.0,
@@ -21,7 +21,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.0,
       "GearPack": 0.0,
-      "EndOfChapterPack": 1.072916667
+      "EndOfChapterPack": 2.197916667
     },
     {
       "StandardPackT5": 0.0,
@@ -32,7 +32,7 @@
       "PetPack": 0.0,
       "HeroPack": 1.0,
       "GearPack": 0.0,
-      "EndOfChapterPack": 2.625
+      "EndOfChapterPack": 3.625
     },
     {
       "StandardPackT5": 0.0,
@@ -43,7 +43,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.458333333,
       "GearPack": 0.125,
-      "EndOfChapterPack": 3.21875
+      "EndOfChapterPack": 4.21875
     },
     {
       "StandardPackT5": 0.0,
@@ -54,7 +54,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.166666667,
       "GearPack": 1.0,
-      "EndOfChapterPack": 3.25
+      "EndOfChapterPack": 4.25
     },
     {
       "StandardPackT5": 0.0,
@@ -65,7 +65,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.083333333,
       "GearPack": 0.854166667,
-      "EndOfChapterPack": 3.083333333
+      "EndOfChapterPack": 4.083333333
     },
     {
       "StandardPackT5": 0.0,
@@ -76,7 +76,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.0,
       "GearPack": 0.354166667,
-      "EndOfChapterPack": 2.916666667
+      "EndOfChapterPack": 3.875
     },
     {
       "StandardPackT5": 0.0,
@@ -87,7 +87,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.0,
       "GearPack": 0.083333333,
-      "EndOfChapterPack": 2.78125
+      "EndOfChapterPack": 3.302083333
     },
     {
       "StandardPackT5": 0.0,
@@ -98,7 +98,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.0,
       "GearPack": 0.041666667,
-      "EndOfChapterPack": 2.625
+      "EndOfChapterPack": 2.75
     },
     {
       "StandardPackT5": 0.0,
@@ -10252,7 +10252,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.0,
         "GearPack": 0.0,
-        "EndOfChapterPack": 0.0
+        "EndOfChapterPack": 1.0
       },
       {
         "StandardPackT5": 0.0,
@@ -10263,7 +10263,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.0,
         "GearPack": 0.0,
-        "EndOfChapterPack": 1.072916667
+        "EndOfChapterPack": 2.197916667
       },
       {
         "StandardPackT5": 0.0,
@@ -10274,7 +10274,7 @@
         "PetPack": 0.0,
         "HeroPack": 1.0,
         "GearPack": 0.0,
-        "EndOfChapterPack": 2.625
+        "EndOfChapterPack": 3.625
       },
       {
         "StandardPackT5": 0.0,
@@ -10285,7 +10285,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.458333333,
         "GearPack": 0.125,
-        "EndOfChapterPack": 3.21875
+        "EndOfChapterPack": 4.21875
       },
       {
         "StandardPackT5": 0.0,
@@ -10296,7 +10296,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.166666667,
         "GearPack": 1.0,
-        "EndOfChapterPack": 3.25
+        "EndOfChapterPack": 4.25
       },
       {
         "StandardPackT5": 0.0,
@@ -10307,7 +10307,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.083333333,
         "GearPack": 0.854166667,
-        "EndOfChapterPack": 3.083333333
+        "EndOfChapterPack": 4.083333333
       },
       {
         "StandardPackT5": 0.0,
@@ -10318,7 +10318,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.0,
         "GearPack": 0.354166667,
-        "EndOfChapterPack": 2.916666667
+        "EndOfChapterPack": 3.875
       },
       {
         "StandardPackT5": 0.0,
@@ -10329,7 +10329,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.0,
         "GearPack": 0.083333333,
-        "EndOfChapterPack": 2.78125
+        "EndOfChapterPack": 3.302083333
       },
       {
         "StandardPackT5": 0.0,
@@ -10340,7 +10340,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.0,
         "GearPack": 0.041666667,
-        "EndOfChapterPack": 2.625
+        "EndOfChapterPack": 2.75
       },
       {
         "StandardPackT5": 0.0,
@@ -12023,6 +12023,62 @@
     ],
     "premium_pack_purchase_schedule": [],
     "pet_system_config": null,
-    "gear_system_config": null
-  }
+    "gear_system_config": null,
+    "chapters_per_day": [
+      0,
+      1,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ]
+  },
+  "chapters_per_day": [
+    0,
+    1,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ]
 }

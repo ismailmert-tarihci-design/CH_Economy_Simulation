@@ -10,7 +10,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.0,
       "GearPack": 0.0,
-      "EndOfChapterPack": 0.0
+      "EndOfChapterPack": 2.0
     },
     {
       "StandardPackT5": 0.0,
@@ -21,7 +21,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.554166667,
       "GearPack": 0.083333333,
-      "EndOfChapterPack": 4.0
+      "EndOfChapterPack": 6.0
     },
     {
       "StandardPackT5": 0.0,
@@ -32,7 +32,7 @@
       "PetPack": 0.0,
       "HeroPack": 1.0,
       "GearPack": 0.25,
-      "EndOfChapterPack": 5.458333333
+      "EndOfChapterPack": 7.458333333
     },
     {
       "StandardPackT5": 0.0,
@@ -43,7 +43,7 @@
       "PetPack": 0.0,
       "HeroPack": 1.0,
       "GearPack": 1.0,
-      "EndOfChapterPack": 5.625
+      "EndOfChapterPack": 6.683333333
     },
     {
       "StandardPackT5": 0.0,
@@ -54,7 +54,7 @@
       "PetPack": 0.0,
       "HeroPack": 1.0,
       "GearPack": 1.125,
-      "EndOfChapterPack": 5.308333333
+      "EndOfChapterPack": 6.308333333
     },
     {
       "StandardPackT5": 0.0,
@@ -65,7 +65,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.875,
       "GearPack": 1.0,
-      "EndOfChapterPack": 5.166666667
+      "EndOfChapterPack": 6.166666667
     },
     {
       "StandardPackT5": 0.0,
@@ -76,7 +76,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.583333333,
       "GearPack": 1.0,
-      "EndOfChapterPack": 4.8875
+      "EndOfChapterPack": 5.8875
     },
     {
       "StandardPackT5": 0.0,
@@ -87,7 +87,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.229166667,
       "GearPack": 1.0,
-      "EndOfChapterPack": 4.75
+      "EndOfChapterPack": 5.75
     },
     {
       "StandardPackT5": 0.0,
@@ -98,7 +98,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.2375,
       "GearPack": 1.0,
-      "EndOfChapterPack": 4.379166667
+      "EndOfChapterPack": 5.379166667
     },
     {
       "StandardPackT5": 0.0,
@@ -109,7 +109,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.166666667,
       "GearPack": 1.0,
-      "EndOfChapterPack": 4.2125
+      "EndOfChapterPack": 5.2125
     },
     {
       "StandardPackT5": 0.0,
@@ -120,7 +120,7 @@
       "PetPack": 1.0,
       "HeroPack": 0.208333333,
       "GearPack": 0.958333333,
-      "EndOfChapterPack": 4.216666667
+      "EndOfChapterPack": 5.216666667
     },
     {
       "StandardPackT5": 0.0,
@@ -131,7 +131,7 @@
       "PetPack": 1.0,
       "HeroPack": 0.208333333,
       "GearPack": 0.804166667,
-      "EndOfChapterPack": 3.916666667
+      "EndOfChapterPack": 4.916666667
     },
     {
       "StandardPackT5": 0.0,
@@ -142,7 +142,7 @@
       "PetPack": 0.9125,
       "HeroPack": 0.125,
       "GearPack": 0.75,
-      "EndOfChapterPack": 3.916666667
+      "EndOfChapterPack": 4.916666667
     },
     {
       "StandardPackT5": 0.0,
@@ -153,7 +153,7 @@
       "PetPack": 0.583333333,
       "HeroPack": 0.166666667,
       "GearPack": 0.6375,
-      "EndOfChapterPack": 3.820833333
+      "EndOfChapterPack": 4.779166666
     },
     {
       "StandardPackT5": 0.0,
@@ -164,7 +164,7 @@
       "PetPack": 0.4375,
       "HeroPack": 0.083333333,
       "GearPack": 0.4875,
-      "EndOfChapterPack": 3.779166667
+      "EndOfChapterPack": 4.695833334
     },
     {
       "StandardPackT5": 0.0,
@@ -175,7 +175,7 @@
       "PetPack": 0.141666667,
       "HeroPack": 0.091666667,
       "GearPack": 0.6125,
-      "EndOfChapterPack": 3.554166667
+      "EndOfChapterPack": 4.333333334
     },
     {
       "StandardPackT5": 0.0,
@@ -186,7 +186,7 @@
       "PetPack": 0.125,
       "HeroPack": 0.125,
       "GearPack": 0.741666667,
-      "EndOfChapterPack": 3.433333333
+      "EndOfChapterPack": 3.879166666
     },
     {
       "StandardPackT5": 0.0,
@@ -197,7 +197,7 @@
       "PetPack": 0.0125,
       "HeroPack": 0.133333333,
       "GearPack": 0.379166667,
-      "EndOfChapterPack": 3.320833333
+      "EndOfChapterPack": 3.908333333
     },
     {
       "StandardPackT5": 0.0,
@@ -208,7 +208,7 @@
       "PetPack": 0.020833333,
       "HeroPack": 0.095833333,
       "GearPack": 0.470833333,
-      "EndOfChapterPack": 3.3125
+      "EndOfChapterPack": 3.8
     },
     {
       "StandardPackT5": 0.0,
@@ -219,7 +219,7 @@
       "PetPack": 0.041666667,
       "HeroPack": 0.125,
       "GearPack": 0.345833333,
-      "EndOfChapterPack": 3.208333333
+      "EndOfChapterPack": 3.625
     },
     {
       "StandardPackT5": 0.0,
@@ -230,7 +230,7 @@
       "PetPack": 0.083333333,
       "HeroPack": 0.083333333,
       "GearPack": 0.458333333,
-      "EndOfChapterPack": 3.166666667
+      "EndOfChapterPack": 3.55
     },
     {
       "StandardPackT5": 0.0,
@@ -241,7 +241,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.041666667,
       "GearPack": 0.4125,
-      "EndOfChapterPack": 3.383333333
+      "EndOfChapterPack": 3.7
     },
     {
       "StandardPackT5": 0.0,
@@ -252,7 +252,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.125,
       "GearPack": 0.554166667,
-      "EndOfChapterPack": 3.041666667
+      "EndOfChapterPack": 3.1375
     },
     {
       "StandardPackT5": 0.0,
@@ -263,7 +263,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.054166667,
       "GearPack": 0.445833333,
-      "EndOfChapterPack": 3.066666667
+      "EndOfChapterPack": 3.370833334
     },
     {
       "StandardPackT5": 0.0,
@@ -274,7 +274,7 @@
       "PetPack": 0.041666667,
       "HeroPack": 0.0625,
       "GearPack": 0.454166667,
-      "EndOfChapterPack": 3.004166667
+      "EndOfChapterPack": 3.170833334
     },
     {
       "StandardPackT5": 0.0,
@@ -285,7 +285,7 @@
       "PetPack": 0.0,
       "HeroPack": 0.1,
       "GearPack": 0.2625,
-      "EndOfChapterPack": 3.0
+      "EndOfChapterPack": 3.0375
     }
   ],
   "unique_unlock_schedule": {},
@@ -10252,7 +10252,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.0,
         "GearPack": 0.0,
-        "EndOfChapterPack": 0.0
+        "EndOfChapterPack": 2.0
       },
       {
         "StandardPackT5": 0.0,
@@ -10263,7 +10263,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.554166667,
         "GearPack": 0.083333333,
-        "EndOfChapterPack": 4.0
+        "EndOfChapterPack": 6.0
       },
       {
         "StandardPackT5": 0.0,
@@ -10274,7 +10274,7 @@
         "PetPack": 0.0,
         "HeroPack": 1.0,
         "GearPack": 0.25,
-        "EndOfChapterPack": 5.458333333
+        "EndOfChapterPack": 7.458333333
       },
       {
         "StandardPackT5": 0.0,
@@ -10285,7 +10285,7 @@
         "PetPack": 0.0,
         "HeroPack": 1.0,
         "GearPack": 1.0,
-        "EndOfChapterPack": 5.625
+        "EndOfChapterPack": 6.683333333
       },
       {
         "StandardPackT5": 0.0,
@@ -10296,7 +10296,7 @@
         "PetPack": 0.0,
         "HeroPack": 1.0,
         "GearPack": 1.125,
-        "EndOfChapterPack": 5.308333333
+        "EndOfChapterPack": 6.308333333
       },
       {
         "StandardPackT5": 0.0,
@@ -10307,7 +10307,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.875,
         "GearPack": 1.0,
-        "EndOfChapterPack": 5.166666667
+        "EndOfChapterPack": 6.166666667
       },
       {
         "StandardPackT5": 0.0,
@@ -10318,7 +10318,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.583333333,
         "GearPack": 1.0,
-        "EndOfChapterPack": 4.8875
+        "EndOfChapterPack": 5.8875
       },
       {
         "StandardPackT5": 0.0,
@@ -10329,7 +10329,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.229166667,
         "GearPack": 1.0,
-        "EndOfChapterPack": 4.75
+        "EndOfChapterPack": 5.75
       },
       {
         "StandardPackT5": 0.0,
@@ -10340,7 +10340,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.2375,
         "GearPack": 1.0,
-        "EndOfChapterPack": 4.379166667
+        "EndOfChapterPack": 5.379166667
       },
       {
         "StandardPackT5": 0.0,
@@ -10351,7 +10351,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.166666667,
         "GearPack": 1.0,
-        "EndOfChapterPack": 4.2125
+        "EndOfChapterPack": 5.2125
       },
       {
         "StandardPackT5": 0.0,
@@ -10362,7 +10362,7 @@
         "PetPack": 1.0,
         "HeroPack": 0.208333333,
         "GearPack": 0.958333333,
-        "EndOfChapterPack": 4.216666667
+        "EndOfChapterPack": 5.216666667
       },
       {
         "StandardPackT5": 0.0,
@@ -10373,7 +10373,7 @@
         "PetPack": 1.0,
         "HeroPack": 0.208333333,
         "GearPack": 0.804166667,
-        "EndOfChapterPack": 3.916666667
+        "EndOfChapterPack": 4.916666667
       },
       {
         "StandardPackT5": 0.0,
@@ -10384,7 +10384,7 @@
         "PetPack": 0.9125,
         "HeroPack": 0.125,
         "GearPack": 0.75,
-        "EndOfChapterPack": 3.916666667
+        "EndOfChapterPack": 4.916666667
       },
       {
         "StandardPackT5": 0.0,
@@ -10395,7 +10395,7 @@
         "PetPack": 0.583333333,
         "HeroPack": 0.166666667,
         "GearPack": 0.6375,
-        "EndOfChapterPack": 3.820833333
+        "EndOfChapterPack": 4.779166666
       },
       {
         "StandardPackT5": 0.0,
@@ -10406,7 +10406,7 @@
         "PetPack": 0.4375,
         "HeroPack": 0.083333333,
         "GearPack": 0.4875,
-        "EndOfChapterPack": 3.779166667
+        "EndOfChapterPack": 4.695833334
       },
       {
         "StandardPackT5": 0.0,
@@ -10417,7 +10417,7 @@
         "PetPack": 0.141666667,
         "HeroPack": 0.091666667,
         "GearPack": 0.6125,
-        "EndOfChapterPack": 3.554166667
+        "EndOfChapterPack": 4.333333334
       },
       {
         "StandardPackT5": 0.0,
@@ -10428,7 +10428,7 @@
         "PetPack": 0.125,
         "HeroPack": 0.125,
         "GearPack": 0.741666667,
-        "EndOfChapterPack": 3.433333333
+        "EndOfChapterPack": 3.879166666
       },
       {
         "StandardPackT5": 0.0,
@@ -10439,7 +10439,7 @@
         "PetPack": 0.0125,
         "HeroPack": 0.133333333,
         "GearPack": 0.379166667,
-        "EndOfChapterPack": 3.320833333
+        "EndOfChapterPack": 3.908333333
       },
       {
         "StandardPackT5": 0.0,
@@ -10450,7 +10450,7 @@
         "PetPack": 0.020833333,
         "HeroPack": 0.095833333,
         "GearPack": 0.470833333,
-        "EndOfChapterPack": 3.3125
+        "EndOfChapterPack": 3.8
       },
       {
         "StandardPackT5": 0.0,
@@ -10461,7 +10461,7 @@
         "PetPack": 0.041666667,
         "HeroPack": 0.125,
         "GearPack": 0.345833333,
-        "EndOfChapterPack": 3.208333333
+        "EndOfChapterPack": 3.625
       },
       {
         "StandardPackT5": 0.0,
@@ -10472,7 +10472,7 @@
         "PetPack": 0.083333333,
         "HeroPack": 0.083333333,
         "GearPack": 0.458333333,
-        "EndOfChapterPack": 3.166666667
+        "EndOfChapterPack": 3.55
       },
       {
         "StandardPackT5": 0.0,
@@ -10483,7 +10483,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.041666667,
         "GearPack": 0.4125,
-        "EndOfChapterPack": 3.383333333
+        "EndOfChapterPack": 3.7
       },
       {
         "StandardPackT5": 0.0,
@@ -10494,7 +10494,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.125,
         "GearPack": 0.554166667,
-        "EndOfChapterPack": 3.041666667
+        "EndOfChapterPack": 3.1375
       },
       {
         "StandardPackT5": 0.0,
@@ -10505,7 +10505,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.054166667,
         "GearPack": 0.445833333,
-        "EndOfChapterPack": 3.066666667
+        "EndOfChapterPack": 3.370833334
       },
       {
         "StandardPackT5": 0.0,
@@ -10516,7 +10516,7 @@
         "PetPack": 0.041666667,
         "HeroPack": 0.0625,
         "GearPack": 0.454166667,
-        "EndOfChapterPack": 3.004166667
+        "EndOfChapterPack": 3.170833334
       },
       {
         "StandardPackT5": 0.0,
@@ -10527,7 +10527,7 @@
         "PetPack": 0.0,
         "HeroPack": 0.1,
         "GearPack": 0.2625,
-        "EndOfChapterPack": 3.0
+        "EndOfChapterPack": 3.0375
       }
     ],
     "hero_duplicate_ranges": [
@@ -12023,6 +12023,62 @@
     ],
     "premium_pack_purchase_schedule": [],
     "pet_system_config": null,
-    "gear_system_config": null
-  }
+    "gear_system_config": null,
+    "chapters_per_day": [
+      0,
+      4,
+      5,
+      6,
+      5,
+      5,
+      5,
+      5,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ]
+  },
+  "chapters_per_day": [
+    0,
+    4,
+    5,
+    6,
+    5,
+    5,
+    5,
+    5,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+  ]
 }
