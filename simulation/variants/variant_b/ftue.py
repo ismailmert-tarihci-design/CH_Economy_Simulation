@@ -30,36 +30,36 @@ from simulation.variants.variant_b.upgrade_engine import _check_hero_level_up
 # Card name -> Woody card_id mapping
 # ---------------------------------------------------------------------------
 #
-# Woody has 12 GRAY (woody_card_1..12), 7 BLUE (..13..19), 5 GOLD (..20..24).
-# FTUE references more golds than that, so some FTUE names share a card_id.
+# Woody pool (standardized 13G/10B/2Gr): woody_gold_1..13, woody_blue_1..10,
+# woody_gray_1..2. Gray has only 2 slots so multiple FTUE gray names share IDs.
 
 FTUE_CARD_MAP: Dict[str, str] = {
     # Gold-rarity tagged in spec
-    "Power Shot":       "woody_card_20",
-    "Hawk Shot":        "woody_card_21",
-    "Bounce Shot":      "woody_card_22",
-    "Vital Surge ++":   "woody_card_23",
-    "Extra Shot":       "woody_card_24",
-    "Ball Fortune":     "woody_card_20",  # reuse
-    "Double Strike":    "woody_card_21",  # reuse
+    "Power Shot":       "woody_gold_1",
+    "Hawk Shot":        "woody_gold_2",
+    "Bounce Shot":      "woody_gold_3",
+    "Vital Surge ++":   "woody_gold_4",
+    "Extra Shot":       "woody_gold_5",
+    "Ball Fortune":     "woody_gold_6",
+    "Double Strike":    "woody_gold_7",
     # Blue-rarity tagged in spec
-    "Bronze Shield":    "woody_card_13",
-    "Steel Hide":       "woody_card_14",
-    "Vicious Impact":   "woody_card_15",
-    "Battle Cry":       "woody_card_16",
-    "Sharp Instinct":   "woody_card_17",
-    "Sharp Instinct +": "woody_card_17",  # perked variant maps to same card
-    "Shadow Step":      "woody_card_18",
-    "Fury":             "woody_card_19",
-    "Healing Spell+":   "woody_card_19",  # reuse
-    # Gray-rarity tagged in spec
-    "Life Drain":       "woody_card_1",
-    "Ball Stash":       "woody_card_2",
-    "Simple Shots":     "woody_card_3",
-    "Simple Shots+":    "woody_card_3",
-    "Healing Spell":    "woody_card_4",
-    "Vital Surge":      "woody_card_5",
-    "Crit power":       "woody_card_6",
+    "Bronze Shield":    "woody_blue_1",
+    "Steel Hide":       "woody_blue_2",
+    "Vicious Impact":   "woody_blue_3",
+    "Battle Cry":       "woody_blue_4",
+    "Sharp Instinct":   "woody_blue_5",
+    "Sharp Instinct +": "woody_blue_5",  # perked variant maps to same card
+    "Shadow Step":      "woody_blue_6",
+    "Fury":             "woody_blue_7",
+    "Healing Spell+":   "woody_blue_8",
+    # Gray-rarity tagged in spec — only 2 gray slots, so reuse heavily
+    "Life Drain":       "woody_gray_1",
+    "Ball Stash":       "woody_gray_2",
+    "Simple Shots":     "woody_gray_1",
+    "Simple Shots+":    "woody_gray_1",
+    "Healing Spell":    "woody_gray_2",
+    "Vital Surge":      "woody_gray_1",
+    "Crit power":       "woody_gray_2",
 }
 
 

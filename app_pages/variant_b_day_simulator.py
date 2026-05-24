@@ -105,11 +105,12 @@ def _log(lines):
 
 def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     rng = Random(seed if seed and seed > 0 else None)
+    paid_pass = st.session_state.get(_STATE_KEY, {}).get("paid_pass", False)
     st.session_state[_STATE_KEY] = {
         "game_state": ds.init_state(config),
         "day": 0,
         "season_pass_step": 1,
-        "paid_pass": st.session_state.get(_STATE_KEY, {}).get("paid_pass", False),
+        "paid_pass": paid_pass,
         "extras": ds.init_extras(),
         "event_log": [],
         "rng": rng,
@@ -124,6 +125,22 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     state["history"] = []
     ftue_lines = ftue.run_ftue(state["game_state"], config, state["extras"])
     _log(ftue_lines)
+
+    # FTUE pack steps already opened the SP1, SP2, SP4 packs and credited
+    # their cards. Catch the season-pass tracker up through step 4 and apply
+    # only the non-pack rewards (e.g. SP step 3 diamonds), skipping packs to
+    # avoid double-crediting.
+    catchup_lines: List[str] = ["── Pre-claiming SP steps 1–4 (packs already opened in FTUE) ──"]
+    for sp_step in range(1, 5):
+        ok, lines, _opened = sp.apply_season_pass_step(
+            sp_step, paid_pass, state["game_state"], state["extras"],
+            config=config, rng=rng, skip_packs=True,
+        )
+        if ok:
+            catchup_lines.extend(lines)
+    state["season_pass_step"] = 5
+    _log(catchup_lines)
+
     _snapshot_history(state)
 
 
@@ -159,23 +176,27 @@ def render_variant_b_day_simulator() -> None:
     _render_balances(game_state)
     _render_heroes_panel(config, game_state)
 
-    tab_packs, tab_pass, tab_hero_pack, tab_upgrades, tab_scripted, tab_charts, tab_log = st.tabs(
-        ["🎴 Daily Packs", "🏆 Season Pass", "⭐ Hero Pack", "⚒ Upgrades",
-         "🤖 Scripted run", "📈 Charts", "📜 Activity Log"]
-    )
-    with tab_packs:
-        _render_daily_packs(config, game_state)
-    with tab_pass:
-        _render_season_pass(config, game_state)
-    with tab_hero_pack:
-        _render_hero_unique_pack(config, game_state)
-    with tab_upgrades:
-        _render_upgrades(config, game_state)
-    with tab_scripted:
+    tab_manual, tab_scenario = st.tabs(["🎮 Manual Play", "🤖 Scenario Play"])
+    with tab_manual:
+        sub_packs, sub_pass, sub_hero_pack, sub_upgrades = st.tabs(
+            ["🎴 Daily Packs", "🏆 Season Pass", "⭐ Hero Pack", "⚒ Upgrades"]
+        )
+        with sub_packs:
+            _render_daily_packs(config, game_state)
+        with sub_pass:
+            _render_season_pass(config, game_state)
+        with sub_hero_pack:
+            _render_hero_unique_pack(config, game_state)
+        with sub_upgrades:
+            _render_upgrades(config, game_state)
+    with tab_scenario:
         _render_scripted_run(config, game_state)
-    with tab_charts:
+
+    # Charts + activity log are useful across both modes — render below the
+    # mode tabs as collapsible sections so they're always reachable.
+    with st.expander("📈 Charts", expanded=False):
         _render_charts(config, game_state)
-    with tab_log:
+    with st.expander("📜 Activity Log", expanded=False):
         _render_activity_log()
 
 

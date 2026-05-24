@@ -160,10 +160,13 @@ def _apply_reward(
     config: Optional[HeroCardConfig],
     rng: Optional[Random],
     opened_packs: List[Dict[str, Any]],
+    skip_packs: bool = False,
 ) -> str:
     """Apply one reward. Mutates game_state.coins / game_state.bonus_items.
     Pack rewards are opened immediately and their results appended to
-    `opened_packs`. Returns a human-readable line."""
+    `opened_packs`. If `skip_packs` is True, pack rewards are silently
+    skipped (caller has already credited the equivalent cards elsewhere).
+    Returns a human-readable line."""
     rtype = reward.reward_type
     amt = reward.amount
 
@@ -171,6 +174,8 @@ def _apply_reward(
         game_state.coins += amt
         return f"+{amt} coins"
     if rtype in _PACK_REWARD_TYPES:
+        if skip_packs:
+            return f"skipped {amt}x {rtype} (already credited)"
         if config is None or rng is None:
             extras.setdefault("unopened_packs", {})[rtype] = (
                 extras.setdefault("unopened_packs", {}).get(rtype, 0) + amt
@@ -198,6 +203,7 @@ def apply_season_pass_step(
     extras: Dict[str, Any],
     config: Optional[HeroCardConfig] = None,
     rng: Optional[Random] = None,
+    skip_packs: bool = False,
 ) -> Tuple[bool, List[str], List[Dict[str, Any]]]:
     """Apply the rewards from one season pass step.
 
@@ -208,6 +214,9 @@ def apply_season_pass_step(
         extras: Mutated for misc bucket.
         config / rng: Required to open pack rewards immediately. If absent,
             pack rewards fall back to the legacy unopened-pack inventory.
+        skip_packs: When True, pack rewards are skipped entirely (used by
+            FTUE catch-up where the scripted FTUE already credited the cards
+            from the relevant SP packs).
 
     Returns: (success, log_lines, opened_packs).
         opened_packs is a list of pack-open results (from open_pack_by_name)
@@ -220,7 +229,7 @@ def apply_season_pass_step(
     lines: List[str] = []
     opened: List[Dict[str, Any]] = []
     lines.append(f"Step {step.step} (PurpleStar req {step.required_purple_star}):")
-    lines.append("  Free:  " + _apply_reward(step.free, game_state, extras, config, rng, opened))
+    lines.append("  Free:  " + _apply_reward(step.free, game_state, extras, config, rng, opened, skip_packs))
     if paid_pass:
-        lines.append("  Paid:  " + _apply_reward(step.paid, game_state, extras, config, rng, opened))
+        lines.append("  Paid:  " + _apply_reward(step.paid, game_state, extras, config, rng, opened, skip_packs))
     return True, lines, opened
