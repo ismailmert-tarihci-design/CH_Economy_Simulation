@@ -7,6 +7,7 @@ Supports saving/loading persisted configs to data/defaults/variant_b_config.json
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -43,6 +44,13 @@ def load_defaults() -> HeroCardConfig:
     if saved is not None:
         return saved
     return _builtin_defaults()
+
+
+def _load_default_daily_pack_schedule() -> list[dict[str, float]]:
+    """Load the Average-player daily pack schedule shared with Variant A."""
+    path = Path(__file__).resolve().parents[3] / "data" / "defaults" / "daily_pack_schedule.json"
+    with open(path) as f:
+        return json.load(f)
 
 
 def _builtin_defaults() -> HeroCardConfig:
@@ -191,14 +199,7 @@ def _builtin_defaults() -> HeroCardConfig:
                 500: HeroCardTypesRange(min=2, max=4),
             }),
         ],
-        daily_pack_schedule=[
-            {
-                "StandardPackT1": 1.0, "StandardPackT2": 1.0, "StandardPackT3": 1.0,
-                "StandardPackT4": 1.0, "StandardPackT5": 1.0,
-                "PetPack": 1.0, "GearPack": 1.0, "HeroPack": 1.0,
-                "EndOfChapterPack": 1.0,
-            },
-        ],
+        daily_pack_schedule=_load_default_daily_pack_schedule(),
         premium_packs=premium_packs,
         premium_pack_schedule=[],
         pack_bonus_slots=default_pack_bonus_slots(),
