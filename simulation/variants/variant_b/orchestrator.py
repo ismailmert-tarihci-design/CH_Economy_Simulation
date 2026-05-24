@@ -38,6 +38,7 @@ from simulation.variants.variant_b.pack_bonuses import (
     get_dupe_boost,
     roll_pack_bonuses,
 )
+from simulation.variants.variant_b import ftue, season_pass as sp
 from simulation.pull_logger import PullLogger, VariantBUpgradeEvent
 
 
@@ -58,6 +59,19 @@ def run_simulation(
     """Run a full Variant B simulation."""
     game_state = _create_initial_state(config)
     game_state.coins = config.initial_coins
+
+    # Mirror the day-by-day simulator's D0 install-day flow: auto-run the
+    # scripted FTUE (credits ~320 bluestars, ~1720 coins, Woody L4 + cards),
+    # then pre-claim Season Pass steps 1–4. FTUE already opens the SP1/SP2/SP4
+    # packs and credits their cards, so we skip packs in the SP catch-up and
+    # only credit non-pack rewards (the +5 diamonds from SP step 3).
+    extras: Dict[str, Any] = {"misc": {}}
+    ftue.run_ftue(game_state, config, extras)
+    for sp_step in range(1, 5):
+        sp.apply_season_pass_step(
+            sp_step, paid_pass=False, game_state=game_state, extras=extras,
+            config=config, rng=rng, skip_packs=True,
+        )
 
     snapshots: List[HeroCardDailySnapshot] = []
     pull_logger = PullLogger()
