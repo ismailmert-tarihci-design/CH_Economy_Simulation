@@ -200,8 +200,8 @@ def run_one_day(
     for i in range(int(chapters)):
         r = ds.open_pack_by_name("EndOfChapterPack", game_state, config, rng, apply_evolution=False)
         opened_packs.append(r)
-        state["chapters_beaten"] = state.get("chapters_beaten", 0) + 1
-        lines.append(f"Beat chapter #{state['chapters_beaten']} → EndOfChapter pack opened")
+        game_state.chapters_beaten += 1
+        lines.append(f"Beat chapter #{game_state.chapters_beaten} → EndOfChapter pack opened")
 
     target = day_entry.season_pass_target_step if day_entry else None
     if target is not None:

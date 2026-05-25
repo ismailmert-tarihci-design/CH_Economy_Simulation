@@ -138,7 +138,7 @@ def _auto_beat_chapters(state: Dict[str, Any], config: HeroCardConfig, n: int) -
             "EndOfChapterPack", state["game_state"], config, _rng(), apply_evolution=False
         )
         last_results.append(r)
-    state["chapters_beaten"] = state.get("chapters_beaten", 0) + n
+    state["game_state"].chapters_beaten += n
     state["last_pack_results"] = last_results
     _log([f"Auto-beat {n} chapter(s) on day {state['day']} → {n} EndOfChapter pack(s) opened"])
     _log_pack_results(last_results)
@@ -162,7 +162,6 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "last_pack_results": [],
         "last_premium_result": None,
         "daily_used": set(),
-        "chapters_beaten": 0,
         "cohort": cohort,
         "chapters_per_day": chapters_per_day,
     }
@@ -294,7 +293,7 @@ def _render_top_bar(config: HeroCardConfig) -> None:
             if _STATE_KEY in st.session_state:
                 st.metric(
                     "Chapters",
-                    st.session_state[_STATE_KEY].get("chapters_beaten", 0),
+                    st.session_state[_STATE_KEY]["game_state"].chapters_beaten,
                 )
         with c_next:
             st.write("")
@@ -528,12 +527,12 @@ def _render_daily_packs(config: HeroCardConfig, game_state: HeroCardGameState) -
                 "EndOfChapterPack", game_state, config, _rng(), apply_evolution=False
             )
             state["last_pack_results"] = [r]
-            state["chapters_beaten"] = state.get("chapters_beaten", 0) + 1
-            _log([f"Beat chapter #{state['chapters_beaten']} → EndOfChapter pack opened"])
+            game_state.chapters_beaten += 1
+            _log([f"Beat chapter #{game_state.chapters_beaten} → EndOfChapter pack opened"])
             _log_pack_results([r])
             st.rerun()
         with b_beat_n:
-            st.caption(f"Total chapters beaten: **{state.get('chapters_beaten', 0)}**")
+            st.caption(f"Total chapters beaten: **{game_state.chapters_beaten}**")
 
     _render_pack_results(state.get("last_pack_results") or [], header="Last pack results")
 
