@@ -60,6 +60,8 @@ def _snapshot_history(state: Dict[str, Any]) -> None:
         "day": state["day"],
         "bluestars": game_state.total_bluestars,
         "coins": game_state.coins,
+        "upgrades_hero": state.get("upgrades_hero", 0),
+        "upgrades_shared": state.get("upgrades_shared", 0),
         "heroes": {
             hero_id: {
                 "level": hs.level,
@@ -164,6 +166,8 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "daily_used": set(),
         "cohort": cohort,
         "chapters_per_day": chapters_per_day,
+        "upgrades_hero": 0,
+        "upgrades_shared": 0,
     }
     _log([f"Day 0 (install day) — fresh simulation (seed={seed or 'random'})"])
     state = st.session_state[_STATE_KEY]
@@ -249,8 +253,8 @@ def render_variant_b_day_simulator() -> None:
 
 def _render_top_bar(config: HeroCardConfig) -> None:
     with st.container(border=True):
-        c_seed, c_reset, c_cohort, c_paid, c_day, c_chap, c_next = st.columns(
-            [1.0, 1.0, 1.1, 1.2, 0.7, 0.9, 1.2]
+        c_seed, c_reset, c_cohort, c_paid, c_day, c_chap, c_up, c_next = st.columns(
+            [1.0, 1.0, 1.1, 1.2, 0.7, 0.9, 0.9, 1.2]
         )
         with c_seed:
             seed = st.number_input(
@@ -294,6 +298,14 @@ def _render_top_bar(config: HeroCardConfig) -> None:
                 st.metric(
                     "Chapters",
                     st.session_state[_STATE_KEY]["game_state"].chapters_beaten,
+                )
+        with c_up:
+            if _STATE_KEY in st.session_state:
+                s = st.session_state[_STATE_KEY]
+                st.metric(
+                    "Upgrades",
+                    s.get("upgrades_hero", 0) + s.get("upgrades_shared", 0),
+                    help="Cumulative card upgrades (hero + shared) across the run.",
                 )
         with c_next:
             st.write("")
@@ -813,6 +825,8 @@ def _render_upgrades(config: HeroCardConfig, game_state: HeroCardGameState) -> N
                 hero_events, total_xp, total_bs, tree_acts = attempt_hero_upgrades(game_state, config)
                 shared_events, shared_bs = attempt_shared_upgrades(game_state, config)
                 tree_count = sum(len(v) for v in tree_acts.values())
+                st.session_state[_STATE_KEY]["upgrades_hero"] += len(hero_events)
+                st.session_state[_STATE_KEY]["upgrades_shared"] += len(shared_events)
                 _log([
                     f"Auto-upgrade: {len(hero_events)} hero upgrades (+{total_xp} XP, +{total_bs} bluestars), "
                     f"{len(shared_events)} shared upgrades (+{shared_bs} bluestars), "
@@ -1079,6 +1093,8 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                     summary = scripted_run_one_day(state, config, cfg, day_entry, rng)
                     _log(summary["log_lines"])
                     opened_all.extend(summary["opened_packs"])
+                    state["upgrades_hero"] += summary.get("hero_upgrades", 0)
+                    state["upgrades_shared"] += summary.get("shared_upgrades", 0)
                     # Advance day counter (mirrors the manual top-bar Next Day flow).
                     _snapshot_history(state)
                     state["day"] += 1
@@ -1153,6 +1169,7 @@ def _render_hero_upgrade_table(config: HeroCardConfig, game_state: HeroCardGameS
                 result = ds.upgrade_single_hero_card(game_state, config, hero_id, card.card_id)
                 if result:
                     evt, tree_acts = result
+                    st.session_state[_STATE_KEY]["upgrades_hero"] += 1
                     parts = [
                         f"Upgrade {hero_id}/{card.card_id}: L{evt['old_level']}→L{evt['new_level']} "
                         f"(-{evt['dupes_spent']} dupes, -{evt['jokers_spent']} jokers, -{evt['coins_spent']} coins, "
@@ -1198,6 +1215,7 @@ def _render_shared_upgrade_table(config: HeroCardConfig, game_state: HeroCardGam
             if st.button("⬆", key=f"day_sim_up_shared_{card.id}", disabled=not enabled):
                 evt = ds.upgrade_single_shared_card(game_state, config, card.id)
                 if evt:
+                    st.session_state[_STATE_KEY]["upgrades_shared"] += 1
                     _log(
                         f"Upgrade {card.id} ({cat}): L{evt['old_level']}→L{evt['new_level']} "
                         f"(-{evt['dupes_spent']} dupes, -{evt['coins_spent']} coins, +{evt['bluestars_earned']} bluestars)"
@@ -1228,6 +1246,40 @@ def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> Non
         c2.metric("Δ since day 0", f"{history[-1]['bluestars'] - history[0]['bluestars']:,}")
         days_span = max(1, history[-1]["day"] - history[0]["day"])
         c3.metric("Avg / day", f"{(history[-1]['bluestars'] - history[0]['bluestars']) / days_span:,.1f}")
+
+    # --- Upgrades per day ---
+    with st.container(border=True):
+        st.markdown("**Card upgrades per day**")
+        st.caption(
+            "Per-day delta in cumulative upgrade count. Hero = unique hero "
+            "cards; Shared = shared (non-hero) cards. Counts upgrades from the "
+            "auto-upgrade button, single-card buttons, and scripted runs."
+        )
+        up_rows = []
+        prev_hero = history[0].get("upgrades_hero", 0)
+        prev_shared = history[0].get("upgrades_shared", 0)
+        for s in history[1:]:
+            cur_hero = s.get("upgrades_hero", 0)
+            cur_shared = s.get("upgrades_shared", 0)
+            up_rows.append({
+                "Day": s["day"],
+                "Hero": cur_hero - prev_hero,
+                "Shared": cur_shared - prev_shared,
+            })
+            prev_hero, prev_shared = cur_hero, cur_shared
+        if up_rows:
+            up_df = pd.DataFrame(up_rows).set_index("Day")
+            st.bar_chart(up_df, height=240)
+            latest = up_rows[-1]
+            total_hero = history[-1].get("upgrades_hero", 0)
+            total_shared = history[-1].get("upgrades_shared", 0)
+            u1, u2, u3, u4 = st.columns(4)
+            u1.metric(f"Day {latest['Day']} hero", latest["Hero"])
+            u2.metric(f"Day {latest['Day']} shared", latest["Shared"])
+            u3.metric("Total hero", f"{total_hero:,}")
+            u4.metric("Total shared", f"{total_shared:,}")
+        else:
+            st.caption("No day-to-day deltas yet.")
 
     # --- Hero XP / level ---
     with st.container(border=True):

@@ -233,4 +233,6 @@ def run_one_day(
         "log_lines": lines,
         "opened_packs": opened_packs,
         "activations": activations,
+        "hero_upgrades": len(upgrade_events),
+        "shared_upgrades": len(shared_events),
     }
