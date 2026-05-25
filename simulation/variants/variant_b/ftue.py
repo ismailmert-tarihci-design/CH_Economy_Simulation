@@ -2,7 +2,9 @@
 
 Scripted, deterministic onboarding sequence that runs on Day 0 (install day).
 After the FTUE finishes, the player is at Woodie Level 4 with 305 cumulative
-XP, holding the dupes/coins/bluestars/etc. dictated by the FTUE spec.
+XP, holding the dupes/coins/bluestars/etc. dictated by the FTUE spec, and
+has beaten the first 6 chapters (the FTUE walks through End-of-Chapter
+3/4/5 packs explicitly; chapters 1–2 and 6 are completed off-screen).
 
 Mechanics:
   - Card drops: credit fixed dupe counts to specific cards (unlocking them).
@@ -24,6 +26,9 @@ from typing import Any, Dict, List, Tuple
 
 from simulation.variants.variant_b.models import HeroCardConfig, HeroCardGameState
 from simulation.variants.variant_b.upgrade_engine import _check_hero_level_up
+
+
+FTUE_END_CHAPTER = 6
 
 
 # ---------------------------------------------------------------------------
@@ -240,8 +245,12 @@ def run_ftue(
             tail = f" → Woody L{woody.level}" if leveled else ""
             log.append(f"  +{step.xp_gain} XP{tail}")
 
+    game_state.chapters_beaten = FTUE_END_CHAPTER
+    log.append(f"  chapters beaten set to {FTUE_END_CHAPTER} (post-FTUE state)")
+
     log.append(
         f"── FTUE complete: Woody L{woody.level} (XP {woody.xp}), "
-        f"coins {game_state.coins:,}, bluestars {game_state.total_bluestars} ──"
+        f"coins {game_state.coins:,}, bluestars {game_state.total_bluestars}, "
+        f"chapters {game_state.chapters_beaten} ──"
     )
     return log

@@ -43,6 +43,11 @@ from simulation.variants.variant_b.pack_bonuses import (
     get_dupe_boost,
     roll_pack_bonuses,
 )
+from simulation.variants.variant_b.pet_gear import (
+    apply_gear_pack,
+    apply_pet_pack,
+    pick_pack_target,
+)
 
 
 # Pack-evolution matrix. Starting tier -> [(final_tier, cumulative_weight)].
@@ -119,6 +124,7 @@ def init_state(config: HeroCardConfig) -> HeroCardGameState:
                 hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
                 if hero_def:
                     state.heroes[hero_id] = initialize_hero(hero_def)
+                    state.last_unlocked_hero = hero_id
     return state
 
 
@@ -132,6 +138,7 @@ def advance_day(game_state: HeroCardGameState, new_day: int, config: HeroCardCon
             hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
             if hero_def:
                 game_state.heroes[hero_id] = initialize_hero(hero_def)
+                game_state.last_unlocked_hero = hero_id
                 lines.append(f"Hero unlocked: {hero_def.name}")
     return lines
 
@@ -227,6 +234,20 @@ def open_pack_by_name(
     """
     start_tier = pack_name if pack_name in EVOLUTION_MATRIX else None
     final_name = evolve_pack_tier(pack_name, rng) if (apply_evolution and start_tier) else pack_name
+
+    # PetPack / GearPack: bump the target hero's pet/gear progression. This
+    # runs alongside the normal card drops (so dupes, bonuses, and the
+    # activity feed still light up).
+    pet_event = None
+    gear_event = None
+    if final_name == "PetPack":
+        target_hid = pick_pack_target(game_state)
+        if target_hid is not None:
+            pet_event = apply_pet_pack(game_state.heroes[target_hid])
+    elif final_name == "GearPack":
+        target_hid = pick_pack_target(game_state)
+        if target_hid is not None:
+            gear_event = apply_gear_pack(game_state.heroes[target_hid])
 
     pt = _find_pack_type(config, final_name)
     if pt and pt.card_types_table:
@@ -330,6 +351,10 @@ def open_pack_by_name(
         "bonus_items": bonuses,
         "shared_boost": shared_boost,
         "unique_boost": unique_boost,
+        # PetPack / GearPack progression events (None for other pack types).
+        # Surfaced in the result dict so UI / tests can verify the bump.
+        "pet_event": pet_event,
+        "gear_event": gear_event,
     }
 
 

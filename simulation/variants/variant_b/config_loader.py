@@ -47,10 +47,16 @@ def load_defaults() -> HeroCardConfig:
 
 
 def _load_default_daily_pack_schedule() -> list[dict[str, float]]:
-    """Load the Average-player daily pack schedule shared with Variant A."""
+    """Load the Average-player daily pack schedule shared with Variant A.
+
+    `EndOfChapterPack` is stripped here: Variant B drives EoC packs via the
+    chapter-beating mechanic (cohort `chapters_per_day`), so including it in
+    the daily Poisson schedule would double-count.
+    """
     path = Path(__file__).resolve().parents[3] / "data" / "defaults" / "daily_pack_schedule.json"
     with open(path) as f:
-        return json.load(f)
+        schedule = json.load(f)
+    return [{k: v for k, v in day.items() if k != "EndOfChapterPack"} for day in schedule]
 
 
 def _builtin_defaults() -> HeroCardConfig:
@@ -105,8 +111,8 @@ def _builtin_defaults() -> HeroCardConfig:
             733: ["jester"],     # hero 16
             802: ["munara"],     # hero 17
         },
-        num_gold_cards=9,
-        num_blue_cards=14,
+        num_gold_cards=10,
+        num_blue_cards=13,
         num_gray_cards=6,
         hero_upgrade_tables=_default_upgrade_tables(),
         hero_duplicate_ranges=_default_duplicate_ranges(),
@@ -134,71 +140,7 @@ def _builtin_defaults() -> HeroCardConfig:
             rarity_weight_blue=0.3894,
             rarity_weight_gold=0.5432,
         ),
-        pack_types=[
-            HeroPackType(name="StandardPackT1", card_types_table={
-                0: HeroCardTypesRange(min=1, max=2),
-                100: HeroCardTypesRange(min=1, max=2),
-                200: HeroCardTypesRange(min=1, max=2),
-                350: HeroCardTypesRange(min=1, max=2),
-                500: HeroCardTypesRange(min=1, max=2),
-            }),
-            HeroPackType(name="StandardPackT2", card_types_table={
-                0: HeroCardTypesRange(min=1, max=2),
-                100: HeroCardTypesRange(min=1, max=2),
-                200: HeroCardTypesRange(min=1, max=3),
-                350: HeroCardTypesRange(min=1, max=3),
-                500: HeroCardTypesRange(min=1, max=3),
-            }),
-            HeroPackType(name="StandardPackT3", card_types_table={
-                0: HeroCardTypesRange(min=1, max=3),
-                100: HeroCardTypesRange(min=1, max=3),
-                200: HeroCardTypesRange(min=2, max=3),
-                350: HeroCardTypesRange(min=2, max=3),
-                500: HeroCardTypesRange(min=2, max=3),
-            }),
-            HeroPackType(name="StandardPackT4", card_types_table={
-                0: HeroCardTypesRange(min=1, max=3),
-                100: HeroCardTypesRange(min=1, max=3),
-                200: HeroCardTypesRange(min=2, max=4),
-                350: HeroCardTypesRange(min=2, max=4),
-                500: HeroCardTypesRange(min=2, max=4),
-            }),
-            HeroPackType(name="StandardPackT5", card_types_table={
-                0: HeroCardTypesRange(min=3, max=5),
-                100: HeroCardTypesRange(min=3, max=5),
-                200: HeroCardTypesRange(min=4, max=5),
-                350: HeroCardTypesRange(min=4, max=5),
-                500: HeroCardTypesRange(min=4, max=5),
-            }),
-            HeroPackType(name="EndOfChapterPack", card_types_table={
-                0: HeroCardTypesRange(min=1, max=2),
-                100: HeroCardTypesRange(min=1, max=2),
-                200: HeroCardTypesRange(min=1, max=2),
-                350: HeroCardTypesRange(min=1, max=2),
-                500: HeroCardTypesRange(min=1, max=2),
-            }),
-            HeroPackType(name="PetPack", card_types_table={
-                0: HeroCardTypesRange(min=1, max=2),
-                100: HeroCardTypesRange(min=1, max=2),
-                200: HeroCardTypesRange(min=2, max=3),
-                350: HeroCardTypesRange(min=2, max=3),
-                500: HeroCardTypesRange(min=2, max=4),
-            }),
-            HeroPackType(name="HeroPack", card_types_table={
-                0: HeroCardTypesRange(min=1, max=2),
-                100: HeroCardTypesRange(min=1, max=2),
-                200: HeroCardTypesRange(min=2, max=3),
-                350: HeroCardTypesRange(min=2, max=3),
-                500: HeroCardTypesRange(min=2, max=4),
-            }),
-            HeroPackType(name="GearPack", card_types_table={
-                0: HeroCardTypesRange(min=1, max=2),
-                100: HeroCardTypesRange(min=1, max=2),
-                200: HeroCardTypesRange(min=2, max=3),
-                350: HeroCardTypesRange(min=2, max=3),
-                500: HeroCardTypesRange(min=2, max=4),
-            }),
-        ],
+        pack_types=_default_pack_types(),
         daily_pack_schedule=_load_default_daily_pack_schedule(),
         premium_packs=premium_packs,
         premium_pack_schedule=[],
@@ -208,6 +150,47 @@ def _builtin_defaults() -> HeroCardConfig:
         pack_bonus_variance=default_pack_bonus_variance(),
         pack_dupe_boost=default_pack_dupe_boost(),
     )
+
+
+def _default_pack_types() -> list[HeroPackType]:
+    """Default pack `card_types_table` definitions for Variant B.
+
+    Thresholds are total cards unlocked across all heroes (15 breakpoints
+    derived from chapter milestones). Each `(min, max)` is the number of
+    distinct card types pulled per pack at that unlock threshold.
+    """
+    thresholds = [45, 74, 103, 132, 161, 190, 219, 248, 276, 305, 334, 363, 392, 421, 450]
+
+    def _table(ranges: list[tuple[int, int]]) -> dict[int, HeroCardTypesRange]:
+        assert len(ranges) == len(thresholds)
+        return {t: HeroCardTypesRange(min=mn, max=mx) for t, (mn, mx) in zip(thresholds, ranges)}
+
+    # StandardPackT1: flat (1,2) across all thresholds.
+    t1 = [(1, 2)] * 15
+    # StandardPackT2: (1,2) for first 7 thresholds, then (1,3).
+    t2 = [(1, 2)] * 7 + [(1, 3)] * 8
+    # StandardPackT3: (1,3) for first 6, then (2,3).
+    t3 = [(1, 3)] * 6 + [(2, 3)] * 9
+    # StandardPackT4: (1,3) for first 7, then (2,4).
+    t4 = [(1, 3)] * 7 + [(2, 4)] * 8
+    # StandardPackT5: (3,5) for first 8, then (4,5).
+    t5 = [(3, 5)] * 8 + [(4, 5)] * 7
+    # EndOfChapterPack: (1,2) for first 7, then (2,3).
+    eoc = [(1, 2)] * 7 + [(2, 3)] * 8
+    # PetPack / HeroPack / GearPack share a curve: (1,2)x7, (2,3)x4, (2,4)x4.
+    pgh = [(1, 2)] * 7 + [(2, 3)] * 4 + [(2, 4)] * 4
+
+    return [
+        HeroPackType(name="StandardPackT1", card_types_table=_table(t1)),
+        HeroPackType(name="StandardPackT2", card_types_table=_table(t2)),
+        HeroPackType(name="StandardPackT3", card_types_table=_table(t3)),
+        HeroPackType(name="StandardPackT4", card_types_table=_table(t4)),
+        HeroPackType(name="StandardPackT5", card_types_table=_table(t5)),
+        HeroPackType(name="EndOfChapterPack", card_types_table=_table(eoc)),
+        HeroPackType(name="PetPack", card_types_table=_table(pgh)),
+        HeroPackType(name="HeroPack", card_types_table=_table(pgh)),
+        HeroPackType(name="GearPack", card_types_table=_table(pgh)),
+    ]
 
 
 def _create_sample_hero(hero_id: str, name: str) -> HeroDef:

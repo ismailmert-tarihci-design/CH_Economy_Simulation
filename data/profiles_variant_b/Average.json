@@ -9,8 +9,7 @@
       "StandardPackT1": 0.176141347,
       "PetPack": 0.013191433,
       "HeroPack": 0.004446408,
-      "GearPack": 0.064078925,
-      "EndOfChapterPack": 0.908016582
+      "GearPack": 0.064078925
     },
     {
       "StandardPackT5": 0.004059124,
@@ -20,8 +19,7 @@
       "StandardPackT1": 1.240902604,
       "PetPack": 0.013424611,
       "HeroPack": 0.107080238,
-      "GearPack": 0.048909389,
-      "EndOfChapterPack": 1.917984297
+      "GearPack": 0.048909389
     },
     {
       "StandardPackT5": 0.007083667,
@@ -31,8 +29,7 @@
       "StandardPackT1": 1.86967125,
       "PetPack": 0.01161399,
       "HeroPack": 0.490209194,
-      "GearPack": 0.101669781,
-      "EndOfChapterPack": 2.373594105
+      "GearPack": 0.101669781
     },
     {
       "StandardPackT5": 0.006596034,
@@ -42,8 +39,7 @@
       "StandardPackT1": 1.992354506,
       "PetPack": 0.006125974,
       "HeroPack": 0.277834819,
-      "GearPack": 0.234775441,
-      "EndOfChapterPack": 2.442374452
+      "GearPack": 0.234775441
     },
     {
       "StandardPackT5": 0.007305629,
@@ -53,8 +49,7 @@
       "StandardPackT1": 1.987731831,
       "PetPack": 0.003498864,
       "HeroPack": 0.188231192,
-      "GearPack": 0.508296154,
-      "EndOfChapterPack": 2.418804381
+      "GearPack": 0.508296154
     },
     {
       "StandardPackT5": 0.006646845,
@@ -64,8 +59,7 @@
       "StandardPackT1": 1.991487253,
       "PetPack": 0.004303186,
       "HeroPack": 0.150340088,
-      "GearPack": 0.338603645,
-      "EndOfChapterPack": 2.317431714
+      "GearPack": 0.338603645
     },
     {
       "StandardPackT5": 0.007079561,
@@ -75,8 +69,7 @@
       "StandardPackT1": 1.934318677,
       "PetPack": 0.005049385,
       "HeroPack": 0.120563385,
-      "GearPack": 0.266092387,
-      "EndOfChapterPack": 2.205019314
+      "GearPack": 0.266092387
     },
     {
       "StandardPackT5": 0.007986087,
@@ -86,8 +79,7 @@
       "StandardPackT1": 1.966437139,
       "PetPack": 0.005281065,
       "HeroPack": 0.098772561,
-      "GearPack": 0.228944593,
-      "EndOfChapterPack": 2.159568137
+      "GearPack": 0.228944593
     },
     {
       "StandardPackT5": 0.008237542,
@@ -97,8 +89,7 @@
       "StandardPackT1": 2.013003116,
       "PetPack": 0.006995601,
       "HeroPack": 0.08845768,
-      "GearPack": 0.189265832,
-      "EndOfChapterPack": 1.973668538
+      "GearPack": 0.189265832
     },
     {
       "StandardPackT5": 0.006198899,
@@ -108,8 +99,7 @@
       "StandardPackT1": 1.913896101,
       "PetPack": 0.062953881,
       "HeroPack": 0.073030612,
-      "GearPack": 0.179566631,
-      "EndOfChapterPack": 1.918973544
+      "GearPack": 0.179566631
     },
     {
       "StandardPackT5": 0.007189008,
@@ -119,8 +109,7 @@
       "StandardPackT1": 1.909971185,
       "PetPack": 0.20460984,
       "HeroPack": 0.076723329,
-      "GearPack": 0.152452317,
-      "EndOfChapterPack": 1.854031777
+      "GearPack": 0.152452317
     },
     {
       "StandardPackT5": 0.006563356,
@@ -130,8 +119,7 @@
       "StandardPackT1": 1.905321659,
       "PetPack": 0.153784056,
       "HeroPack": 0.070720755,
-      "GearPack": 0.136368993,
-      "EndOfChapterPack": 1.784988648
+      "GearPack": 0.136368993
     },
     {
       "StandardPackT5": 0.007778411,
@@ -141,8 +129,7 @@
       "StandardPackT1": 1.871391706,
       "PetPack": 0.131912599,
       "HeroPack": 0.060159526,
-      "GearPack": 0.129122829,
-      "EndOfChapterPack": 1.746514074
+      "GearPack": 0.129122829
     },
     {
       "StandardPackT5": 0.009801737,
@@ -152,8 +139,7 @@
       "StandardPackT1": 1.872259383,
       "PetPack": 0.107901147,
       "HeroPack": 0.06245972,
-      "GearPack": 0.12389331,
-      "EndOfChapterPack": 1.695841652
+      "GearPack": 0.12389331
     },
     {
       "StandardPackT5": 0.007142263,
@@ -163,8 +149,7 @@
       "StandardPackT1": 1.903523423,
       "PetPack": 0.103246915,
       "HeroPack": 0.056240505,
-      "GearPack": 0.114967834,
-      "EndOfChapterPack": 1.660217315
+      "GearPack": 0.114967834
     },
     {
       "StandardPackT5": 0.007499496,
@@ -174,8 +159,7 @@
       "StandardPackT1": 1.896585682,
       "PetPack": 0.086158209,
       "HeroPack": 0.057263611,
-      "GearPack": 0.112500889,
-      "EndOfChapterPack": 1.565312989
+      "GearPack": 0.112500889
     },
     {
       "StandardPackT5": 0.007647656,
@@ -185,8 +169,7 @@
       "StandardPackT1": 1.88431681,
       "PetPack": 0.077342019,
       "HeroPack": 0.052032987,
-      "GearPack": 0.120088185,
-      "EndOfChapterPack": 1.472078873
+      "GearPack": 0.120088185
     },
     {
       "StandardPackT5": 0.007288241,
@@ -196,8 +179,7 @@
       "StandardPackT1": 1.912415018,
       "PetPack": 0.072721449,
       "HeroPack": 0.057439246,
-      "GearPack": 0.112229999,
-      "EndOfChapterPack": 1.457028337
+      "GearPack": 0.112229999
     },
     {
       "StandardPackT5": 0.007971496,
@@ -207,8 +189,7 @@
       "StandardPackT1": 1.945823405,
       "PetPack": 0.071156307,
       "HeroPack": 0.048199723,
-      "GearPack": 0.12494954,
-      "EndOfChapterPack": 1.470758141
+      "GearPack": 0.12494954
     },
     {
       "StandardPackT5": 0.007830897,
@@ -218,8 +199,7 @@
       "StandardPackT1": 1.850654096,
       "PetPack": 0.056175676,
       "HeroPack": 0.043641887,
-      "GearPack": 0.100053983,
-      "EndOfChapterPack": 1.376650506
+      "GearPack": 0.100053983
     },
     {
       "StandardPackT5": 0.007354506,
@@ -229,8 +209,7 @@
       "StandardPackT1": 1.914418053,
       "PetPack": 0.062055826,
       "HeroPack": 0.050557798,
-      "GearPack": 0.102933096,
-      "EndOfChapterPack": 1.38891662
+      "GearPack": 0.102933096
     },
     {
       "StandardPackT5": 0.00538631,
@@ -240,8 +219,7 @@
       "StandardPackT1": 1.959589344,
       "PetPack": 0.056347123,
       "HeroPack": 0.041874507,
-      "GearPack": 0.098243425,
-      "EndOfChapterPack": 1.420647644
+      "GearPack": 0.098243425
     },
     {
       "StandardPackT5": 0.007800314,
@@ -251,8 +229,7 @@
       "StandardPackT1": 1.912512539,
       "PetPack": 0.05193723,
       "HeroPack": 0.046117291,
-      "GearPack": 0.107362847,
-      "EndOfChapterPack": 1.311519881
+      "GearPack": 0.107362847
     },
     {
       "StandardPackT5": 0.006212471,
@@ -262,8 +239,7 @@
       "StandardPackT1": 1.885065929,
       "PetPack": 0.051352449,
       "HeroPack": 0.039577165,
-      "GearPack": 0.098950267,
-      "EndOfChapterPack": 1.323369594
+      "GearPack": 0.098950267
     },
     {
       "StandardPackT5": 0.007726764,
@@ -273,8 +249,7 @@
       "StandardPackT1": 1.894076788,
       "PetPack": 0.052367556,
       "HeroPack": 0.04136984,
-      "GearPack": 0.098152136,
-      "EndOfChapterPack": 1.259053919
+      "GearPack": 0.098152136
     },
     {
       "StandardPackT5": 0.00735347,
@@ -284,8 +259,7 @@
       "StandardPackT1": 1.889008433,
       "PetPack": 0.044039226,
       "HeroPack": 0.04711094,
-      "GearPack": 0.087707948,
-      "EndOfChapterPack": 1.248182865
+      "GearPack": 0.087707948
     }
   ],
   "unique_unlock_schedule": {},
@@ -7981,8 +7955,8 @@
         "munara"
       ]
     },
-    "num_gold_cards": 9,
-    "num_blue_cards": 14,
+    "num_gold_cards": 10,
+    "num_blue_cards": 13,
     "num_gray_cards": 6,
     "max_shared_level": 100,
     "shared_base_shared_rate": 0.7,
@@ -10019,23 +9993,63 @@
       {
         "name": "StandardPackT1",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 1,
             "max": 2
           },
-          "100": {
+          "74": {
             "min": 1,
             "max": 2
           },
-          "200": {
+          "103": {
             "min": 1,
             "max": 2
           },
-          "350": {
+          "132": {
             "min": 1,
             "max": 2
           },
-          "500": {
+          "161": {
+            "min": 1,
+            "max": 2
+          },
+          "190": {
+            "min": 1,
+            "max": 2
+          },
+          "219": {
+            "min": 1,
+            "max": 2
+          },
+          "248": {
+            "min": 1,
+            "max": 2
+          },
+          "276": {
+            "min": 1,
+            "max": 2
+          },
+          "305": {
+            "min": 1,
+            "max": 2
+          },
+          "334": {
+            "min": 1,
+            "max": 2
+          },
+          "363": {
+            "min": 1,
+            "max": 2
+          },
+          "392": {
+            "min": 1,
+            "max": 2
+          },
+          "421": {
+            "min": 1,
+            "max": 2
+          },
+          "450": {
             "min": 1,
             "max": 2
           }
@@ -10044,23 +10058,63 @@
       {
         "name": "StandardPackT2",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 1,
             "max": 2
           },
-          "100": {
+          "74": {
             "min": 1,
             "max": 2
           },
-          "200": {
+          "103": {
+            "min": 1,
+            "max": 2
+          },
+          "132": {
+            "min": 1,
+            "max": 2
+          },
+          "161": {
+            "min": 1,
+            "max": 2
+          },
+          "190": {
+            "min": 1,
+            "max": 2
+          },
+          "219": {
+            "min": 1,
+            "max": 2
+          },
+          "248": {
             "min": 1,
             "max": 3
           },
-          "350": {
+          "276": {
             "min": 1,
             "max": 3
           },
-          "500": {
+          "305": {
+            "min": 1,
+            "max": 3
+          },
+          "334": {
+            "min": 1,
+            "max": 3
+          },
+          "363": {
+            "min": 1,
+            "max": 3
+          },
+          "392": {
+            "min": 1,
+            "max": 3
+          },
+          "421": {
+            "min": 1,
+            "max": 3
+          },
+          "450": {
             "min": 1,
             "max": 3
           }
@@ -10069,23 +10123,63 @@
       {
         "name": "StandardPackT3",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 1,
             "max": 3
           },
-          "100": {
+          "74": {
             "min": 1,
             "max": 3
           },
-          "200": {
+          "103": {
+            "min": 1,
+            "max": 3
+          },
+          "132": {
+            "min": 1,
+            "max": 3
+          },
+          "161": {
+            "min": 1,
+            "max": 3
+          },
+          "190": {
+            "min": 1,
+            "max": 3
+          },
+          "219": {
             "min": 2,
             "max": 3
           },
-          "350": {
+          "248": {
             "min": 2,
             "max": 3
           },
-          "500": {
+          "276": {
+            "min": 2,
+            "max": 3
+          },
+          "305": {
+            "min": 2,
+            "max": 3
+          },
+          "334": {
+            "min": 2,
+            "max": 3
+          },
+          "363": {
+            "min": 2,
+            "max": 3
+          },
+          "392": {
+            "min": 2,
+            "max": 3
+          },
+          "421": {
+            "min": 2,
+            "max": 3
+          },
+          "450": {
             "min": 2,
             "max": 3
           }
@@ -10094,23 +10188,63 @@
       {
         "name": "StandardPackT4",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 1,
             "max": 3
           },
-          "100": {
+          "74": {
             "min": 1,
             "max": 3
           },
-          "200": {
+          "103": {
+            "min": 1,
+            "max": 3
+          },
+          "132": {
+            "min": 1,
+            "max": 3
+          },
+          "161": {
+            "min": 1,
+            "max": 3
+          },
+          "190": {
+            "min": 1,
+            "max": 3
+          },
+          "219": {
+            "min": 1,
+            "max": 3
+          },
+          "248": {
             "min": 2,
             "max": 4
           },
-          "350": {
+          "276": {
             "min": 2,
             "max": 4
           },
-          "500": {
+          "305": {
+            "min": 2,
+            "max": 4
+          },
+          "334": {
+            "min": 2,
+            "max": 4
+          },
+          "363": {
+            "min": 2,
+            "max": 4
+          },
+          "392": {
+            "min": 2,
+            "max": 4
+          },
+          "421": {
+            "min": 2,
+            "max": 4
+          },
+          "450": {
             "min": 2,
             "max": 4
           }
@@ -10119,23 +10253,63 @@
       {
         "name": "StandardPackT5",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 3,
             "max": 5
           },
-          "100": {
+          "74": {
             "min": 3,
             "max": 5
           },
-          "200": {
+          "103": {
+            "min": 3,
+            "max": 5
+          },
+          "132": {
+            "min": 3,
+            "max": 5
+          },
+          "161": {
+            "min": 3,
+            "max": 5
+          },
+          "190": {
+            "min": 3,
+            "max": 5
+          },
+          "219": {
+            "min": 3,
+            "max": 5
+          },
+          "248": {
+            "min": 3,
+            "max": 5
+          },
+          "276": {
             "min": 4,
             "max": 5
           },
-          "350": {
+          "305": {
             "min": 4,
             "max": 5
           },
-          "500": {
+          "334": {
+            "min": 4,
+            "max": 5
+          },
+          "363": {
+            "min": 4,
+            "max": 5
+          },
+          "392": {
+            "min": 4,
+            "max": 5
+          },
+          "421": {
+            "min": 4,
+            "max": 5
+          },
+          "450": {
             "min": 4,
             "max": 5
           }
@@ -10144,48 +10318,128 @@
       {
         "name": "EndOfChapterPack",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 1,
             "max": 2
           },
-          "100": {
+          "74": {
             "min": 1,
             "max": 2
           },
-          "200": {
+          "103": {
             "min": 1,
             "max": 2
           },
-          "350": {
+          "132": {
             "min": 1,
             "max": 2
           },
-          "500": {
+          "161": {
             "min": 1,
             "max": 2
+          },
+          "190": {
+            "min": 1,
+            "max": 2
+          },
+          "219": {
+            "min": 1,
+            "max": 2
+          },
+          "248": {
+            "min": 2,
+            "max": 3
+          },
+          "276": {
+            "min": 2,
+            "max": 3
+          },
+          "305": {
+            "min": 2,
+            "max": 3
+          },
+          "334": {
+            "min": 2,
+            "max": 3
+          },
+          "363": {
+            "min": 2,
+            "max": 3
+          },
+          "392": {
+            "min": 2,
+            "max": 3
+          },
+          "421": {
+            "min": 2,
+            "max": 3
+          },
+          "450": {
+            "min": 2,
+            "max": 3
           }
         }
       },
       {
         "name": "PetPack",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 1,
             "max": 2
           },
-          "100": {
+          "74": {
             "min": 1,
             "max": 2
           },
-          "200": {
+          "103": {
+            "min": 1,
+            "max": 2
+          },
+          "132": {
+            "min": 1,
+            "max": 2
+          },
+          "161": {
+            "min": 1,
+            "max": 2
+          },
+          "190": {
+            "min": 1,
+            "max": 2
+          },
+          "219": {
+            "min": 1,
+            "max": 2
+          },
+          "248": {
             "min": 2,
             "max": 3
           },
-          "350": {
+          "276": {
             "min": 2,
             "max": 3
           },
-          "500": {
+          "305": {
+            "min": 2,
+            "max": 3
+          },
+          "334": {
+            "min": 2,
+            "max": 3
+          },
+          "363": {
+            "min": 2,
+            "max": 4
+          },
+          "392": {
+            "min": 2,
+            "max": 4
+          },
+          "421": {
+            "min": 2,
+            "max": 4
+          },
+          "450": {
             "min": 2,
             "max": 4
           }
@@ -10194,23 +10448,63 @@
       {
         "name": "HeroPack",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 1,
             "max": 2
           },
-          "100": {
+          "74": {
             "min": 1,
             "max": 2
           },
-          "200": {
+          "103": {
+            "min": 1,
+            "max": 2
+          },
+          "132": {
+            "min": 1,
+            "max": 2
+          },
+          "161": {
+            "min": 1,
+            "max": 2
+          },
+          "190": {
+            "min": 1,
+            "max": 2
+          },
+          "219": {
+            "min": 1,
+            "max": 2
+          },
+          "248": {
             "min": 2,
             "max": 3
           },
-          "350": {
+          "276": {
             "min": 2,
             "max": 3
           },
-          "500": {
+          "305": {
+            "min": 2,
+            "max": 3
+          },
+          "334": {
+            "min": 2,
+            "max": 3
+          },
+          "363": {
+            "min": 2,
+            "max": 4
+          },
+          "392": {
+            "min": 2,
+            "max": 4
+          },
+          "421": {
+            "min": 2,
+            "max": 4
+          },
+          "450": {
             "min": 2,
             "max": 4
           }
@@ -10219,23 +10513,63 @@
       {
         "name": "GearPack",
         "card_types_table": {
-          "0": {
+          "45": {
             "min": 1,
             "max": 2
           },
-          "100": {
+          "74": {
             "min": 1,
             "max": 2
           },
-          "200": {
+          "103": {
+            "min": 1,
+            "max": 2
+          },
+          "132": {
+            "min": 1,
+            "max": 2
+          },
+          "161": {
+            "min": 1,
+            "max": 2
+          },
+          "190": {
+            "min": 1,
+            "max": 2
+          },
+          "219": {
+            "min": 1,
+            "max": 2
+          },
+          "248": {
             "min": 2,
             "max": 3
           },
-          "350": {
+          "276": {
             "min": 2,
             "max": 3
           },
-          "500": {
+          "305": {
+            "min": 2,
+            "max": 3
+          },
+          "334": {
+            "min": 2,
+            "max": 3
+          },
+          "363": {
+            "min": 2,
+            "max": 4
+          },
+          "392": {
+            "min": 2,
+            "max": 4
+          },
+          "421": {
+            "min": 2,
+            "max": 4
+          },
+          "450": {
             "min": 2,
             "max": 4
           }
@@ -10251,8 +10585,7 @@
         "StandardPackT1": 0.176141347,
         "PetPack": 0.013191433,
         "HeroPack": 0.004446408,
-        "GearPack": 0.064078925,
-        "EndOfChapterPack": 0.908016582
+        "GearPack": 0.064078925
       },
       {
         "StandardPackT5": 0.004059124,
@@ -10262,8 +10595,7 @@
         "StandardPackT1": 1.240902604,
         "PetPack": 0.013424611,
         "HeroPack": 0.107080238,
-        "GearPack": 0.048909389,
-        "EndOfChapterPack": 1.917984297
+        "GearPack": 0.048909389
       },
       {
         "StandardPackT5": 0.007083667,
@@ -10273,8 +10605,7 @@
         "StandardPackT1": 1.86967125,
         "PetPack": 0.01161399,
         "HeroPack": 0.490209194,
-        "GearPack": 0.101669781,
-        "EndOfChapterPack": 2.373594105
+        "GearPack": 0.101669781
       },
       {
         "StandardPackT5": 0.006596034,
@@ -10284,8 +10615,7 @@
         "StandardPackT1": 1.992354506,
         "PetPack": 0.006125974,
         "HeroPack": 0.277834819,
-        "GearPack": 0.234775441,
-        "EndOfChapterPack": 2.442374452
+        "GearPack": 0.234775441
       },
       {
         "StandardPackT5": 0.007305629,
@@ -10295,8 +10625,7 @@
         "StandardPackT1": 1.987731831,
         "PetPack": 0.003498864,
         "HeroPack": 0.188231192,
-        "GearPack": 0.508296154,
-        "EndOfChapterPack": 2.418804381
+        "GearPack": 0.508296154
       },
       {
         "StandardPackT5": 0.006646845,
@@ -10306,8 +10635,7 @@
         "StandardPackT1": 1.991487253,
         "PetPack": 0.004303186,
         "HeroPack": 0.150340088,
-        "GearPack": 0.338603645,
-        "EndOfChapterPack": 2.317431714
+        "GearPack": 0.338603645
       },
       {
         "StandardPackT5": 0.007079561,
@@ -10317,8 +10645,7 @@
         "StandardPackT1": 1.934318677,
         "PetPack": 0.005049385,
         "HeroPack": 0.120563385,
-        "GearPack": 0.266092387,
-        "EndOfChapterPack": 2.205019314
+        "GearPack": 0.266092387
       },
       {
         "StandardPackT5": 0.007986087,
@@ -10328,8 +10655,7 @@
         "StandardPackT1": 1.966437139,
         "PetPack": 0.005281065,
         "HeroPack": 0.098772561,
-        "GearPack": 0.228944593,
-        "EndOfChapterPack": 2.159568137
+        "GearPack": 0.228944593
       },
       {
         "StandardPackT5": 0.008237542,
@@ -10339,8 +10665,7 @@
         "StandardPackT1": 2.013003116,
         "PetPack": 0.006995601,
         "HeroPack": 0.08845768,
-        "GearPack": 0.189265832,
-        "EndOfChapterPack": 1.973668538
+        "GearPack": 0.189265832
       },
       {
         "StandardPackT5": 0.006198899,
@@ -10350,8 +10675,7 @@
         "StandardPackT1": 1.913896101,
         "PetPack": 0.062953881,
         "HeroPack": 0.073030612,
-        "GearPack": 0.179566631,
-        "EndOfChapterPack": 1.918973544
+        "GearPack": 0.179566631
       },
       {
         "StandardPackT5": 0.007189008,
@@ -10361,8 +10685,7 @@
         "StandardPackT1": 1.909971185,
         "PetPack": 0.20460984,
         "HeroPack": 0.076723329,
-        "GearPack": 0.152452317,
-        "EndOfChapterPack": 1.854031777
+        "GearPack": 0.152452317
       },
       {
         "StandardPackT5": 0.006563356,
@@ -10372,8 +10695,7 @@
         "StandardPackT1": 1.905321659,
         "PetPack": 0.153784056,
         "HeroPack": 0.070720755,
-        "GearPack": 0.136368993,
-        "EndOfChapterPack": 1.784988648
+        "GearPack": 0.136368993
       },
       {
         "StandardPackT5": 0.007778411,
@@ -10383,8 +10705,7 @@
         "StandardPackT1": 1.871391706,
         "PetPack": 0.131912599,
         "HeroPack": 0.060159526,
-        "GearPack": 0.129122829,
-        "EndOfChapterPack": 1.746514074
+        "GearPack": 0.129122829
       },
       {
         "StandardPackT5": 0.009801737,
@@ -10394,8 +10715,7 @@
         "StandardPackT1": 1.872259383,
         "PetPack": 0.107901147,
         "HeroPack": 0.06245972,
-        "GearPack": 0.12389331,
-        "EndOfChapterPack": 1.695841652
+        "GearPack": 0.12389331
       },
       {
         "StandardPackT5": 0.007142263,
@@ -10405,8 +10725,7 @@
         "StandardPackT1": 1.903523423,
         "PetPack": 0.103246915,
         "HeroPack": 0.056240505,
-        "GearPack": 0.114967834,
-        "EndOfChapterPack": 1.660217315
+        "GearPack": 0.114967834
       },
       {
         "StandardPackT5": 0.007499496,
@@ -10416,8 +10735,7 @@
         "StandardPackT1": 1.896585682,
         "PetPack": 0.086158209,
         "HeroPack": 0.057263611,
-        "GearPack": 0.112500889,
-        "EndOfChapterPack": 1.565312989
+        "GearPack": 0.112500889
       },
       {
         "StandardPackT5": 0.007647656,
@@ -10427,8 +10745,7 @@
         "StandardPackT1": 1.88431681,
         "PetPack": 0.077342019,
         "HeroPack": 0.052032987,
-        "GearPack": 0.120088185,
-        "EndOfChapterPack": 1.472078873
+        "GearPack": 0.120088185
       },
       {
         "StandardPackT5": 0.007288241,
@@ -10438,8 +10755,7 @@
         "StandardPackT1": 1.912415018,
         "PetPack": 0.072721449,
         "HeroPack": 0.057439246,
-        "GearPack": 0.112229999,
-        "EndOfChapterPack": 1.457028337
+        "GearPack": 0.112229999
       },
       {
         "StandardPackT5": 0.007971496,
@@ -10449,8 +10765,7 @@
         "StandardPackT1": 1.945823405,
         "PetPack": 0.071156307,
         "HeroPack": 0.048199723,
-        "GearPack": 0.12494954,
-        "EndOfChapterPack": 1.470758141
+        "GearPack": 0.12494954
       },
       {
         "StandardPackT5": 0.007830897,
@@ -10460,8 +10775,7 @@
         "StandardPackT1": 1.850654096,
         "PetPack": 0.056175676,
         "HeroPack": 0.043641887,
-        "GearPack": 0.100053983,
-        "EndOfChapterPack": 1.376650506
+        "GearPack": 0.100053983
       },
       {
         "StandardPackT5": 0.007354506,
@@ -10471,8 +10785,7 @@
         "StandardPackT1": 1.914418053,
         "PetPack": 0.062055826,
         "HeroPack": 0.050557798,
-        "GearPack": 0.102933096,
-        "EndOfChapterPack": 1.38891662
+        "GearPack": 0.102933096
       },
       {
         "StandardPackT5": 0.00538631,
@@ -10482,8 +10795,7 @@
         "StandardPackT1": 1.959589344,
         "PetPack": 0.056347123,
         "HeroPack": 0.041874507,
-        "GearPack": 0.098243425,
-        "EndOfChapterPack": 1.420647644
+        "GearPack": 0.098243425
       },
       {
         "StandardPackT5": 0.007800314,
@@ -10493,8 +10805,7 @@
         "StandardPackT1": 1.912512539,
         "PetPack": 0.05193723,
         "HeroPack": 0.046117291,
-        "GearPack": 0.107362847,
-        "EndOfChapterPack": 1.311519881
+        "GearPack": 0.107362847
       },
       {
         "StandardPackT5": 0.006212471,
@@ -10504,8 +10815,7 @@
         "StandardPackT1": 1.885065929,
         "PetPack": 0.051352449,
         "HeroPack": 0.039577165,
-        "GearPack": 0.098950267,
-        "EndOfChapterPack": 1.323369594
+        "GearPack": 0.098950267
       },
       {
         "StandardPackT5": 0.007726764,
@@ -10515,8 +10825,7 @@
         "StandardPackT1": 1.894076788,
         "PetPack": 0.052367556,
         "HeroPack": 0.04136984,
-        "GearPack": 0.098152136,
-        "EndOfChapterPack": 1.259053919
+        "GearPack": 0.098152136
       },
       {
         "StandardPackT5": 0.00735347,
@@ -10526,8 +10835,7 @@
         "StandardPackT1": 1.889008433,
         "PetPack": 0.044039226,
         "HeroPack": 0.04711094,
-        "GearPack": 0.087707948,
-        "EndOfChapterPack": 1.248182865
+        "GearPack": 0.087707948
       }
     ],
     "hero_duplicate_ranges": [

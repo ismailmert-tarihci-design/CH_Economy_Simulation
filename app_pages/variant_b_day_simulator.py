@@ -43,6 +43,10 @@ from simulation.variants.variant_b.scripted_run import (
     save_scripted_run,
 )
 from simulation.variants.variant_b.scripted_runner import run_one_day as scripted_run_one_day
+from simulation.variants.variant_b.chapter_schedule import (
+    chapters_for_sim_day as _chapters_for_sim_day,
+    load_cohort_chapters as _load_cohort_chapters,
+)
 
 
 _STATE_KEY = "day_sim"
@@ -118,30 +122,10 @@ _COHORT_PROFILES = ["Average", "P75", "P90"]
 _DEFAULT_COHORT = "Average"
 
 
-def _load_cohort_chapters(name: str) -> list[int]:
-    """Read `chapters_per_day` from a Variant B profile JSON. Empty on miss."""
-    p = Path(__file__).resolve().parents[1] / "data" / "profiles_variant_b" / f"{name}.json"
-    if not p.exists():
-        return []
-    try:
-        data = json.loads(p.read_text())
-    except json.JSONDecodeError:
-        return []
-    chapters = data.get("chapters_per_day")
-    if not chapters:
-        chapters = (data.get("full_config") or {}).get("chapters_per_day", [])
-    return [int(x) for x in (chapters or [])]
-
-
-def _chapters_for_sim_day(chapters_per_day: list[int], sim_day: int) -> int:
-    """Look up chapters to beat on the given 1-indexed sim day.
-
-    Day 0 is the install/FTUE day and yields 0. Day N≥1 maps to index
-    `(N - 1) % len`, matching the orchestrator's schedule indexing.
-    """
-    if sim_day < 1 or not chapters_per_day:
-        return 0
-    return int(chapters_per_day[(sim_day - 1) % len(chapters_per_day)])
+# `_load_cohort_chapters` and `_chapters_for_sim_day` now live in
+# `simulation.variants.variant_b.chapter_schedule` (shared with the big
+# orchestrator). They are re-imported above so the existing call sites keep
+# working with the same private-looking names.
 
 
 def _auto_beat_chapters(state: Dict[str, Any], config: HeroCardConfig, n: int) -> None:
@@ -439,6 +423,38 @@ def _render_heroes_panel(config: HeroCardConfig, game_state: HeroCardGameState) 
             width="stretch",
             height=min(560, 80 + 36 * len(rows)),
         )
+
+        # Per-hero pet & gear progression (Task 4). Each hero owns its own
+        # pet level + gear slot levels; PetPacks/GearPacks credit the
+        # most-recently-unlocked hero.
+        with st.expander("Pet & gear (per hero)", expanded=False):
+            pg_rows: List[Dict[str, Any]] = []
+            for hid in picked:
+                hs = game_state.heroes[hid]
+                slot_pairs = ", ".join(
+                    f"{slot}: L{lvl}" for slot, lvl in sorted(hs.gear.slot_levels.items())
+                )
+                pg_rows.append({
+                    "Hero": name_by_id.get(hid, hid),
+                    "Pet level": hs.pet.level,
+                    "Pet XP": hs.pet.xp,
+                    "Pet packs opened": hs.pet.pet_packs_opened,
+                    "Gear total level": sum(hs.gear.slot_levels.values()),
+                    "Gear slots": slot_pairs,
+                    "Gear packs opened": hs.gear.gear_packs_opened,
+                })
+            st.dataframe(
+                pd.DataFrame(pg_rows),
+                hide_index=True,
+                width="stretch",
+                height=min(360, 80 + 36 * len(pg_rows)),
+            )
+            target = game_state.last_unlocked_hero
+            if target:
+                target_name = name_by_id.get(target, target)
+                st.caption(
+                    f"PetPack / GearPack opens credit **{target_name}** (most recently unlocked hero)."
+                )
 
         # Optional card-level drill-down for one of the picked heroes
         with st.expander("Card-level detail (pick one hero)", expanded=False):

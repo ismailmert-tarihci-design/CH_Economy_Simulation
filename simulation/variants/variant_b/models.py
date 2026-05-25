@@ -359,6 +359,15 @@ class HeroCardConfig(BaseModel):
     pet_system_config: Optional[Any] = None
     gear_system_config: Optional[Any] = None
 
+    # Cohort-driven chapter cadence. One entry per CSV day (day 0 → index 0,
+    # mapped onto sim day N via `(N - 1) % len`). The orchestrator opens an
+    # EndOfChapterPack per chapter beaten, mirroring the day-by-day simulator
+    # and `scripted_runner.run_one_day`.
+    chapters_per_day: List[int] = Field(
+        default_factory=list,
+        description="Per-day chapter completion counts. Mapped to sim day N via (N-1) % len.",
+    )
+
 
 # ---------------------------------------------------------------------------
 # Runtime state models
@@ -374,6 +383,41 @@ class HeroCardState(BaseModel):
     unlocked: bool = Field(default=False, description="Whether card is available (via skill tree)")
 
 
+# Default gear slots attached to every hero. A small fixed set keeps the
+# Variant B pet/gear system simple compared to Variant A's 6-slot global gear.
+HERO_GEAR_SLOTS: List[str] = ["weapon", "armor", "accessory"]
+
+
+class HeroPetState(BaseModel):
+    """Per-hero pet progression (Variant B).
+
+    Distinct from Variant A's PetState — Variant B's pet model is simpler:
+    one pet attached to each hero, levelled by opening PetPacks. Tracks
+    `level` (1..max), `xp` toward the next level, and lifetime `pet_packs_opened`.
+    """
+    level: int = Field(default=1, description="Pet level (1..max_level)")
+    xp: int = Field(default=0, description="XP accumulated toward next level")
+    pet_packs_opened: int = Field(default=0, description="Lifetime PetPacks credited to this hero")
+
+
+class HeroGearState(BaseModel):
+    """Per-hero gear progression (Variant B).
+
+    Each hero has its own small set of gear slots (HERO_GEAR_SLOTS). Opening
+    a GearPack against a hero increments one slot at a time (round-robin),
+    so progression spreads evenly across the slots.
+    """
+    slot_levels: Dict[str, int] = Field(
+        default_factory=lambda: {slot: 1 for slot in HERO_GEAR_SLOTS},
+        description="slot_name -> level",
+    )
+    gear_packs_opened: int = Field(default=0, description="Lifetime GearPacks credited to this hero")
+    next_slot_index: int = Field(
+        default=0,
+        description="Round-robin index into HERO_GEAR_SLOTS for the next upgrade",
+    )
+
+
 class HeroProgressState(BaseModel):
     """Runtime state of a single hero."""
     hero_id: str
@@ -382,6 +426,8 @@ class HeroProgressState(BaseModel):
     skill_tree_progress: int = Field(default=0, description="Index of last unlocked node")
     cards: Dict[str, HeroCardState] = Field(default_factory=dict, description="card_id -> state")
     joker_count: int = Field(default=0, description="Hero joker wildcards available")
+    pet: HeroPetState = Field(default_factory=HeroPetState, description="Per-hero pet progression")
+    gear: HeroGearState = Field(default_factory=HeroGearState, description="Per-hero gear progression")
 
 
 class HeroCardGameState(BaseModel):
@@ -401,13 +447,42 @@ class HeroCardGameState(BaseModel):
     # Diamonds, S-Stone, SpiritStone, RandomDesign, RandomGear, PetFood, PetEgg,
     # Everstone, PurpleStars). Keyed by the canonical names in pack_bonuses.py.
     bonus_items: Dict[str, int] = Field(default_factory=dict)
-    pet_state: Optional[Any] = None
-    gear_state: Optional[Any] = None
+    # Cumulative EndOfChapter packs opened across the run (driven by
+    # config.chapters_per_day in the orchestrator).
+    chapters_beaten: int = Field(default=0, description="Total chapters beaten so far")
+    # Tracks the most-recently-unlocked hero, used as the pack-routing target
+    # for PetPack / GearPack openings. Falls back to "first unlocked hero" in
+    # the routing helper when unset (e.g. starter hero from day-0 schedule).
+    last_unlocked_hero: Optional[str] = Field(
+        default=None,
+        description="hero_id of the most recently unlocked hero (PetPack/GearPack target)",
+    )
 
 
 # ---------------------------------------------------------------------------
 # Simulation result models
 # ---------------------------------------------------------------------------
+
+@dataclass
+class HeroDailySnapshot:
+    """Per-hero end-of-day state snapshot.
+
+    Pydantic is overkill here — these are pure value carriers built once per
+    hero per day. Stored inside `HeroCardDailySnapshot.hero_states`.
+    """
+    level: int = 0
+    xp: int = 0
+    joker_count: int = 0
+    cards_by_rarity: Dict[str, int] = field(default_factory=dict)
+    total_cards: int = 0
+    # Per-hero pet & gear progression (Variant B). pet_level = HeroPetState.level
+    # for the hero on this day; gear_levels = {slot_name: level} from
+    # HeroGearState.slot_levels. gear_total_level is a convenience scalar
+    # (sum of all slot levels) used by Monte Carlo aggregation.
+    pet_level: int = 1
+    gear_levels: Dict[str, int] = field(default_factory=dict)
+    gear_total_level: int = 0
+
 
 @dataclass
 class HeroCardDailySnapshot:
@@ -436,6 +511,14 @@ class HeroCardDailySnapshot:
     premium_packs_opened: int = 0
     premium_diamonds_spent: int = 0
     hero_tokens_received: int = 0
+
+    # Per-hero state (level, xp, jokers, card-dupes-by-rarity, total cards).
+    # Keyed by hero_id. Populated for every hero unlocked on this day.
+    hero_states: Dict[str, HeroDailySnapshot] = field(default_factory=dict)
+
+    # Chapter cadence (driven by config.chapters_per_day in the orchestrator).
+    chapters_beaten_today: int = 0
+    chapters_beaten_total: int = 0
 
     # Shared subsystem events
     pet_events: List[Dict[str, Any]] = field(default_factory=list)

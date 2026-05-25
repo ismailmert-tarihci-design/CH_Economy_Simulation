@@ -7,7 +7,7 @@ mean and variance calculations. Critical for Streamlit Cloud's 1GB memory limit.
 
 import time
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import sqrt
 from random import Random
 from typing import Any, Dict, List
@@ -111,6 +111,19 @@ class DailyAccumulators:
         self.category_level_accumulators: Dict[str, List[WelfordAccumulator]] = {}
         self.pull_count_accumulators: Dict[str, List[WelfordAccumulator]] = {}
         self.pack_count_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        # Per-hero per-day accumulators (Variant B only — populated lazily when
+        # snapshots carry a `hero_states` field). Keyed by hero_id -> list of
+        # per-day WelfordAccumulators, one nested dict per scalar metric.
+        self.hero_level_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        self.hero_xp_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        self.hero_joker_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        self.hero_total_cards_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        # Per-hero pet/gear accumulators. Pet uses scalar `pet_level`; gear
+        # aggregates `gear_total_level` (sum of all slot levels) — a single
+        # scalar is enough to drive the dashboard chart without ballooning the
+        # MCResult shape into per-slot series.
+        self.hero_pet_level_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        self.hero_gear_total_level_accumulators: Dict[str, List[WelfordAccumulator]] = {}
 
     def update_from_snapshot(self, day_index: int, snapshot: Any) -> None:
         """
@@ -149,6 +162,46 @@ class DailyAccumulators:
                     WelfordAccumulator() for _ in range(self.num_days)
                 ]
             self.pack_count_accumulators[pack_name][day_index].update(float(count))
+
+        # Per-hero accumulators (Variant B). Duck-typed: only fires when the
+        # snapshot carries a `hero_states` mapping. Variant A snapshots have
+        # no such attribute, so this is a no-op there.
+        hero_states = getattr(snapshot, "hero_states", None)
+        if hero_states:
+            for hero_id, hero_snap in hero_states.items():
+                for table in (
+                    self.hero_level_accumulators,
+                    self.hero_xp_accumulators,
+                    self.hero_joker_accumulators,
+                    self.hero_total_cards_accumulators,
+                    self.hero_pet_level_accumulators,
+                    self.hero_gear_total_level_accumulators,
+                ):
+                    if hero_id not in table:
+                        table[hero_id] = [
+                            WelfordAccumulator() for _ in range(self.num_days)
+                        ]
+                self.hero_level_accumulators[hero_id][day_index].update(
+                    float(getattr(hero_snap, "level", 0))
+                )
+                self.hero_xp_accumulators[hero_id][day_index].update(
+                    float(getattr(hero_snap, "xp", 0))
+                )
+                self.hero_joker_accumulators[hero_id][day_index].update(
+                    float(getattr(hero_snap, "joker_count", 0))
+                )
+                self.hero_total_cards_accumulators[hero_id][day_index].update(
+                    float(getattr(hero_snap, "total_cards", 0))
+                )
+                # Pet level (scalar) + gear total level (sum across slots).
+                # `getattr` keeps this no-op when the snapshot type pre-dates
+                # the pet/gear fields.
+                self.hero_pet_level_accumulators[hero_id][day_index].update(
+                    float(getattr(hero_snap, "pet_level", 0))
+                )
+                self.hero_gear_total_level_accumulators[hero_id][day_index].update(
+                    float(getattr(hero_snap, "gear_total_level", 0))
+                )
 
     def finalize(self) -> Dict[str, Any]:
         """
@@ -209,6 +262,26 @@ class DailyAccumulators:
                 acc.result()[1] for acc in accumulators
             ]
 
+        # Extract per-hero stats (variant B). Empty dicts when MC ran against a
+        # variant whose snapshots don't carry `hero_states`.
+        for key, source in (
+            ("hero_level", self.hero_level_accumulators),
+            ("hero_xp", self.hero_xp_accumulators),
+            ("hero_joker", self.hero_joker_accumulators),
+            ("hero_total_cards", self.hero_total_cards_accumulators),
+            ("hero_pet_level", self.hero_pet_level_accumulators),
+            ("hero_gear_total_level", self.hero_gear_total_level_accumulators),
+        ):
+            result[f"{key}_means"] = {}
+            result[f"{key}_stds"] = {}
+            for hero_id, accumulators in source.items():
+                result[f"{key}_means"][hero_id] = [
+                    acc.result()[0] for acc in accumulators
+                ]
+                result[f"{key}_stds"][hero_id] = [
+                    acc.result()[1] for acc in accumulators
+                ]
+
         return result
 
 
@@ -228,7 +301,22 @@ class MCResult:
     daily_pull_count_stds: Dict[str, List[float]]
     daily_pack_count_means: Dict[str, List[float]]
     daily_pack_count_stds: Dict[str, List[float]]
-    completion_time: float
+    # Per-hero per-day means/stds (Variant B only — empty for other variants).
+    # Keyed by hero_id -> list-of-num_days floats.
+    daily_hero_level_means: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_level_stds: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_xp_means: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_xp_stds: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_joker_means: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_joker_stds: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_total_cards_means: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_total_cards_stds: Dict[str, List[float]] = field(default_factory=dict)
+    # Per-hero pet/gear progression (Variant B only).
+    daily_hero_pet_level_means: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_pet_level_stds: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_gear_total_level_means: Dict[str, List[float]] = field(default_factory=dict)
+    daily_hero_gear_total_level_stds: Dict[str, List[float]] = field(default_factory=dict)
+    completion_time: float = 0.0
 
 
 def run_monte_carlo(
@@ -312,5 +400,17 @@ def run_monte_carlo(
         daily_pull_count_stds=daily_stats["pull_count_stds"],
         daily_pack_count_means=daily_stats["pack_count_means"],
         daily_pack_count_stds=daily_stats["pack_count_stds"],
+        daily_hero_level_means=daily_stats["hero_level_means"],
+        daily_hero_level_stds=daily_stats["hero_level_stds"],
+        daily_hero_xp_means=daily_stats["hero_xp_means"],
+        daily_hero_xp_stds=daily_stats["hero_xp_stds"],
+        daily_hero_joker_means=daily_stats["hero_joker_means"],
+        daily_hero_joker_stds=daily_stats["hero_joker_stds"],
+        daily_hero_total_cards_means=daily_stats["hero_total_cards_means"],
+        daily_hero_total_cards_stds=daily_stats["hero_total_cards_stds"],
+        daily_hero_pet_level_means=daily_stats["hero_pet_level_means"],
+        daily_hero_pet_level_stds=daily_stats["hero_pet_level_stds"],
+        daily_hero_gear_total_level_means=daily_stats["hero_gear_total_level_means"],
+        daily_hero_gear_total_level_stds=daily_stats["hero_gear_total_level_stds"],
         completion_time=completion_time,
     )

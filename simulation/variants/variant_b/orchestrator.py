@@ -11,6 +11,7 @@ from simulation.variants.variant_b.models import (
     HeroCardConfig,
     HeroCardDailySnapshot,
     HeroCardGameState,
+    HeroDailySnapshot,
     HeroSimResult,
 )
 from simulation.variants.variant_b.hero_deck import (
@@ -38,7 +39,15 @@ from simulation.variants.variant_b.pack_bonuses import (
     get_dupe_boost,
     roll_pack_bonuses,
 )
+from simulation.variants.variant_b.pet_gear import (
+    apply_gear_pack,
+    apply_pet_pack,
+    gear_total_level,
+    pick_pack_target,
+)
 from simulation.variants.variant_b import ftue, season_pass as sp
+from simulation.variants.variant_b import day_simulator as ds
+from simulation.variants.variant_b.chapter_schedule import chapters_for_sim_day
 from simulation.pull_logger import PullLogger, VariantBUpgradeEvent
 
 
@@ -102,6 +111,19 @@ def run_simulation(
         num_pulls, day_pack_counts, per_pack_pulls = _get_daily_pulls(day, config, game_state, rng)
 
         for pack_name, cards_in_pack in per_pack_pulls:
+            # PetPack / GearPack: route progression to the most-recently
+            # unlocked hero. These packs still run the normal card-drop loop
+            # (so dupes, bonuses, and pull logs all behave consistently) —
+            # the pet/gear bump is an additional effect tied to the pack type.
+            if pack_name in ("PetPack", "GearPack"):
+                target_hid = pick_pack_target(game_state)
+                if target_hid is not None:
+                    hero_target = game_state.heroes[target_hid]
+                    if pack_name == "PetPack":
+                        apply_pet_pack(hero_target)
+                    else:
+                        apply_gear_pack(hero_target)
+
             # Per-pack duplicate boost (shared, unique).
             shared_boost, unique_boost = get_dupe_boost(pack_name, config)
 
@@ -268,6 +290,27 @@ def run_simulation(
                             upgrades=[],
                         )
 
+        # 3b. Beat chapters per the cohort schedule. Each beaten chapter opens
+        # one EndOfChapterPack, exactly the way `scripted_runner.run_one_day`
+        # and the day-by-day UI's `_auto_beat_chapters` do it. This must run
+        # before the day's upgrades so dupes from chapter packs are eligible
+        # for spending today.
+        chapters_today = chapters_for_sim_day(config.chapters_per_day, day)
+        if chapters_today:
+            # `ds.open_pack_by_name` requires a real Random instance for
+            # rarity/dupe rolls; deterministic runs (rng=None) get a fresh
+            # seeded RNG so behaviour stays reproducible across days.
+            chapter_rng = rng if rng is not None else Random(day)
+            for _ in range(chapters_today):
+                ds.open_pack_by_name(
+                    "EndOfChapterPack", game_state, config, chapter_rng,
+                    apply_evolution=False,
+                )
+                day_pack_counts["EndOfChapterPack"] = (
+                    day_pack_counts.get("EndOfChapterPack", 0) + 1
+                )
+            game_state.chapters_beaten += chapters_today
+
         # 4. Attempt hero card upgrades (greedy)
         upgrade_events, xp_earned, bs_earned, tree_acts = attempt_hero_upgrades(
             game_state, config
@@ -335,6 +378,29 @@ def run_simulation(
         for hero_id, avg in hero_avg_levels.items():
             category_avg_levels[f"HERO_{hero_id}"] = avg
 
+        # Per-hero end-of-day snapshot. Total cards = sum of duplicates across
+        # the hero's deck (an "ever-pulled" count would also be sensible — we
+        # use dupes because that's what drives upgrades and is comparable to
+        # joker_count as a resource).
+        hero_states_today: Dict[str, HeroDailySnapshot] = {}
+        for hid, hs in game_state.heroes.items():
+            cards_by_rarity: Dict[str, int] = {}
+            total_cards = 0
+            for card in hs.cards.values():
+                rarity_key = card.rarity.value if hasattr(card.rarity, "value") else str(card.rarity)
+                cards_by_rarity[rarity_key] = cards_by_rarity.get(rarity_key, 0) + card.duplicates
+                total_cards += card.duplicates
+            hero_states_today[hid] = HeroDailySnapshot(
+                level=hs.level,
+                xp=hs.xp,
+                joker_count=hs.joker_count,
+                cards_by_rarity=cards_by_rarity,
+                total_cards=total_cards,
+                pet_level=hs.pet.level,
+                gear_levels=dict(hs.gear.slot_levels),
+                gear_total_level=gear_total_level(hs.gear),
+            )
+
         snapshot = HeroCardDailySnapshot(
             day=day,
             total_bluestars=game_state.total_bluestars,
@@ -357,6 +423,9 @@ def run_simulation(
             premium_packs_opened=day_premium_packs,
             premium_diamonds_spent=day_premium_diamonds,
             hero_tokens_received=day_hero_tokens,
+            chapters_beaten_today=chapters_today,
+            chapters_beaten_total=game_state.chapters_beaten,
+            hero_states=hero_states_today,
             upgrades_today=day_upgrades,
         )
         snapshots.append(snapshot)
@@ -414,6 +483,7 @@ def _create_initial_state(config: HeroCardConfig) -> HeroCardGameState:
                 hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
                 if hero_def:
                     state.heroes[hero_id] = initialize_hero(hero_def)
+                    state.last_unlocked_hero = hero_id
 
     return state
 
@@ -430,6 +500,9 @@ def _process_hero_unlocks(
             hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
             if hero_def:
                 game_state.heroes[hero_id] = initialize_hero(hero_def)
+                # Track the most-recently-unlocked hero so PetPack / GearPack
+                # opens that target a "current focus" hero find one.
+                game_state.last_unlocked_hero = hero_id
 
 
 def _get_card_types_for_count(
