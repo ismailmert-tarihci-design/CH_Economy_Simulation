@@ -1,0 +1,44 @@
+{
+  "name": "F2P-Casual-21d",
+  "paid_season_pass": false,
+  "auto_open_daily_packs": true,
+  "token_spend_policy": "cheapest_first",
+  "focus_hero_id": null,
+  "schedule": [
+    {
+      "day": 3,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 5
+    },
+    {
+      "day": 6,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 10
+    },
+    {
+      "day": 9,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 15
+    },
+    {
+      "day": 12,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 20
+    },
+    {
+      "day": 15,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 25
+    },
+    {
+      "day": 18,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 30
+    },
+    {
+      "day": 21,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 35
+    }
+  ]
+}

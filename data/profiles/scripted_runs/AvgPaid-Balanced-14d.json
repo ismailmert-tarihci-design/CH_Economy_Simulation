@@ -1,0 +1,79 @@
+{
+  "name": "AvgPaid-Balanced-14d",
+  "paid_season_pass": true,
+  "auto_open_daily_packs": true,
+  "token_spend_policy": "cheapest_first",
+  "focus_hero_id": null,
+  "schedule": [
+    {
+      "day": 1,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 3
+    },
+    {
+      "day": 2,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 6
+    },
+    {
+      "day": 3,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 10
+    },
+    {
+      "day": 4,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 14
+    },
+    {
+      "day": 5,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 18
+    },
+    {
+      "day": 6,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 22
+    },
+    {
+      "day": 7,
+      "chapters_beaten": 2,
+      "season_pass_target_step": 28
+    },
+    {
+      "day": 8,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 32
+    },
+    {
+      "day": 9,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 36
+    },
+    {
+      "day": 10,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 40
+    },
+    {
+      "day": 11,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 44
+    },
+    {
+      "day": 12,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 48
+    },
+    {
+      "day": 13,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 51
+    },
+    {
+      "day": 14,
+      "chapters_beaten": 1,
+      "season_pass_target_step": 54
+    }
+  ]
+}

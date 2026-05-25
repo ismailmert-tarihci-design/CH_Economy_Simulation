@@ -1,0 +1,149 @@
+{
+  "name": "Whale-FocusHero-28d",
+  "paid_season_pass": true,
+  "auto_open_daily_packs": true,
+  "token_spend_policy": "focus_hero",
+  "focus_hero_id": "cowboy",
+  "schedule": [
+    {
+      "day": 1,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 4
+    },
+    {
+      "day": 2,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 8
+    },
+    {
+      "day": 3,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 12
+    },
+    {
+      "day": 4,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 16
+    },
+    {
+      "day": 5,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 20
+    },
+    {
+      "day": 6,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 24
+    },
+    {
+      "day": 7,
+      "chapters_beaten": 3,
+      "season_pass_target_step": 30
+    },
+    {
+      "day": 8,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 34
+    },
+    {
+      "day": 9,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 38
+    },
+    {
+      "day": 10,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 42
+    },
+    {
+      "day": 11,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 46
+    },
+    {
+      "day": 12,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 50
+    },
+    {
+      "day": 13,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 54
+    },
+    {
+      "day": 14,
+      "chapters_beaten": 2,
+      "season_pass_target_step": 58
+    },
+    {
+      "day": 15,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 62
+    },
+    {
+      "day": 16,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 66
+    },
+    {
+      "day": 17,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 70
+    },
+    {
+      "day": 18,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 73
+    },
+    {
+      "day": 19,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 76
+    },
+    {
+      "day": 20,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 79
+    },
+    {
+      "day": 21,
+      "chapters_beaten": 2,
+      "season_pass_target_step": 82
+    },
+    {
+      "day": 22,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 84
+    },
+    {
+      "day": 23,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 86
+    },
+    {
+      "day": 24,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 87
+    },
+    {
+      "day": 25,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 88
+    },
+    {
+      "day": 26,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 89
+    },
+    {
+      "day": 27,
+      "chapters_beaten": 0,
+      "season_pass_target_step": 90
+    },
+    {
+      "day": 28,
+      "chapters_beaten": 3,
+      "season_pass_target_step": 90
+    }
+  ]
+}

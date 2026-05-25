@@ -921,11 +921,20 @@ def _render_skill_tree_panel(config: HeroCardConfig, game_state: HeroCardGameSta
 _SCRIPTED_KEY = "day_sim_scripted_cfg"
 
 
+_DEFAULT_SCRIPTED_PRESET = "AvgPaid-Balanced-14d"
+
+
 def _ensure_scripted_cfg() -> ScriptedRunConfig:
-    """Return the in-memory scripted-run config, creating a blank one if needed."""
+    """Return the in-memory scripted-run config.
+
+    On first session entry, falls back to the canonical "average paid
+    player" demo preset so the Scenario Play tab opens populated. If that
+    file is missing (e.g. fresh clone before profiles ship), creates a
+    blank config.
+    """
     cfg = st.session_state.get(_SCRIPTED_KEY)
     if cfg is None or not isinstance(cfg, ScriptedRunConfig):
-        cfg = ScriptedRunConfig(name="untitled", schedule=[])
+        cfg = load_scripted_run(_DEFAULT_SCRIPTED_PRESET) or ScriptedRunConfig(name="untitled", schedule=[])
         st.session_state[_SCRIPTED_KEY] = cfg
     return cfg
 
