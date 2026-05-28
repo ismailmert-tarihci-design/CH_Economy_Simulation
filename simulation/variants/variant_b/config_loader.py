@@ -36,6 +36,9 @@ from simulation.variants.variant_b.pack_bonuses import (
     default_pack_bonus_variance,
     default_pack_dupe_boost,
 )
+from simulation.variants.variant_b.chapter_schedule import (
+    load_default_bluestar_thresholds,
+)
 
 
 def load_defaults() -> HeroCardConfig:
@@ -149,6 +152,7 @@ def _builtin_defaults() -> HeroCardConfig:
         pack_bonus_amounts=default_pack_bonus_amounts(),
         pack_bonus_variance=default_pack_bonus_variance(),
         pack_dupe_boost=default_pack_dupe_boost(),
+        chapter_bluestar_thresholds=load_default_bluestar_thresholds(),
     )
 
 

@@ -47,7 +47,10 @@ from simulation.variants.variant_b.pet_gear import (
 )
 from simulation.variants.variant_b import ftue, season_pass as sp
 from simulation.variants.variant_b import day_simulator as ds
-from simulation.variants.variant_b.chapter_schedule import chapters_for_sim_day
+from simulation.variants.variant_b.chapter_schedule import (
+    chapters_for_bluestars,
+    chapters_for_sim_day,
+)
 from simulation.pull_logger import PullLogger, VariantBUpgradeEvent
 
 
@@ -102,6 +105,7 @@ def run_simulation(
         day_premium_packs = 0
         day_premium_diamonds = 0
         day_hero_tokens = 0
+        tokens_balance_start = int(game_state.bonus_items.get("HeroTokens", 0))
         pull_index = 0
 
         # 1. Check hero unlock schedule
@@ -219,6 +223,8 @@ def run_simulation(
             pack_bonuses_rolled = roll_pack_bonuses(pack_name, rng, config)
             for item, amount in pack_bonuses_rolled.items():
                 game_state.bonus_items[item] = game_state.bonus_items.get(item, 0) + amount
+                if item == "HeroTokens":
+                    day_hero_tokens += int(amount)
 
         # 3. Process premium pack purchases
         premium_pulls, diamonds_spent, jokers_from_premium, tokens_from_premium, packs_opened = process_premium_purchases(
@@ -290,12 +296,24 @@ def run_simulation(
                             upgrades=[],
                         )
 
-        # 3b. Beat chapters per the cohort schedule. Each beaten chapter opens
-        # one EndOfChapterPack, exactly the way `scripted_runner.run_one_day`
-        # and the day-by-day UI's `_auto_beat_chapters` do it. This must run
-        # before the day's upgrades so dupes from chapter packs are eligible
-        # for spending today.
-        chapters_today = chapters_for_sim_day(config.chapters_per_day, day)
+        # 3b. Beat chapters. Big-simulator rule: chapter N is beaten when
+        # `total_bluestars` >= `chapter_bluestar_thresholds[N-1]` (sourced
+        # from CSV `avg_bs` per chapter). This replaces the legacy calendar
+        # `chapters_per_day` schedule, which only stays as a fallback for
+        # configs that ship no threshold table. The day-by-day simulator
+        # keeps the calendar rhythm; see `app_pages/variant_b_day_simulator`.
+        #
+        # Each beaten chapter opens one EndOfChapterPack — same handling as
+        # `scripted_runner.run_one_day` and the day-by-day UI's
+        # `_auto_beat_chapters` so dupes feed today's upgrade pass.
+        if config.chapter_bluestar_thresholds:
+            chapters_today = chapters_for_bluestars(
+                config.chapter_bluestar_thresholds,
+                game_state.total_bluestars,
+                game_state.chapters_beaten,
+            )
+        else:
+            chapters_today = chapters_for_sim_day(config.chapters_per_day, day)
         if chapters_today:
             # `ds.open_pack_by_name` requires a real Random instance for
             # rarity/dupe rolls; deterministic runs (rng=None) get a fresh
@@ -329,6 +347,29 @@ def run_simulation(
             day_skill_nodes[hero_id] = day_skill_nodes.get(hero_id, 0) + len(acts)
             for _, card_ids, _ in acts:
                 day_cards_unlocked += len(card_ids)
+
+        # 4a. Re-check chapter thresholds: today's upgrade bluestars may have
+        # crossed additional chapter thresholds. Open EoC packs for those
+        # now so the chapter count doesn't lag a day behind bluestars. Dupes
+        # from these post-upgrade packs feed tomorrow's upgrade pass.
+        if config.chapter_bluestar_thresholds:
+            extra_chapters = chapters_for_bluestars(
+                config.chapter_bluestar_thresholds,
+                game_state.total_bluestars,
+                game_state.chapters_beaten,
+            )
+            if extra_chapters:
+                chapter_rng = rng if rng is not None else Random(day * 31 + 1)
+                for _ in range(extra_chapters):
+                    ds.open_pack_by_name(
+                        "EndOfChapterPack", game_state, config, chapter_rng,
+                        apply_evolution=False,
+                    )
+                    day_pack_counts["EndOfChapterPack"] = (
+                        day_pack_counts.get("EndOfChapterPack", 0) + 1
+                    )
+                game_state.chapters_beaten += extra_chapters
+                chapters_today += extra_chapters
 
         # 4b. Attempt shared card upgrades (no XP, no jokers)
         shared_events, shared_bs = attempt_shared_upgrades(game_state, config)
@@ -423,6 +464,12 @@ def run_simulation(
             premium_packs_opened=day_premium_packs,
             premium_diamonds_spent=day_premium_diamonds,
             hero_tokens_received=day_hero_tokens,
+            hero_tokens_balance=int(game_state.bonus_items.get("HeroTokens", 0)),
+            hero_tokens_spent_today=max(
+                0,
+                tokens_balance_start + day_hero_tokens
+                - int(game_state.bonus_items.get("HeroTokens", 0)),
+            ),
             chapters_beaten_today=chapters_today,
             chapters_beaten_total=game_state.chapters_beaten,
             hero_states=hero_states_today,
@@ -449,6 +496,11 @@ def run_simulation(
         total_premium_diamonds_spent=sum(s.premium_diamonds_spent for s in snapshots),
         total_jokers_received=sum(s.jokers_received_today for s in snapshots),
         total_hero_tokens=sum(s.hero_tokens_received for s in snapshots),
+        total_hero_tokens_spent=sum(s.hero_tokens_spent_today for s in snapshots),
+        final_hero_tokens_balance=int(game_state.bonus_items.get("HeroTokens", 0)),
+        final_hero_skill_progress={
+            hid: hs.skill_tree_progress for hid, hs in game_state.heroes.items()
+        },
     )
 
 

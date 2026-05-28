@@ -95,6 +95,11 @@ def render_variant_b_dashboard() -> None:
     with st.container(border=True):
         _render_per_hero_breakdown(snapshots, hero_name_map)
 
+    # Hero Token hunger — surfaces how token income is keeping up with the
+    # skill-tree token cost for each hero (per-hero "needs N more tokens").
+    with st.container(border=True):
+        _render_hero_token_hunger(result, snapshots, config, hero_name_map)
+
     # Summary sections
     col5, col6, col7 = st.columns(3)
     with col5:
@@ -429,6 +434,150 @@ def _render_per_hero_breakdown(snapshots: list, hero_name_map: dict | None = Non
     # the snapshot type carries pet_level / gear_levels (skipped for old saved
     # results that pre-date Task 4).
     _render_pet_gear_per_hero(snapshots, selected, options, labels)
+
+
+def _render_hero_token_hunger(
+    result: Any, snapshots: list, config: Any, hero_name_map: Dict[str, str],
+) -> None:
+    """Per-hero Hero Token hunger view — what each hero needs to advance.
+
+    Shows, for every hero, the next skill-tree node, its level + token gate,
+    and whether the player's current Hero Token balance covers it. The
+    bottom line is a balance/income chart so designers can see at a glance
+    whether token inflow is keeping up with the skill-tree demand curve.
+    """
+    st.markdown("**Hero Token hunger — next skill node per hero**")
+    st.caption(
+        "Token costs are charged when a hero levels up enough to unlock the "
+        "next skill-tree node. Use this view to balance pack/SP token income "
+        "against skill-tree cost: anywhere `Needs more` stays > 0 for a long "
+        "stretch is a hero whose progression is bottlenecked on tokens."
+    )
+
+    balance = int(getattr(result, "final_hero_tokens_balance", 0))
+    received = int(getattr(result, "total_hero_tokens", 0))
+    spent = int(getattr(result, "total_hero_tokens_spent", 0))
+    progress: Dict[str, int] = (
+        getattr(result, "final_hero_skill_progress", {}) or {}
+    )
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Final token balance", f"{balance:,}")
+    k2.metric("Tokens received (run)", f"{received:,}")
+    k3.metric("Tokens spent (run)", f"{spent:,}")
+    days = max(1, len(snapshots))
+    k4.metric("Avg tokens / day", f"{received / days:,.1f}",
+              help="Mean tokens received per simulated day.")
+
+    # Per-hero next-node table.
+    heroes = list(getattr(config, "heroes", []) or [])
+    if not heroes:
+        st.caption("No hero definitions in this config.")
+        return
+
+    final_levels: Dict[str, int] = getattr(result, "final_hero_levels", {}) or {}
+
+    rows = []
+    total_remaining_to_finish = 0
+    bottlenecked = 0
+    for hero_def in heroes:
+        hid = hero_def.hero_id
+        name = hero_name_map.get(hid, hid)
+        tree = list(getattr(hero_def, "skill_tree", []) or [])
+        if not tree:
+            continue
+        prog = int(progress.get(hid, 0))
+        hero_lvl = int(final_levels.get(hid, 1))
+        next_idx = prog + 1
+        if next_idx >= len(tree):
+            rows.append({
+                "Hero": name,
+                "Hero lvl": hero_lvl,
+                "Next node": "MAX",
+                "Lvl req": "—",
+                "Token cost": "—",
+                "Needs more": 0,
+                "Status": "✓ Skill tree complete",
+            })
+            continue
+        node = tree[next_idx]
+        cost = int(getattr(node, "token_cost", 0) or 0)
+        lvl_req = int(getattr(node, "hero_level_required", 0) or 0)
+        needs_more = max(0, cost - balance)
+        # Remaining tokens to finish the rest of the tree (sum of all
+        # untaken nodes' costs).
+        remaining_run = sum(
+            int(getattr(n, "token_cost", 0) or 0) for n in tree[next_idx:]
+        )
+        total_remaining_to_finish += remaining_run
+
+        if hero_lvl < lvl_req:
+            status = f"⏳ Needs L{lvl_req} (currently L{hero_lvl})"
+        elif needs_more > 0:
+            status = f"💸 Needs {needs_more:,} more tokens"
+            bottlenecked += 1
+        else:
+            status = "✅ Ready (can buy)"
+        rows.append({
+            "Hero": name,
+            "Hero lvl": hero_lvl,
+            "Next node": f"#{node.node_index} · {getattr(node, 'perk_label', '') or '—'}",
+            "Lvl req": lvl_req,
+            "Token cost": cost,
+            "Needs more": needs_more,
+            "Status": status,
+            "Remaining to finish tree": remaining_run,
+        })
+
+    if not rows:
+        st.caption("No heroes with skill trees configured.")
+        return
+
+    import pandas as pd
+    df = pd.DataFrame(rows)
+    st.dataframe(df, hide_index=True, width="stretch",
+                 height=min(560, 80 + 36 * len(rows)))
+
+    g1, g2 = st.columns(2)
+    g1.metric("Heroes bottlenecked on tokens", f"{bottlenecked}",
+              help="Hero level met but token balance below next-node cost.")
+    g2.metric("Total tokens still needed to fully unlock all trees",
+              f"{total_remaining_to_finish:,}",
+              delta=f"{total_remaining_to_finish - balance:,} short"
+                    if total_remaining_to_finish > balance else "covered",
+              delta_color="inverse",
+              help="Sum of all untaken skill-tree token costs across heroes vs. current balance.")
+
+    # Token balance / income / spend over time.
+    days_axis = [s.day for s in snapshots]
+    balance_series = [int(getattr(s, "hero_tokens_balance", 0)) for s in snapshots]
+    received_series = [int(getattr(s, "hero_tokens_received", 0)) for s in snapshots]
+    spent_series = [int(getattr(s, "hero_tokens_spent_today", 0)) for s in snapshots]
+
+    fig = _styled_fig("Hero Token balance + flow over time")
+    fig.add_trace(go.Bar(
+        x=days_axis, y=received_series,
+        name="Tokens received",
+        marker_color=_GREEN, opacity=0.55,
+    ))
+    fig.add_trace(go.Bar(
+        x=days_axis, y=[-v for v in spent_series],
+        name="Tokens spent",
+        marker_color=_RED, opacity=0.55,
+    ))
+    fig.add_trace(go.Scatter(
+        x=days_axis, y=balance_series,
+        mode="lines", name="Balance",
+        line=dict(color=_VIOLET, width=2),
+        yaxis="y2",
+    ))
+    fig.update_layout(
+        barmode="relative",
+        xaxis=dict(title="Day"),
+        yaxis=dict(title="Tokens per day"),
+        yaxis2=dict(title="Balance", overlaying="y", side="right"),
+    )
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_pet_gear_per_hero(

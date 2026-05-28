@@ -365,7 +365,17 @@ class HeroCardConfig(BaseModel):
     # and `scripted_runner.run_one_day`.
     chapters_per_day: List[int] = Field(
         default_factory=list,
-        description="Per-day chapter completion counts. Mapped to sim day N via (N-1) % len.",
+        description="Per-day chapter completion counts. Mapped to sim day N via (N-1) % len. Used by the day-by-day simulator only.",
+    )
+
+    # Bluestar thresholds per chapter (1-indexed via list position: index 0 →
+    # chapter 1). The big simulator beats chapter N at the end of the day on
+    # which `total_bluestars` first crosses `chapter_bluestar_thresholds[N-1]`.
+    # Source: CSV `avg_bs` per chapter. When this list is empty the simulator
+    # falls back to the legacy calendar `chapters_per_day` schedule.
+    chapter_bluestar_thresholds: List[float] = Field(
+        default_factory=list,
+        description="Bluestars required to beat chapter N (1-indexed by list position). Drives chapter beating in the big simulator.",
     )
 
 
@@ -511,6 +521,8 @@ class HeroCardDailySnapshot:
     premium_packs_opened: int = 0
     premium_diamonds_spent: int = 0
     hero_tokens_received: int = 0
+    hero_tokens_spent_today: int = 0
+    hero_tokens_balance: int = 0
 
     # Per-hero state (level, xp, jokers, card-dupes-by-rarity, total cards).
     # Keyed by hero_id. Populated for every hero unlocked on this day.
@@ -542,3 +554,6 @@ class HeroSimResult(BaseModel):
     total_premium_diamonds_spent: int = Field(default=0)
     total_jokers_received: int = Field(default=0)
     total_hero_tokens: int = Field(default=0)
+    total_hero_tokens_spent: int = Field(default=0)
+    final_hero_tokens_balance: int = Field(default=0)
+    final_hero_skill_progress: Dict[str, int] = Field(default_factory=dict)
