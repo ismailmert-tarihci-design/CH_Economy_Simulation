@@ -113,8 +113,17 @@ def test_chapters_for_bluestars_lookup():
     assert chapters_for_bluestars(thresholds, 75, 0) == 3
     # Already beaten the 3 we can; nothing to add.
     assert chapters_for_bluestars(thresholds, 75, 3) == 0
-    # Above table cap is bounded by len(thresholds).
-    assert chapters_for_bluestars(thresholds, 100_000, 0) == 5
+    # Past the table we linearly extrapolate the curve using the last
+    # two entries' step (here step = 500 - 200 = 300). One extra chapter
+    # for each `step` bluestars beyond `thresholds[-1]`.
+    # bs=800 → table-target=5 (covers all 5 entries), extra = (800-500)//300 = 1.
+    assert chapters_for_bluestars(thresholds, 800, 0) == 6
+    # bs=100_000 → 5 + (100000-500)//300 = 5 + 331 = 336.
+    assert chapters_for_bluestars(thresholds, 100_000, 0) == 336
+    # Single-entry table cannot extrapolate (no step) — caps at 1.
+    assert chapters_for_bluestars([0.0], 100_000, 0) == 1
+    # Flat-tail table (step <= 0) cannot extrapolate — caps at len.
+    assert chapters_for_bluestars([0, 10, 50, 50], 100_000, 0) == 4
     # Empty table = no chapters.
     assert chapters_for_bluestars([], 999, 0) == 0
 

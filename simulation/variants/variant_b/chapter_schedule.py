@@ -62,18 +62,32 @@ def chapters_for_bluestars(
 
     `thresholds[i]` is the bluestar amount needed to beat chapter `i + 1`.
     Returns the count of chapters whose threshold is reached but which
-    have not yet been counted in `already_beaten`. Caps at the table length
-    (no chapters beyond the configured table).
+    have not yet been counted in `already_beaten`.
+
+    Past the end of the table we **linearly extrapolate** the curve:
+    the per-chapter step is estimated from the last two table entries
+    (`step = thresholds[-1] - thresholds[-2]`), and additional chapters
+    are awarded while bluestars cover that step. With a single-entry
+    table or a flat tail (step <= 0) extrapolation is disabled and the
+    count saturates at `len(thresholds)`.
     """
     if not thresholds:
         return 0
-    target = 0
     bs = float(total_bluestars)
+    target = 0
     for thresh in thresholds:
         if bs >= float(thresh):
             target += 1
         else:
             break
+
+    # Linear extrapolation past the configured table.
+    if target == len(thresholds) and len(thresholds) >= 2:
+        step = float(thresholds[-1]) - float(thresholds[-2])
+        if step > 0:
+            extra = int((bs - float(thresholds[-1])) // step)
+            target += max(0, extra)
+
     return max(0, target - int(already_beaten))
 
 
