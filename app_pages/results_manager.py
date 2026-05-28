@@ -71,6 +71,11 @@ def _render_manage_tab() -> None:
                         loaded = load_result(result["filename"])
                         st.session_state.sim_result = _deserialize_result(loaded)
                         st.session_state.sim_mode = loaded["sim_mode"]
+                        loaded_variant = loaded.get("variant_id") or loaded.get(
+                            "result", {}
+                        ).get("_variant_id")
+                        if loaded_variant:
+                            st.session_state.active_variant = loaded_variant
                         st.success(f"Loaded '{result['name']}'!")
                 with col_del:
                     if st.button("🗑️", key=f"del_{result['filename']}", help="Delete"):
@@ -79,12 +84,14 @@ def _render_manage_tab() -> None:
 
 
 def _deserialize_result(loaded: dict) -> Any:
-    """Deserialize a saved result back to SimResult or MCResult."""
+    """Deserialize a saved result back to SimResult / HeroSimResult / MCResult."""
     from simulation.orchestrator import SimResult
     from simulation.monte_carlo import MCResult, WelfordAccumulator
 
+    result_data = loaded["result"]
+    variant_id = loaded.get("variant_id") or result_data.get("_variant_id", "variant_a")
+
     if loaded["sim_mode"] == "monte_carlo":
-        result_data = loaded["result"]
         bluestar_stats = WelfordAccumulator()
         bluestar_stats.count = result_data.get("num_runs", 1)
         bluestar_stats.mean = result_data.get("final_bluestar_mean", 0)
@@ -105,18 +112,50 @@ def _deserialize_result(loaded: dict) -> Any:
             daily_pull_count_stds=result_data.get("daily_pull_count_stds", {}),
             daily_pack_count_means=result_data.get("daily_pack_count_means", {}),
             daily_pack_count_stds=result_data.get("daily_pack_count_stds", {}),
+            daily_hero_level_means=result_data.get("daily_hero_level_means", {}),
+            daily_hero_level_stds=result_data.get("daily_hero_level_stds", {}),
+            daily_hero_xp_means=result_data.get("daily_hero_xp_means", {}),
+            daily_hero_xp_stds=result_data.get("daily_hero_xp_stds", {}),
+            daily_hero_joker_means=result_data.get("daily_hero_joker_means", {}),
+            daily_hero_joker_stds=result_data.get("daily_hero_joker_stds", {}),
+            daily_hero_total_cards_means=result_data.get("daily_hero_total_cards_means", {}),
+            daily_hero_total_cards_stds=result_data.get("daily_hero_total_cards_stds", {}),
+            daily_hero_pet_level_means=result_data.get("daily_hero_pet_level_means", {}),
+            daily_hero_pet_level_stds=result_data.get("daily_hero_pet_level_stds", {}),
+            daily_hero_gear_total_level_means=result_data.get("daily_hero_gear_total_level_means", {}),
+            daily_hero_gear_total_level_stds=result_data.get("daily_hero_gear_total_level_stds", {}),
             completion_time=result_data.get("completion_time", 0),
         )
-    else:
-        result_data = loaded["result"]
-        return SimResult(
+
+    if variant_id == "variant_b":
+        from simulation.variants.variant_b.models import HeroSimResult
+        return HeroSimResult(
             daily_snapshots=result_data.get("daily_snapshots", []),
             total_bluestars=result_data.get("total_bluestars", 0),
             total_coins_earned=result_data.get("total_coins_earned", 0),
             total_coins_spent=result_data.get("total_coins_spent", 0),
             total_upgrades=result_data.get("total_upgrades", {}),
             pull_logs=result_data.get("pull_logs", []),
+            final_shared_hero_level=result_data.get("final_shared_hero_level", 0),
+            final_shared_hero_xp=result_data.get("final_shared_hero_xp", 0),
+            final_hero_levels=result_data.get("final_hero_levels", {}),
+            final_hero_xp=result_data.get("final_hero_xp", {}),
+            total_premium_diamonds_spent=result_data.get("total_premium_diamonds_spent", 0),
+            total_jokers_received=result_data.get("total_jokers_received", 0),
+            total_hero_tokens=result_data.get("total_hero_tokens", 0),
+            total_hero_tokens_spent=result_data.get("total_hero_tokens_spent", 0),
+            final_hero_tokens_balance=result_data.get("final_hero_tokens_balance", 0),
+            final_hero_skill_progress=result_data.get("final_hero_skill_progress", {}),
         )
+
+    return SimResult(
+        daily_snapshots=result_data.get("daily_snapshots", []),
+        total_bluestars=result_data.get("total_bluestars", 0),
+        total_coins_earned=result_data.get("total_coins_earned", 0),
+        total_coins_spent=result_data.get("total_coins_spent", 0),
+        total_upgrades=result_data.get("total_upgrades", {}),
+        pull_logs=result_data.get("pull_logs", []),
+    )
 
 
 def _render_compare_tab() -> None:
@@ -279,6 +318,17 @@ def save_current_result(name: str, description: str = "") -> str:
             "daily_pack_count_stds": result.daily_pack_count_stds,
             "completion_time": result.completion_time,
         }
+        # Variant B hero-card MC aggregates (empty dicts on other variants).
+        for field_name in (
+            "daily_hero_level_means", "daily_hero_level_stds",
+            "daily_hero_xp_means", "daily_hero_xp_stds",
+            "daily_hero_joker_means", "daily_hero_joker_stds",
+            "daily_hero_total_cards_means", "daily_hero_total_cards_stds",
+            "daily_hero_pet_level_means", "daily_hero_pet_level_stds",
+            "daily_hero_gear_total_level_means", "daily_hero_gear_total_level_stds",
+        ):
+            if hasattr(result, field_name):
+                result_data[field_name] = getattr(result, field_name)
     else:
         from dataclasses import asdict
         result_data = {
@@ -289,12 +339,24 @@ def save_current_result(name: str, description: str = "") -> str:
             "total_bluestars": result.total_bluestars,
             "total_coins_earned": result.total_coins_earned,
             "total_coins_spent": result.total_coins_spent,
-            "total_upgrades": result.total_upgrades,
+            "total_upgrades": _jsonable(result.total_upgrades),
             "pull_logs": [
                 asdict(p) if hasattr(p, "__dataclass_fields__") else p
                 for p in result.pull_logs
             ],
         }
+        # Variant B HeroSimResult aggregates (Pydantic fields beyond the base).
+        for field_name in (
+            "final_shared_hero_level", "final_shared_hero_xp",
+            "final_hero_levels", "final_hero_xp",
+            "total_premium_diamonds_spent", "total_jokers_received",
+            "total_hero_tokens", "total_hero_tokens_spent",
+            "final_hero_tokens_balance", "final_hero_skill_progress",
+        ):
+            if hasattr(result, field_name):
+                result_data[field_name] = getattr(result, field_name)
+
+    result_data["_variant_id"] = active
 
     saved = SavedResult(
         name=name,
@@ -307,4 +369,21 @@ def save_current_result(name: str, description: str = "") -> str:
         num_runs=result.num_runs if mode == "monte_carlo" else 1,
     )
 
-    return save_result(saved.model_dump())
+    payload = saved.model_dump()
+    payload["variant_id"] = active
+    return save_result(payload)
+
+
+def _jsonable(obj: Any) -> Any:
+    """Best-effort conversion of dataclass / Pydantic / list / dict trees into JSON-safe primitives."""
+    from dataclasses import asdict, is_dataclass
+
+    if is_dataclass(obj):
+        return asdict(obj)
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    if isinstance(obj, dict):
+        return {k: _jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_jsonable(v) for v in obj]
+    return obj

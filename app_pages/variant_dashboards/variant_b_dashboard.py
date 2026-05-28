@@ -45,6 +45,8 @@ def render_variant_b_dashboard() -> None:
 
     st.title("Hero card system dashboard")
 
+    _render_save_popover(result, mode)
+
     if mode != "deterministic":
         _render_mc_summary(result)
         _render_mc_bluestar_chart(result)
@@ -905,6 +907,24 @@ def _render_skill_tree_summary(snapshots: list) -> None:
         st.metric("Cards unlocked", f"{total_cards:,}")
         if total_nodes:
             st.caption(f"Across {len(total_nodes)} heroes")
+
+
+def _render_save_popover(result: Any, mode: str) -> None:
+    """Save the current Hero Card System result to disk (mirrors variant A dashboard)."""
+    if mode == "deterministic":
+        default_name = f"HeroCard_det_{getattr(result, 'total_bluestars', 0)}"
+    else:
+        default_name = "HeroCard_MC"
+    with st.popover("Save result", icon=":material/bookmark:"):
+        save_name = st.text_input("Name", value=default_name, key="vb_save_name")
+        save_desc = st.text_area("Description (optional)", height=68, key="vb_save_desc")
+        if st.button("Save", width="stretch", icon=":material/save:", type="primary", key="vb_save_btn"):
+            try:
+                from app_pages.results_manager import save_current_result
+                filename = save_current_result(save_name, save_desc)
+                st.success(f"Saved as {filename}!", icon=":material/check_circle:")
+            except Exception as e:
+                st.error(f"Failed to save: {e}")
 
 
 def _render_mc_summary(result: Any) -> None:
