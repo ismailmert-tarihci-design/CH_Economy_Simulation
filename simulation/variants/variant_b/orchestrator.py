@@ -18,6 +18,7 @@ from simulation.variants.variant_b.hero_deck import (
     get_unlocked_cards,
     hero_card_avg_level,
     initialize_hero,
+    unlock_heroes_by_bluestars,
 )
 from simulation.variants.variant_b.drop_algorithm import (
     check_joker_drop,
@@ -84,6 +85,10 @@ def run_simulation(
             sp_step, paid_pass=False, game_state=game_state, extras=extras,
             config=config, rng=rng, skip_packs=True,
         )
+    # FTUE bluestars may already cross several unlock thresholds — bring the
+    # roster up to date before day 1 so early pulls spread across all
+    # progression-unlocked heroes (not just woody).
+    unlock_heroes_by_bluestars(game_state, config)
 
     snapshots: List[HeroCardDailySnapshot] = []
     pull_logger = PullLogger()
@@ -545,16 +550,13 @@ def _process_hero_unlocks(
     config: HeroCardConfig,
     game_state: HeroCardGameState,
 ) -> None:
-    """Unlock heroes scheduled for this day."""
-    hero_ids = config.hero_unlock_schedule.get(day, [])
-    for hero_id in hero_ids:
-        if hero_id not in game_state.heroes:
-            hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
-            if hero_def:
-                game_state.heroes[hero_id] = initialize_hero(hero_def)
-                # Track the most-recently-unlocked hero so PetPack / GearPack
-                # opens that target a "current focus" hero find one.
-                game_state.last_unlocked_hero = hero_id
+    """Unlock heroes the player's bluestars now reach (progression-gated).
+
+    `hero_unlock_schedule` keys are total-bluestar thresholds, not days; see
+    `unlock_heroes_by_bluestars`. `last_unlocked_hero` is set so PetPack /
+    GearPack opens that target a "current focus" hero find one.
+    """
+    unlock_heroes_by_bluestars(game_state, config)
 
 
 def _get_card_types_for_count(

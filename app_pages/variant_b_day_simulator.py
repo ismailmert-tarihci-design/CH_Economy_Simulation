@@ -42,11 +42,17 @@ from simulation.variants.variant_b.scripted_run import (
     load_scripted_run,
     save_scripted_run,
 )
-from simulation.variants.variant_b.scripted_runner import run_one_day as scripted_run_one_day
+from simulation.variants.variant_b.scripted_runner import (
+    run_one_day as scripted_run_one_day,
+    beat_chapters_by_bluestars as _beat_chapters_by_bluestars,
+)
 from simulation.variants.variant_b.chapter_schedule import (
     chapters_for_sim_day as _chapters_for_sim_day,
+    chapters_for_bluestars as _chapters_for_bluestars,
     load_cohort_chapters as _load_cohort_chapters,
+    load_default_bluestar_thresholds as _load_bluestar_thresholds,
 )
+from simulation.variants.variant_b.power_curve import power_for_bluestars
 
 
 _STATE_KEY = "day_sim"
@@ -59,6 +65,7 @@ def _snapshot_history(state: Dict[str, Any]) -> None:
     snap = {
         "day": state["day"],
         "bluestars": game_state.total_bluestars,
+        "power": power_for_bluestars(game_state.total_bluestars),
         "coins": game_state.coins,
         "upgrades_hero": state.get("upgrades_hero", 0),
         "upgrades_shared": state.get("upgrades_shared", 0),
@@ -123,6 +130,12 @@ def _log(lines):
 _COHORT_PROFILES = ["Average", "P75", "P90"]
 _DEFAULT_COHORT = "Average"
 
+# Chapter-beating cohorts whose bluestar thresholds gate progression. These
+# come from data/defaults/chapter_bluestar_thresholds.json. "Calendar" falls
+# back to the legacy fixed chapters-per-day cadence (Average/P75/P90).
+_BS_GATING_OPTIONS = ["Non-Payer", "Mid-Payer", "Payer", "All", "Calendar"]
+_DEFAULT_BS_GATING = "Non-Payer"
+
 
 # `_load_cohort_chapters` and `_chapters_for_sim_day` now live in
 # `simulation.variants.variant_b.chapter_schedule` (shared with the big
@@ -152,6 +165,8 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     paid_pass = prev.get("paid_pass", False)
     cohort = prev.get("cohort") or _DEFAULT_COHORT
     chapters_per_day = _load_cohort_chapters(cohort)
+    bs_gating = prev.get("bs_gating") or _DEFAULT_BS_GATING
+    bs_thresholds = [] if bs_gating == "Calendar" else _load_bluestar_thresholds(bs_gating)
     st.session_state[_STATE_KEY] = {
         "game_state": ds.init_state(config),
         "day": 0,
@@ -166,6 +181,8 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "daily_used": set(),
         "cohort": cohort,
         "chapters_per_day": chapters_per_day,
+        "bs_gating": bs_gating,
+        "bs_thresholds": bs_thresholds,
         "upgrades_hero": 0,
         "upgrades_shared": 0,
     }
@@ -174,6 +191,14 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     state["history"] = []
     ftue_lines = ftue.run_ftue(state["game_state"], config, state["extras"])
     _log(ftue_lines)
+
+    # FTUE bluestars may already cross several hero unlock thresholds; bring the
+    # roster up to date so day-0 reflects progression (heroes unlock by
+    # bluestars, not by calendar day).
+    from simulation.variants.variant_b.hero_deck import unlock_heroes_by_bluestars
+    unlocked_names = unlock_heroes_by_bluestars(state["game_state"], config)
+    if unlocked_names:
+        _log(["Heroes unlocked (post-FTUE): " + ", ".join(unlocked_names)])
 
     # FTUE pack steps already opened the SP1, SP2, SP4 packs and credited
     # their cards. Catch the season-pass tracker up through step 4 and apply
@@ -253,8 +278,8 @@ def render_variant_b_day_simulator() -> None:
 
 def _render_top_bar(config: HeroCardConfig) -> None:
     with st.container(border=True):
-        c_seed, c_reset, c_cohort, c_paid, c_day, c_chap, c_up, c_next = st.columns(
-            [1.0, 1.0, 1.1, 1.2, 0.7, 0.9, 0.9, 1.2]
+        c_seed, c_reset, c_cohort, c_gate, c_paid, c_day, c_chap, c_up, c_next = st.columns(
+            [1.0, 1.0, 1.1, 1.2, 1.1, 0.7, 0.9, 0.9, 1.2]
         )
         with c_seed:
             seed = st.number_input(
@@ -282,6 +307,27 @@ def _render_top_bar(config: HeroCardConfig) -> None:
                 st.session_state[_STATE_KEY]["cohort"] = picked_cohort
                 st.session_state[_STATE_KEY]["chapters_per_day"] = _load_cohort_chapters(picked_cohort)
                 _log([f"Cohort switched to **{picked_cohort}** — chapters-per-day reloaded."])
+        with c_gate:
+            current_gate = (
+                st.session_state.get(_STATE_KEY, {}).get("bs_gating")
+                or _DEFAULT_BS_GATING
+            )
+            picked_gate = st.selectbox(
+                "Chapter gating",
+                options=_BS_GATING_OPTIONS,
+                index=_BS_GATING_OPTIONS.index(current_gate)
+                    if current_gate in _BS_GATING_OPTIONS else 0,
+                key="day_sim_bs_gating",
+                help="Bluestar cohorts beat chapters when total bluestars cross "
+                     "that cohort's thresholds (matches the in-game methodology). "
+                     "'Calendar' uses the legacy fixed chapters-per-day cadence.",
+            )
+            if _STATE_KEY in st.session_state and picked_gate != current_gate:
+                st.session_state[_STATE_KEY]["bs_gating"] = picked_gate
+                st.session_state[_STATE_KEY]["bs_thresholds"] = (
+                    [] if picked_gate == "Calendar" else _load_bluestar_thresholds(picked_gate)
+                )
+                _log([f"Chapter gating switched to **{picked_gate}**."])
         with c_paid:
             st.write("")
             if _STATE_KEY in st.session_state:
@@ -318,15 +364,25 @@ def _render_top_bar(config: HeroCardConfig) -> None:
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
                     state["daily_used"] = set()
                     _log([f"── Advanced to day {state['day']} ──"] + unlocks)
-                    # Auto-beat the cohort's chapters for this new day. This
-                    # is what makes manual play mirror scripted Monte Carlo
-                    # behaviour: the chapter rhythm comes from the chosen
-                    # player cohort instead of relying on the user to click
-                    # the "Beat chapter" button N times.
-                    chapters_today = _chapters_for_sim_day(
-                        state.get("chapters_per_day", []), state["day"]
-                    )
-                    _auto_beat_chapters(state, config, chapters_today)
+                    # Beat chapters. Bluestar gating beats every chapter the
+                    # player's current bluestars can afford (matches the in-game
+                    # methodology); the legacy "Calendar" mode beats a fixed
+                    # per-day count from the chosen cohort profile.
+                    bs_thresholds = state.get("bs_thresholds") or []
+                    if bs_thresholds:
+                        ch_res = _beat_chapters_by_bluestars(
+                            state["game_state"], config, bs_thresholds, _rng(),
+                            auto_upgrade=False,
+                        )
+                        if ch_res["chapters"]:
+                            state["last_pack_results"] = ch_res["opened"]
+                            _log(ch_res["log_lines"])
+                            _log_pack_results(ch_res["opened"])
+                    else:
+                        chapters_today = _chapters_for_sim_day(
+                            state.get("chapters_per_day", []), state["day"]
+                        )
+                        _auto_beat_chapters(state, config, chapters_today)
                     _snapshot_history(state)
                     st.rerun()
 
@@ -336,11 +392,17 @@ def _render_top_bar(config: HeroCardConfig) -> None:
 def _render_balances(game_state: HeroCardGameState) -> None:
     bi = game_state.bonus_items
     with st.container(border=True):
-        m1, m2, m3, m4 = st.columns(4)
+        m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("🪙 Coins", f"{game_state.coins:,}")
         m2.metric("⭐ Bluestars", f"{game_state.total_bluestars:,}")
-        m3.metric("🎟 Hero Tokens", f"{bi.get('HeroTokens', 0):,}")
-        m4.metric("💎 Diamonds", f"{bi.get('Diamonds', 0):,}")
+        power = power_for_bluestars(game_state.total_bluestars)
+        m3.metric(
+            "⚡ Power", f"{power:,.2f}",
+            help="Total multiplier from bluestars (cumulative product of "
+                 "per-bluestar tier multipliers).",
+        )
+        m4.metric("🎟 Hero Tokens", f"{bi.get('HeroTokens', 0):,}")
+        m5.metric("💎 Diamonds", f"{bi.get('Diamonds', 0):,}")
 
         with st.expander("Other resources", expanded=False):
             rows = [
@@ -1025,6 +1087,37 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                     key="day_sim_scripted_focus_hero",
                 )
 
+        g1, g2 = st.columns(2)
+        with g1:
+            _gate_opts = ["calendar", "bluestar"]
+            cfg.chapter_gating = st.selectbox(
+                "Chapter gating",
+                options=_gate_opts,
+                index=_gate_opts.index(cfg.chapter_gating) if cfg.chapter_gating in _gate_opts else 0,
+                key="day_sim_scripted_gating",
+                help="'bluestar' beats chapters by bluestar thresholds at end of day "
+                     "(matches the in-game methodology); 'calendar' uses the per-day "
+                     "schedule's 'Chapters beaten' column.",
+            )
+            if cfg.chapter_gating == "bluestar":
+                _bs_cohorts = ["Non-Payer", "Mid-Payer", "Payer", "All"]
+                current = cfg.bluestar_cohort if cfg.bluestar_cohort in _bs_cohorts else "Non-Payer"
+                cfg.bluestar_cohort = st.selectbox(
+                    "Bluestar cohort", options=_bs_cohorts,
+                    index=_bs_cohorts.index(current),
+                    key="day_sim_scripted_bs_cohort",
+                )
+        with g2:
+            sp_per_day = st.number_input(
+                "Season-pass steps / day (0 = use schedule)",
+                min_value=0, max_value=90,
+                value=int(cfg.season_pass_steps_per_day or 0),
+                step=1, key="day_sim_scripted_sp_per_day",
+                help="Methodology = 9 steps/day. Overrides the per-day schedule "
+                     "target when > 0.",
+            )
+            cfg.season_pass_steps_per_day = int(sp_per_day) if sp_per_day > 0 else None
+
     with st.container(border=True):
         st.markdown("**Daily schedule**")
         st.caption(
@@ -1087,6 +1180,11 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                 rng = _rng()
                 schedule_by_day = {d.day: d for d in cfg.schedule}
                 opened_all: List[Dict[str, Any]] = []
+                # When the preset uses bluestar gating, the scenario cohort is
+                # authoritative for this run — sync thresholds into state so
+                # run_one_day beats chapters against the right curve.
+                if cfg.chapter_gating == "bluestar":
+                    state["bs_thresholds"] = _load_bluestar_thresholds(cfg.bluestar_cohort)
                 for _ in range(int(num_days)):
                     current_day = state["day"]
                     day_entry = schedule_by_day.get(current_day)
@@ -1101,15 +1199,16 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
                     state["daily_used"] = set()
                     _log([f"── Advanced to day {state['day']} (scripted) ──"] + unlocks)
-                    # Auto-beat the cohort's chapters on the new day — same
-                    # rule as the manual "Next day" flow, so scripted runs
-                    # don't silently skip the chapter rhythm.
-                    chapters_today = _chapters_for_sim_day(
-                        state.get("chapters_per_day", []), state["day"]
-                    )
-                    if chapters_today > 0:
-                        _auto_beat_chapters(state, config, chapters_today)
-                        opened_all.extend(state.get("last_pack_results") or [])
+                    # Calendar gating beats the cohort's chapters on the new
+                    # day. Under bluestar gating, run_one_day already beat the
+                    # affordable chapters at end of day — don't double-beat.
+                    if cfg.chapter_gating != "bluestar":
+                        chapters_today = _chapters_for_sim_day(
+                            state.get("chapters_per_day", []), state["day"]
+                        )
+                        if chapters_today > 0:
+                            _auto_beat_chapters(state, config, chapters_today)
+                            opened_all.extend(state.get("last_pack_results") or [])
                     _snapshot_history(state)
                 if opened_all:
                     state["last_pack_results"] = opened_all[-10:]
@@ -1246,6 +1345,28 @@ def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> Non
         c2.metric("Δ since day 0", f"{history[-1]['bluestars'] - history[0]['bluestars']:,}")
         days_span = max(1, history[-1]["day"] - history[0]["day"])
         c3.metric("Avg / day", f"{(history[-1]['bluestars'] - history[0]['bluestars']) / days_span:,.1f}")
+
+    # --- Power over time ---
+    with st.container(border=True):
+        st.markdown("**Power over time**")
+        st.caption(
+            "Power = total multiplier from bluestars. Because high tiers are "
+            "near-exponential, a small bluestar gap shows up as a large power "
+            "gap here."
+        )
+        pw_df = pd.DataFrame(
+            [{"Day": s["day"],
+              "Power": s.get("power") or power_for_bluestars(s["bluestars"])}
+             for s in history]
+        ).set_index("Day")
+        st.line_chart(pw_df, height=260)
+        p1, p2, p3 = st.columns(3)
+        cur_power = pw_df["Power"].iloc[-1]
+        first_power = pw_df["Power"].iloc[0]
+        p1.metric("Current", f"{cur_power:,.2f}")
+        p2.metric("× since day 0",
+                  f"{cur_power / first_power:,.2f}×" if first_power else "—")
+        p3.metric("Latest bluestars", f"{history[-1]['bluestars']:,}")
 
     # --- Upgrades per day ---
     with st.container(border=True):

@@ -1,0 +1,11 @@
+{
+  "name": "NonPayer-Bluestar-9SP-11d",
+  "paid_season_pass": false,
+  "auto_open_daily_packs": true,
+  "token_spend_policy": "cheapest_first",
+  "focus_hero_id": null,
+  "chapter_gating": "bluestar",
+  "bluestar_cohort": "Non-Payer",
+  "season_pass_steps_per_day": 9,
+  "schedule": []
+}

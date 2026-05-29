@@ -2001,7 +2001,7 @@ def _render_hero_card_data_models() -> None:
         initial_coins: int
         initial_bluestars: int
         heroes: List[HeroDef]                              # All hero definitions
-        hero_unlock_schedule: Dict[int, List[str]]         # Day → hero_ids
+        hero_unlock_schedule: Dict[int, List[str]]         # Bluestar threshold → hero_ids
         num_gold_cards: int                                 # Shared Gold cards
         num_blue_cards: int                                 # Shared Blue cards
         hero_upgrade_tables: List[HeroUpgradeCostTable]    # Per-rarity costs

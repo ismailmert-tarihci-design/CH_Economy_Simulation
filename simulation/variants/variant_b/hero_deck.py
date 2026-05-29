@@ -8,10 +8,38 @@ from __future__ import annotations
 from typing import Dict, List
 
 from simulation.variants.variant_b.models import (
+    HeroCardConfig,
+    HeroCardGameState,
     HeroCardState,
     HeroDef,
     HeroProgressState,
 )
+
+
+def unlock_heroes_by_bluestars(
+    game_state: HeroCardGameState, config: HeroCardConfig
+) -> List[str]:
+    """Unlock every hero whose unlock threshold has been reached.
+
+    `hero_unlock_schedule` keys are **total-bluestar thresholds**: a hero
+    unlocks once `game_state.total_bluestars` reaches its key (heroes come
+    online with progression, not on a fixed calendar). Idempotent — only
+    unlocks heroes not already present. Returns the display names of the
+    heroes unlocked by this call (schedule order = ascending threshold, so
+    the last one becomes `last_unlocked_hero`, the most-progressed hero).
+    """
+    unlocked: List[str] = []
+    bs = game_state.total_bluestars
+    for threshold, hero_ids in config.hero_unlock_schedule.items():
+        if int(threshold) <= bs:
+            for hero_id in hero_ids:
+                if hero_id not in game_state.heroes:
+                    hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
+                    if hero_def:
+                        game_state.heroes[hero_id] = initialize_hero(hero_def)
+                        game_state.last_unlocked_hero = hero_id
+                        unlocked.append(hero_def.name)
+    return unlocked
 
 
 def initialize_hero(hero_def: HeroDef) -> HeroProgressState:

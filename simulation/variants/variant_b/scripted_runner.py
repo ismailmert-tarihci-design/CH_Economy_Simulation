@@ -21,8 +21,12 @@ from simulation.variants.variant_b.models import (
     HeroProgressState,
     SkillTreeNode,
 )
-from simulation.variants.variant_b.hero_deck import unlock_cards
+from simulation.variants.variant_b.hero_deck import unlock_cards, unlock_heroes_by_bluestars
 from simulation.variants.variant_b.scripted_run import ScriptedRunConfig, ScriptedRunDay
+from simulation.variants.variant_b.chapter_schedule import (
+    chapters_for_bluestars,
+    load_default_bluestar_thresholds,
+)
 from simulation.variants.variant_b.upgrade_engine import (
     attempt_hero_upgrades,
     attempt_shared_upgrades,
@@ -169,6 +173,67 @@ def _claim_season_pass_to(
     return lines, opened
 
 
+def beat_chapters_by_bluestars(
+    game_state: HeroCardGameState,
+    config: HeroCardConfig,
+    thresholds: List[float],
+    rng: Random,
+    auto_upgrade: bool = False,
+    cap: int = 100,
+) -> Dict[str, Any]:
+    """Beat every chapter whose bluestar threshold the player's *current*
+    bluestars already reach (single pass), opening one `EndOfChapterPack` each.
+
+    IMPORTANT: this does NOT re-upgrade the cards from those chapter packs and
+    re-check thresholds within the same call. Doing so creates a within-day
+    runaway — each beaten chapter's pack funds more upgrades, minting bluestars
+    that unlock further chapters. In the real game a chapter reward does not
+    fund the next chapter; the EndOfChapter cards are banked and upgraded as
+    part of the *next* day's normal upgrade step. `auto_upgrade`/`cap` are kept
+    for callers that explicitly want the cascade (off by default).
+    """
+    opened: List[Dict[str, Any]] = []
+    lines: List[str] = []
+    total_chapters = 0
+    hero_ups = 0
+    shared_ups = 0
+    if not thresholds:
+        return {"chapters": 0, "opened": opened, "hero_upgrades": 0,
+                "shared_upgrades": 0, "log_lines": lines}
+
+    iterations = cap if auto_upgrade else 1
+    for _ in range(iterations):
+        n = chapters_for_bluestars(
+            thresholds, game_state.total_bluestars, game_state.chapters_beaten
+        )
+        if n <= 0:
+            break
+        for _ in range(int(n)):
+            r = ds.open_pack_by_name(
+                "EndOfChapterPack", game_state, config, rng, apply_evolution=False
+            )
+            opened.append(r)
+            game_state.chapters_beaten += 1
+            total_chapters += 1
+        if not auto_upgrade:
+            break
+        he, _xp, _bs, _t = attempt_hero_upgrades(game_state, config)
+        se, _sbs = attempt_shared_upgrades(game_state, config)
+        hero_ups += len(he)
+        shared_ups += len(se)
+        if not he and not se:
+            break  # no fresh bluestars -> re-check can't qualify new chapters
+
+    if total_chapters:
+        lines.append(
+            f"Bluestar-gated: beat {total_chapters} chapter(s) → now at "
+            f"chapter {game_state.chapters_beaten} ({game_state.total_bluestars:,} bluestars)"
+        )
+    return {"chapters": total_chapters, "opened": opened,
+            "hero_upgrades": hero_ups, "shared_upgrades": shared_ups,
+            "log_lines": lines}
+
+
 def run_one_day(
     state: Dict[str, Any],
     config: HeroCardConfig,
@@ -187,6 +252,12 @@ def run_one_day(
     lines: List[str] = []
     opened_packs: List[Dict[str, Any]] = []
 
+    # Unlock any heroes the player's bluestars already reach, so today's pulls
+    # spread across the full progression-unlocked roster.
+    newly = unlock_heroes_by_bluestars(game_state, config)
+    if newly:
+        lines.append("Heroes unlocked: " + ", ".join(newly))
+
     if scripted_cfg.auto_open_daily_packs:
         results = ds.open_daily_bundle(game_state, config, rng)
         opened_packs.extend(results)
@@ -196,14 +267,22 @@ def run_one_day(
             {"bundle", "t2", "t1_0", "t1_1", "t1_2"}
         )
 
-    chapters = day_entry.chapters_beaten if day_entry else 0
-    for i in range(int(chapters)):
-        r = ds.open_pack_by_name("EndOfChapterPack", game_state, config, rng, apply_evolution=False)
-        opened_packs.append(r)
-        game_state.chapters_beaten += 1
-        lines.append(f"Beat chapter #{game_state.chapters_beaten} → EndOfChapter pack opened")
+    # Calendar gating beats a fixed per-day count up front. Bluestar gating
+    # defers chapter beating to end-of-day (after bluestars are earned).
+    if scripted_cfg.chapter_gating != "bluestar":
+        chapters = day_entry.chapters_beaten if day_entry else 0
+        for i in range(int(chapters)):
+            r = ds.open_pack_by_name("EndOfChapterPack", game_state, config, rng, apply_evolution=False)
+            opened_packs.append(r)
+            game_state.chapters_beaten += 1
+            lines.append(f"Beat chapter #{game_state.chapters_beaten} → EndOfChapter pack opened")
 
-    target = day_entry.season_pass_target_step if day_entry else None
+    # Season pass: a fixed steps-per-day cadence (methodology: 9/day) overrides
+    # the per-day cumulative target when set.
+    if scripted_cfg.season_pass_steps_per_day:
+        target = state["season_pass_step"] + int(scripted_cfg.season_pass_steps_per_day) - 1
+    else:
+        target = day_entry.season_pass_target_step if day_entry else None
     if target is not None:
         sp_lines, sp_opened = _claim_season_pass_to(int(target), state, game_state, config, rng)
         lines.extend(sp_lines)
@@ -229,10 +308,25 @@ def run_one_day(
             + ("…" if len(activations) > 10 else "")
         )
 
+    hero_upgrade_count = len(upgrade_events)
+    shared_upgrade_count = len(shared_events)
+
+    # Bluestar gating: now that the day's bluestars are banked, beat every
+    # chapter the player can afford (re-upgrading dupes from the chapter packs).
+    if scripted_cfg.chapter_gating == "bluestar":
+        thresholds = state.get("bs_thresholds")
+        if not thresholds:
+            thresholds = load_default_bluestar_thresholds(scripted_cfg.bluestar_cohort)
+        ch_res = beat_chapters_by_bluestars(game_state, config, thresholds, rng)
+        opened_packs.extend(ch_res["opened"])
+        hero_upgrade_count += ch_res["hero_upgrades"]
+        shared_upgrade_count += ch_res["shared_upgrades"]
+        lines.extend(ch_res["log_lines"])
+
     return {
         "log_lines": lines,
         "opened_packs": opened_packs,
         "activations": activations,
-        "hero_upgrades": len(upgrade_events),
-        "shared_upgrades": len(shared_events),
+        "hero_upgrades": hero_upgrade_count,
+        "shared_upgrades": shared_upgrade_count,
     }

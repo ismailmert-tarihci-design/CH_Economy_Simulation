@@ -1,0 +1,83 @@
+{
+  "_comment": "Hero Card System (Variant B) bluestar->power table, fitted so Deckbuilding's per-day power matches the in-game Classic/Control run. Deckbuilding earns more bluestars than Control, so its power-per-bluestar is lower. Tiers are geometric segments between anchor points (median Deckbuilding bluestars on day d under the NonPayer-Bluestar-9SP-11d scenario -> Control power on day d): a segment [B0,B1] uses multiplier (P1/P0)**(1/(B1-B0)) so power(B0)=P0 and power(B1)=P1. Power(B)=product of multiplier^(bluestars in tier). If the economy calibration (hero unlock, dupe pct, daily routine) changes, re-fit these anchors against the Control day-by-day power curve.",
+  "tiers": [
+    {
+      "tier": 1,
+      "min_bluestar": 0,
+      "max_bluestar": 320,
+      "multiplier": 1.003949334
+    },
+    {
+      "tier": 2,
+      "min_bluestar": 320,
+      "max_bluestar": 808,
+      "multiplier": 1.00203282
+    },
+    {
+      "tier": 3,
+      "min_bluestar": 808,
+      "max_bluestar": 1240,
+      "multiplier": 1.00068961
+    },
+    {
+      "tier": 4,
+      "min_bluestar": 1240,
+      "max_bluestar": 1608,
+      "multiplier": 1.000485581
+    },
+    {
+      "tier": 5,
+      "min_bluestar": 1608,
+      "max_bluestar": 1918,
+      "multiplier": 1.004135885
+    },
+    {
+      "tier": 6,
+      "min_bluestar": 1918,
+      "max_bluestar": 2258,
+      "multiplier": 1.002717848
+    },
+    {
+      "tier": 7,
+      "min_bluestar": 2258,
+      "max_bluestar": 2662,
+      "multiplier": 1.001850249
+    },
+    {
+      "tier": 8,
+      "min_bluestar": 2662,
+      "max_bluestar": 2988,
+      "multiplier": 1.000912812
+    },
+    {
+      "tier": 9,
+      "min_bluestar": 2988,
+      "max_bluestar": 3438,
+      "multiplier": 1.001112974
+    },
+    {
+      "tier": 10,
+      "min_bluestar": 3438,
+      "max_bluestar": 3785,
+      "multiplier": 1.001192082
+    },
+    {
+      "tier": 11,
+      "min_bluestar": 3785,
+      "max_bluestar": 4302,
+      "multiplier": 1.001171014
+    },
+    {
+      "tier": 12,
+      "min_bluestar": 4302,
+      "max_bluestar": 4625,
+      "multiplier": 1.002064069
+    },
+    {
+      "tier": 13,
+      "min_bluestar": 4625,
+      "max_bluestar": 9999999,
+      "multiplier": 1.002064069
+    }
+  ]
+}

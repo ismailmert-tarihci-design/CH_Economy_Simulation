@@ -289,7 +289,8 @@ class HeroCardConfig(BaseModel):
     heroes: List[HeroDef] = Field(default_factory=list)
     hero_unlock_schedule: Dict[int, List[str]] = Field(
         default_factory=dict,
-        description="Day -> list of hero_ids unlocked on that day"
+        description="Total-bluestar threshold -> hero_ids unlocked once the "
+                    "player reaches that many bluestars (progression-gated)"
     )
 
     # Shared card settings (Gold/Blue/Gray)

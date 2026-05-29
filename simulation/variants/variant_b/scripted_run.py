@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 
 SpendPolicy = Literal["cheapest_first", "focus_hero", "round_robin"]
+ChapterGating = Literal["calendar", "bluestar"]
 
 
 class ScriptedRunDay(BaseModel):
@@ -44,6 +45,21 @@ class ScriptedRunConfig(BaseModel):
     focus_hero_id: Optional[str] = Field(
         default=None,
         description="Only used when token_spend_policy == 'focus_hero'",
+    )
+    chapter_gating: ChapterGating = Field(
+        default="calendar",
+        description="'calendar' beats a fixed per-day count; 'bluestar' beats "
+                    "chapters whose bluestar threshold is reached (end of day).",
+    )
+    bluestar_cohort: Optional[str] = Field(
+        default=None,
+        description="Cohort whose chapter bluestar thresholds gate beating when "
+                    "chapter_gating == 'bluestar' (e.g. 'Non-Payer').",
+    )
+    season_pass_steps_per_day: Optional[int] = Field(
+        default=None,
+        description="When set, claim exactly this many season-pass steps each "
+                    "day (overrides per-day schedule targets).",
     )
     schedule: List[ScriptedRunDay] = Field(default_factory=list)
 

@@ -23,6 +23,7 @@ from simulation.variants.variant_b.models import (
 from simulation.variants.variant_b.hero_deck import (
     get_unlocked_cards,
     initialize_hero,
+    unlock_heroes_by_bluestars,
 )
 from simulation.variants.variant_b.drop_algorithm import (
     check_joker_drop,
@@ -129,18 +130,14 @@ def init_state(config: HeroCardConfig) -> HeroCardGameState:
 
 
 def advance_day(game_state: HeroCardGameState, new_day: int, config: HeroCardConfig) -> List[str]:
-    """Set the day and unlock any heroes scheduled for it. Returns log lines."""
-    lines: List[str] = []
+    """Set the day and unlock any heroes the player's bluestars now reach.
+
+    Heroes unlock by bluestar threshold (progression), not by calendar day —
+    see `unlock_heroes_by_bluestars`.
+    """
     game_state.day = new_day
-    hero_ids = config.hero_unlock_schedule.get(new_day, [])
-    for hero_id in hero_ids:
-        if hero_id not in game_state.heroes:
-            hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)
-            if hero_def:
-                game_state.heroes[hero_id] = initialize_hero(hero_def)
-                game_state.last_unlocked_hero = hero_id
-                lines.append(f"Hero unlocked: {hero_def.name}")
-    return lines
+    names = unlock_heroes_by_bluestars(game_state, config)
+    return [f"Hero unlocked: {n}" for n in names]
 
 
 def evolve_pack_tier(start_tier: str, rng: Random) -> str:
