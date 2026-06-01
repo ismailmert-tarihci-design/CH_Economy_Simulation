@@ -99,7 +99,7 @@ def render_simulation_controls(config: Any) -> None:
             }
 
     # ─── Run button ───────────────────────────────────────────────────────────
-    variant_id = st.session_state.get("active_variant", "variant_a")
+    variant_id = st.session_state.get("active_variant", "variant_b")
 
     if st.button("Run simulation", type="primary", width="stretch", icon=":material/play_arrow:"):
         config.num_days = num_days
@@ -176,14 +176,14 @@ def render_simulation_controls(config: Any) -> None:
 
 
 @st.cache_data(ttl=3600, max_entries=10)
-def _run_cached_simulation(config_hash: str, _config: Any, variant_id: str = "variant_a"):
+def _run_cached_simulation(config_hash: str, _config: Any, variant_id: str = "variant_b"):
     _ = config_hash
     run_fn = variants.get(variant_id).run_simulation
     return run_fn(_config, rng=None)
 
 
 @st.cache_data(ttl=3600, max_entries=10)
-def _run_cached_mc(config_hash: str, _config: Any, num_runs: int, variant_id: str = "variant_a"):
+def _run_cached_mc(config_hash: str, _config: Any, num_runs: int, variant_id: str = "variant_b"):
     _ = config_hash
     run_fn = variants.get(variant_id).run_simulation
     return run_monte_carlo(_config, num_runs=num_runs, run_fn=run_fn)

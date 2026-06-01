@@ -268,11 +268,8 @@ def open_pack_by_name(
             result = select_hero_card(game_state, config, rng)
             if result:
                 hero_id, card_id = result
-                if hero_id == game_state.last_hero_pulled:
-                    game_state.hero_streak_count += 1
-                else:
-                    game_state.last_hero_pulled = hero_id
-                    game_state.hero_streak_count = 1
+                # Anti-streak state (hero/rarity/card) is updated inside
+                # select_hero_card — no manual bookkeeping here.
                 hero_state = game_state.heroes[hero_id]
                 card = hero_state.cards.get(card_id)
                 if card:
@@ -307,7 +304,7 @@ def open_pack_by_name(
                     jokers_received += 1
         else:
             game_state.pity_counter += 1
-            shared_card = select_shared_card(game_state, rng)
+            shared_card = select_shared_card(game_state, config, rng)
             if shared_card:
                 level_before = shared_card.level
                 cat = shared_card.category.value if hasattr(shared_card.category, "value") else str(shared_card.category)

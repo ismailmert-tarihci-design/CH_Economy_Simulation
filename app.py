@@ -67,8 +67,6 @@ def _page_simulation():
 
 
 def _page_dashboard():
-    variant_id = st.session_state.get("active_variant", "variant_a")
-
     if st.session_state.get("comparison_results"):
         view = st.segmented_control(
             "View",
@@ -83,14 +81,10 @@ def _page_dashboard():
             render_comparison_dashboard()
             return
 
-    if variant_id == "variant_b":
-        from app_pages.variant_dashboards.variant_b_dashboard import (
-            render_variant_b_dashboard,
-        )
-        render_variant_b_dashboard()
-    else:
-        from app_pages.dashboard import render_dashboard
-        render_dashboard()
+    from app_pages.variant_dashboards.variant_b_dashboard import (
+        render_variant_b_dashboard,
+    )
+    render_variant_b_dashboard()
 
 
 def _page_saved_results():
@@ -159,6 +153,3 @@ if _active and _active in st.session_state.get("configs", {}):
     if _active == "variant_b":
         from simulation.variants.variant_b.config_loader import save_config as _save_vb
         _save_vb(_cfg)
-    elif _active == "variant_a":
-        from simulation.config_loader import save_snapshot as _save_va
-        _save_va(_cfg)

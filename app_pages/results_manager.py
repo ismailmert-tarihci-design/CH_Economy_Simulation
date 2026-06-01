@@ -84,12 +84,10 @@ def _render_manage_tab() -> None:
 
 
 def _deserialize_result(loaded: dict) -> Any:
-    """Deserialize a saved result back to SimResult / HeroSimResult / MCResult."""
-    from simulation.orchestrator import SimResult
+    """Deserialize a saved result back to HeroSimResult / MCResult."""
     from simulation.monte_carlo import MCResult, WelfordAccumulator
 
     result_data = loaded["result"]
-    variant_id = loaded.get("variant_id") or result_data.get("_variant_id", "variant_a")
 
     if loaded["sim_mode"] == "monte_carlo":
         bluestar_stats = WelfordAccumulator()
@@ -127,34 +125,24 @@ def _deserialize_result(loaded: dict) -> Any:
             completion_time=result_data.get("completion_time", 0),
         )
 
-    if variant_id == "variant_b":
-        from simulation.variants.variant_b.models import HeroSimResult
-        return HeroSimResult(
-            daily_snapshots=result_data.get("daily_snapshots", []),
-            total_bluestars=result_data.get("total_bluestars", 0),
-            total_coins_earned=result_data.get("total_coins_earned", 0),
-            total_coins_spent=result_data.get("total_coins_spent", 0),
-            total_upgrades=result_data.get("total_upgrades", {}),
-            pull_logs=result_data.get("pull_logs", []),
-            final_shared_hero_level=result_data.get("final_shared_hero_level", 0),
-            final_shared_hero_xp=result_data.get("final_shared_hero_xp", 0),
-            final_hero_levels=result_data.get("final_hero_levels", {}),
-            final_hero_xp=result_data.get("final_hero_xp", {}),
-            total_premium_diamonds_spent=result_data.get("total_premium_diamonds_spent", 0),
-            total_jokers_received=result_data.get("total_jokers_received", 0),
-            total_hero_tokens=result_data.get("total_hero_tokens", 0),
-            total_hero_tokens_spent=result_data.get("total_hero_tokens_spent", 0),
-            final_hero_tokens_balance=result_data.get("final_hero_tokens_balance", 0),
-            final_hero_skill_progress=result_data.get("final_hero_skill_progress", {}),
-        )
-
-    return SimResult(
+    from simulation.variants.variant_b.models import HeroSimResult
+    return HeroSimResult(
         daily_snapshots=result_data.get("daily_snapshots", []),
         total_bluestars=result_data.get("total_bluestars", 0),
         total_coins_earned=result_data.get("total_coins_earned", 0),
         total_coins_spent=result_data.get("total_coins_spent", 0),
         total_upgrades=result_data.get("total_upgrades", {}),
         pull_logs=result_data.get("pull_logs", []),
+        final_shared_hero_level=result_data.get("final_shared_hero_level", 0),
+        final_shared_hero_xp=result_data.get("final_shared_hero_xp", 0),
+        final_hero_levels=result_data.get("final_hero_levels", {}),
+        final_hero_xp=result_data.get("final_hero_xp", {}),
+        total_premium_diamonds_spent=result_data.get("total_premium_diamonds_spent", 0),
+        total_jokers_received=result_data.get("total_jokers_received", 0),
+        total_hero_tokens=result_data.get("total_hero_tokens", 0),
+        total_hero_tokens_spent=result_data.get("total_hero_tokens_spent", 0),
+        final_hero_tokens_balance=result_data.get("final_hero_tokens_balance", 0),
+        final_hero_skill_progress=result_data.get("final_hero_skill_progress", {}),
     )
 
 
@@ -290,7 +278,7 @@ def save_current_result(name: str, description: str = "") -> str:
 
     result = st.session_state.sim_result
     mode = st.session_state.get("sim_mode", "deterministic")
-    active = st.session_state.get("active_variant", "variant_a")
+    active = st.session_state.get("active_variant", "variant_b")
     config = st.session_state.get("configs", {}).get(active) or st.session_state.get(
         "config"
     )

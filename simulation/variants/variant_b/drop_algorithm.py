@@ -55,6 +55,25 @@ def _weighted_choice(
         return items[best_idx]
 
 
+def _bump_streak(game_state: HeroCardGameState, axis: str, value: str) -> None:
+    """Update an anti-streak (last_value, streak_count) pair after a pick.
+
+    Increments the count when `value` repeats the last pick on this axis,
+    otherwise resets the run to 1. Mirrors the New Algo's per-axis StreakX.
+    """
+    last_attr, count_attr = {
+        "hero": ("last_hero_pulled", "hero_streak_count"),
+        "rarity": ("last_rarity_pulled", "rarity_streak_count"),
+        "card": ("last_card_pulled", "card_streak_count"),
+        "shared": ("last_shared_category", "shared_category_streak_count"),
+    }[axis]
+    if getattr(game_state, last_attr) == value:
+        setattr(game_state, count_attr, getattr(game_state, count_attr) + 1)
+    else:
+        setattr(game_state, last_attr, value)
+        setattr(game_state, count_attr, 1)
+
+
 # ---------------------------------------------------------------------------
 # Hero vs Shared decision (unchanged logic)
 # ---------------------------------------------------------------------------
@@ -162,10 +181,12 @@ def select_hero_card(
     if chosen_bucket is None:
         return None
 
-    # Step 3: Pick hero from bucket with anti-streak decay
+    # Step 3: Pick hero from bucket.
+    #   WeightHero = 1/(level+1)  (lowest-level heroes favoured within the bucket)
+    #   FinalWeightHero = WeightHero * streak_decay_hero ^ StreakHero
     hero_weights = []
     for hero_id, hero_state in chosen_bucket:
-        w = 1.0
+        w = 1.0 / (hero_state.level + 1)
         if hero_id == game_state.last_hero_pulled and game_state.hero_streak_count > 0:
             w *= dc.streak_decay_hero ** game_state.hero_streak_count
         hero_weights.append(w)
@@ -175,7 +196,8 @@ def select_hero_card(
         return None
     hero_id, hero_state = chosen_hero
 
-    # Step 4: Roll rarity (only from rarities this hero has unlocked cards for)
+    # Step 4: Roll rarity (only from rarities this hero has unlocked cards for).
+    #   FinalWeightRarity = rarity_weight * streak_decay_rarity ^ StreakColor
     unlocked = get_unlocked_cards(hero_state)
     cards_by_rarity: Dict[HeroCardRarity, List[HeroCardState]] = {}
     for card in unlocked:
@@ -191,6 +213,8 @@ def select_hero_card(
     available_rarity_weights = []
     for rarity, weight in rarity_config:
         if rarity in cards_by_rarity:
+            if rarity.value == game_state.last_rarity_pulled and game_state.rarity_streak_count > 0:
+                weight *= dc.streak_decay_rarity ** game_state.rarity_streak_count
             available_rarities.append(rarity)
             available_rarity_weights.append(weight)
 
@@ -201,13 +225,27 @@ def select_hero_card(
     if chosen_rarity is None:
         return None
 
-    # Step 5: Pick card of chosen rarity (lowest-level-first catch-up)
+    # Step 5: Pick card of chosen rarity.
+    #   WeightCard = 1/(level+1) (lowest-level-first catch-up)
+    #   FinalWeightCard = WeightCard * streak_decay_card ^ StreakCard
     rarity_cards = cards_by_rarity[chosen_rarity]
-    card_weights = [1.0 / (card.level + 1) for card in rarity_cards]
+    card_weights = []
+    for card in rarity_cards:
+        w = 1.0 / (card.level + 1)
+        card_key = f"{hero_id}:{card.card_id}"
+        if card_key == game_state.last_card_pulled and game_state.card_streak_count > 0:
+            w *= dc.streak_decay_card ** game_state.card_streak_count
+        card_weights.append(w)
 
     chosen_card = _weighted_choice(rarity_cards, card_weights, rng)
     if chosen_card is None:
         return None
+
+    # Update anti-streak trackers for all three axes (the algorithm owns this,
+    # so callers must NOT update streak state themselves).
+    _bump_streak(game_state, "hero", hero_id)
+    _bump_streak(game_state, "rarity", chosen_rarity.value)
+    _bump_streak(game_state, "card", f"{hero_id}:{chosen_card.card_id}")
 
     return hero_id, chosen_card.card_id
 
@@ -216,32 +254,54 @@ def select_hero_card(
 # Shared card selection (unchanged)
 # ---------------------------------------------------------------------------
 
+def _shared_category(card: Any) -> str:
+    """Category string of a shared card, tolerant of enum or raw value."""
+    cat = getattr(card, "category", None)
+    return cat.value if hasattr(cat, "value") else str(cat)
+
+
 def select_shared_card(
     game_state: HeroCardGameState,
+    config: HeroCardConfig,
     rng: Optional[Random] = None,
 ) -> Optional[Any]:
-    """Select a shared card (Gold/Blue) using lowest-level-first.
+    """Select a shared card following the New Algo shared path.
+
+    Steps:
+        1. Identify the Top-K (config.shared_top_k) lowest-level shared cards,
+           excluding any already at max level.
+        2. WeightCard = 1/(level+1), with a color (category) anti-streak penalty:
+           FinalWeightCard = WeightCard * streak_decay_shared ^ StreakColor.
+        3. Weighted roll; update the shared-category streak.
 
     Returns the Card object or None.
     """
     if not game_state.shared_cards:
         return None
 
-    # Sort by level ascending
+    # Step 1: top-K lowest-level candidates, max-level cards excluded.
     sorted_cards = sorted(game_state.shared_cards, key=lambda c: c.level)
-    weights = [1.0 / (c.level + 1) for c in sorted_cards]
-    total = sum(weights)
+    top_k = config.drop_config.shared_top_k
+    candidates = [c for c in sorted_cards[:top_k] if c.level < config.max_shared_level]
+    if not candidates:
+        return None
 
-    if rng and total > 0:
-        roll = rng.random() * total
-        cumulative = 0.0
-        for card, w in zip(sorted_cards, weights):
-            cumulative += w
-            if roll <= cumulative:
-                return card
-        return sorted_cards[-1]
-    else:
-        return sorted_cards[0]
+    # Step 2: catch-up weight with color anti-streak.
+    decay = config.drop_config.streak_decay_shared
+    weights = []
+    for c in candidates:
+        w = 1.0 / (c.level + 1)
+        if _shared_category(c) == game_state.last_shared_category and game_state.shared_category_streak_count > 0:
+            w *= decay ** game_state.shared_category_streak_count
+        weights.append(w)
+
+    chosen = _weighted_choice(candidates, weights, rng)
+    if chosen is None:
+        return None
+
+    # Step 3: update color streak (algorithm owns streak state).
+    _bump_streak(game_state, "shared", _shared_category(chosen))
+    return chosen
 
 
 # ---------------------------------------------------------------------------

@@ -81,8 +81,8 @@ def try_upgrade_hero_card(
     joker_available = jokers_available(hero_state)
     if available_dupes + joker_available < dupe_cost:
         return None
-    if game_state.coins < coin_cost:
-        return None
+    # Coins are no longer a gate — duplicates alone decide whether a card can
+    # upgrade. The coin cost is still deducted/tracked, it just can't block.
 
     dupes_from_card = min(dupe_cost, card.duplicates)
     card.duplicates -= dupes_from_card
@@ -227,8 +227,7 @@ def try_upgrade_shared_card(
 
     if card.duplicates < dupe_cost:
         return None
-    if game_state.coins < coin_cost:
-        return None
+    # Coins no longer gate shared-card upgrades (still deducted/tracked).
 
     card.duplicates -= dupe_cost
     game_state.coins -= coin_cost

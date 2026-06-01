@@ -12,11 +12,6 @@ from math import sqrt
 from random import Random
 from typing import Any, Dict, List
 
-from simulation.orchestrator import run_simulation
-
-# Backward-compat alias for callers that want to override per-run sim function
-_default_run_simulation = run_simulation
-
 
 class WelfordAccumulator:
     """
@@ -338,18 +333,16 @@ def run_monte_carlo(
         config: Simulation configuration (any ConfigProtocol)
         num_runs: Number of Monte Carlo runs (default 100)
         run_fn: Simulation callable (config, rng=) -> SimResultProtocol.
-                Defaults to Variant A's run_simulation if None.
+                Required — callers pass the active variant's run_simulation.
 
     Returns:
         MCResult with aggregated statistics across all runs
 
     Raises:
-        ValueError: If num_runs < 1 or num_runs > 500
+        ValueError: If num_runs < 1 or num_runs > 500, or run_fn is None
     """
     if run_fn is None:
-        # Module-level lookup so `mock.patch("simulation.monte_carlo.run_simulation")`
-        # transparently substitutes the simulator without callers passing run_fn.
-        run_fn = run_simulation
+        raise ValueError("run_fn is required (pass the variant's run_simulation)")
     # Validation
     if num_runs < 1 or num_runs > 500:
         raise ValueError(f"num_runs must be between 1 and 500, got {num_runs}")

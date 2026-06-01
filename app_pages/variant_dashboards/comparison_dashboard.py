@@ -8,11 +8,9 @@ from simulation.variants.comparison import extract_common_metrics
 
 
 VARIANT_COLORS = {
-    "variant_a": "#1f77b4",
     "variant_b": "#ff7f0e",
 }
 VARIANT_LABELS = {
-    "variant_a": "Classic Card System",
     "variant_b": "Hero Card System",
 }
 
@@ -176,7 +174,7 @@ def _render_coin_overlay(metrics: dict) -> None:
 
 def _render_daily_coin_rates(metrics: dict) -> None:
     fig = go.Figure()
-    dash_map = {"variant_a": "solid", "variant_b": "dash"}
+    dash_map = {"variant_b": "dash"}
     for vid, m in metrics.items():
         color = VARIANT_COLORS.get(vid, "#888")
         label = VARIANT_LABELS.get(vid, vid)

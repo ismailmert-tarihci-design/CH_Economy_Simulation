@@ -32,7 +32,7 @@ def render_gacha_simulator() -> None:
         "plus pack-level jokers, coins, and hero tokens."
     )
 
-    variant_id = st.session_state.get("active_variant", "variant_a")
+    variant_id = st.session_state.get("active_variant", "variant_b")
     if variant_id != "variant_b":
         st.info("Switch to **Hero Card System** variant in the sidebar to use this tool.")
         return

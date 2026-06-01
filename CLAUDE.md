@@ -16,10 +16,10 @@ streamlit run app.py
 pytest tests/
 
 # Run a single test file
-pytest tests/test_drop_algorithm.py
+pytest tests/test_variant_b_chapters.py
 
 # Run a single test
-pytest tests/test_drop_algorithm.py::test_function_name
+pytest tests/test_variant_b_chapters.py::test_function_name
 
 # Run with coverage
 pytest tests/ --cov=simulation
@@ -40,33 +40,34 @@ The codebase has a strict separation between **simulation engine** (`simulation/
 
 ### Simulation Engine (`simulation/`)
 
-The daily simulation loop is orchestrated by `simulation/orchestrator.py`:
-1. Check unique unlock schedule (`progression.py`)
-2. Process packs for the day (`pack_system.py`)
-3. For each card pull: `drop_algorithm.py` → then `upgrade_engine.py`
-4. Record daily snapshot with coin ledger (`coin_economy.py`)
+The only shipped variant is **Variant B (Hero Card System)**; its full daily
+loop lives under `simulation/variants/variant_b/` (orchestrator, drop_algorithm,
+upgrade_engine, hero_deck, skill_tree, etc.). The top-level `simulation/` package
+now holds only the shared infrastructure used by Variant B and the UI.
 
-Key modules:
-- `models.py` — Pydantic v2 models (`SimConfig`, `GameState`, `Card`, `SimResult`, `StreakState`)
-- `monte_carlo.py` — Runs N simulations with different RNG seeds, aggregates results
-- `config_loader.py` — Loads/validates JSON configs from `data/defaults/`
-- `pet_system.py`, `hero_system.py`, `gear_system.py` — Subsystem simulators
+Shared modules:
+- `models.py` — Pydantic v2 models + the `Card`/`CardCategory` shared-card types
+- `monte_carlo.py` — Generic Monte Carlo runner (caller passes the variant's `run_simulation` as `run_fn`)
+- `config_loader.py` — Saved-results CRUD + JSON config helpers
+- `pull_logger.py` — Pull-event logging
+- `url_config.py` — URL config encode/decode for sharing
 
-### A/B Variant Framework (`simulation/variants/`)
+### Variant Framework (`simulation/variants/`)
 
-Variants are self-registering modules that implement `VariantInfo` (defined in `protocol.py`). Each variant provides its own `run_simulation`, `load_defaults`, config class, and result class. Registration happens at import time in `variants/__init__.py`.
+Variants self-register as `VariantInfo` (defined in `protocol.py`), providing
+their own `run_simulation`, `load_defaults`, config class, and result class.
+Registration happens at import time in `variants/__init__.py`.
 
-- `variant_a/` — Original economy (uses shared simulation engine directly)
-- `variant_b/` — Alternative economy with hero card packs replacing unique cards
-- `comparison.py` — Cross-variant comparison utilities
+- `variant_b/` — Hero Card System (the sole active variant)
+- `comparison.py` — Cross-result comparison utilities
 
-The UI dispatches to variant-specific editors (`app_pages/variant_editors/`) and dashboards (`app_pages/variant_dashboards/`) based on the active variant selected in the sidebar.
+The UI dispatches to Variant B's editor (`app_pages/variant_editors/`) and
+dashboard (`app_pages/variant_dashboards/`).
 
 ### UI Pages (`app_pages/`)
 
-- `config_editor.py` + `config_tabs.py` — Table-driven config editing with `st.data_editor`
+- `config_editor.py` — Dispatches to the Variant B editor
 - `simulation_controls.py` — Run deterministic or Monte Carlo simulations
-- `dashboard.py` + `dashboard_charts.py` — 4-chart analytics dashboard (Plotly)
 - `bulk_edit_helpers.py` — CSV/Excel upload and paste for config tables
 - `gacha_simulator.py` — Interactive pull simulator tool
 

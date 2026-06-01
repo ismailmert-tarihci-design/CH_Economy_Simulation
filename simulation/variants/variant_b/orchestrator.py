@@ -144,14 +144,8 @@ def run_simulation(
                     result = select_hero_card(game_state, config, rng)
                     if result:
                         hero_id, card_id = result
-
-                        # Update anti-streak tracking
-                        if hero_id == game_state.last_hero_pulled:
-                            game_state.hero_streak_count += 1
-                        else:
-                            game_state.last_hero_pulled = hero_id
-                            game_state.hero_streak_count = 1
-
+                        # Anti-streak state (hero/rarity/card) is updated inside
+                        # select_hero_card — no manual bookkeeping here.
                         hero_state = game_state.heroes[hero_id]
                         card = hero_state.cards.get(card_id)
                         if card:
@@ -192,7 +186,7 @@ def run_simulation(
 
                 else:
                     game_state.pity_counter += 1
-                    card = select_shared_card(game_state, rng)
+                    card = select_shared_card(game_state, config, rng)
                     if card:
                         level_before = card.level
                         # Per-category duplicate computation (same formula as hero cards)

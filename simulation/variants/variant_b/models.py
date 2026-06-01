@@ -264,14 +264,21 @@ class HeroDropConfig(BaseModel):
     bucket_middle_weight: float = Field(default=0.35, description="Probability of selecting from mid-level hero bucket")
     bucket_top_weight: float = Field(default=0.25, description="Probability of selecting from highest-level hero bucket")
 
-    # Rarity roll weights for hero card drops
-    rarity_weight_gray: float = Field(default=0.64, description="Probability of dropping a GRAY card")
-    rarity_weight_blue: float = Field(default=0.30, description="Probability of dropping a BLUE card")
-    rarity_weight_gold: float = Field(default=0.06, description="Probability of dropping a GOLD card")
+    # Rarity roll weights for hero card drops (New Algo: 7% Gray / 39% Blue / 54% Gold)
+    rarity_weight_gray: float = Field(default=0.07, description="Probability of dropping a GRAY card")
+    rarity_weight_blue: float = Field(default=0.39, description="Probability of dropping a BLUE card")
+    rarity_weight_gold: float = Field(default=0.54, description="Probability of dropping a GOLD card")
 
-    # Anti-streak decay
-    streak_decay_shared: float = Field(default=0.6, description="Weight decay for repeated shared pulls")
-    streak_decay_hero: float = Field(default=0.3, description="Weight multiplier per consecutive pull of the same hero")
+    # Anti-streak decay. New Algo applies a 0.6^streak penalty on every axis:
+    # hero (StreakHero), rarity/shared category (StreakColor), and card (StreakCard).
+    streak_decay_shared: float = Field(default=0.6, description="Weight decay per consecutive shared pull of the same category (StreakColor)")
+    streak_decay_hero: float = Field(default=0.6, description="Weight decay per consecutive pull of the same hero (StreakHero)")
+    streak_decay_rarity: float = Field(default=0.6, description="Weight decay per consecutive hero-card pull of the same rarity (StreakColor)")
+    streak_decay_card: float = Field(default=0.6, description="Weight decay per consecutive pull of the same hero card (StreakCard)")
+
+    # Shared-card candidate pool: only the N lowest-level shared cards are
+    # eligible for a shared pull (New Algo: "Top 33 Lowest Level Shared Cards").
+    shared_top_k: int = Field(default=33, description="Number of lowest-level shared cards eligible per shared pull")
 
 
 # ---------------------------------------------------------------------------
@@ -449,8 +456,14 @@ class HeroCardGameState(BaseModel):
     coins: int = Field(default=0)
     total_bluestars: int = Field(default=0)
     pity_counter: int = Field(default=0, description="Pulls since last hero card")
-    last_hero_pulled: Optional[str] = Field(default=None, description="hero_id of last hero card pull (for anti-streak)")
+    last_hero_pulled: Optional[str] = Field(default=None, description="hero_id of last hero card pull (StreakHero)")
     hero_streak_count: int = Field(default=0, description="Consecutive pulls of the same hero")
+    last_rarity_pulled: Optional[str] = Field(default=None, description="Rarity of last hero card pull (StreakColor)")
+    rarity_streak_count: int = Field(default=0, description="Consecutive hero-card pulls of the same rarity")
+    last_card_pulled: Optional[str] = Field(default=None, description="'hero_id:card_id' of last hero card pull (StreakCard)")
+    card_streak_count: int = Field(default=0, description="Consecutive pulls of the same hero card")
+    last_shared_category: Optional[str] = Field(default=None, description="Category of last shared pull (StreakColor)")
+    shared_category_streak_count: int = Field(default=0, description="Consecutive shared pulls of the same category")
     # Shared hero XP (one level for all heroes)
     shared_hero_xp: int = Field(default=0)
     shared_hero_level: int = Field(default=1)

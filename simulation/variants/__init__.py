@@ -8,7 +8,7 @@ Usage:
         print(v.variant_id, v.display_name)
 
     # Get a specific variant
-    info = variants.get("variant_a")
+    info = variants.get("variant_b")
     result = info.run_simulation(config, rng=None)
 """
 
@@ -37,12 +37,7 @@ def variant_ids() -> list[str]:
     return list(_REGISTRY.keys())
 
 
-# Auto-register Variant A (always available — uses existing code in-place)
-from simulation.variants.variant_a import register_variant_a  # noqa: E402
-
-register_variant_a()
-
-# Auto-register Variant B if available
+# Auto-register Variant B (the Hero Card System — the only shipped variant)
 try:
     from simulation.variants.variant_b import register_variant_b  # noqa: E402
 

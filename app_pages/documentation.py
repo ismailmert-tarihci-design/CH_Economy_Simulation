@@ -1430,7 +1430,6 @@ def _render_implementation_details() -> None:
             ├── __init__.py                    # Variant registry
             ├── protocol.py                    # Protocol contracts
             ├── comparison.py                  # Metric extraction for overlay
-            ├── variant_a/__init__.py          # Thin adapter to existing code
             └── variant_b/
                 ├── __init__.py                # Registration
                 ├── models.py                  # Hero card data models
@@ -1444,26 +1443,21 @@ def _render_implementation_details() -> None:
                 └── config_loader.py           # Variant B defaults
 
         app_pages/
-        ├── config_editor.py                   # Dispatches by variant
-        ├── simulation_controls.py             # Variant-aware run + comparison
-        ├── dashboard.py                       # Dispatches by variant
-        ├── dashboard_charts.py                # Variant A chart helpers
-        ├── config_tabs.py                     # Variant A config tab widgets
-        ├── config_sharing.py                  # Import/export
+        ├── config_editor.py                   # Hero card system config editor
+        ├── simulation_controls.py             # Run deterministic / Monte Carlo
         ├── results_manager.py                 # Saved results
         ├── pull_log_viewer.py                 # Pull event inspector
         ├── gacha_simulator.py                 # Gacha drop rate tool
+        ├── bulk_edit_helpers.py               # CSV/Excel paste for config tables
         ├── documentation.py                   # This file
         ├── variant_editors/
-        │   ├── variant_a_editor.py            # Classic system editor
         │   └── variant_b_editor.py            # Hero card system editor
         └── variant_dashboards/
-            ├── variant_a_dashboard.py         # Classic dashboard
             ├── variant_b_dashboard.py         # Hero progression dashboard
-            └── comparison_dashboard.py        # Side-by-side overlay
+            └── comparison_dashboard.py        # Saved-result overlay
 
         data/
-        └── defaults/                          # Variant A default JSON configs
+        └── defaults/                          # Default JSON configs
 
         app.py                                 # Entry point with variant picker
         ```
@@ -1711,8 +1705,7 @@ def _render_variant_framework() -> None:
             __init__.py           # Registry: register(), get(), list_variants()
             protocol.py           # VariantInfo, ConfigProtocol, DailySnapshotProtocol
             comparison.py         # Extract common metrics for overlay charts
-            variant_a/            # Thin adapter — points to existing code in simulation/
-            variant_b/            # New Hero Card System engine
+            variant_b/            # Hero Card System engine (the sole active variant)
         ```
 
         ### Protocol Layer
