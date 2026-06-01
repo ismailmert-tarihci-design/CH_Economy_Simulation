@@ -1,7 +1,7 @@
 {
   "name": "IMT",
   "paid_season_pass": false,
-  "auto_open_daily_packs": false,
+  "auto_open_daily_packs": true,
   "token_spend_policy": "cheapest_first",
   "focus_hero_id": null,
   "chapter_gating": "calendar",
