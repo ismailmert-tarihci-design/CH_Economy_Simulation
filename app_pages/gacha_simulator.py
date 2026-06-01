@@ -134,7 +134,9 @@ def _render_composition_summary(pack: PremiumPackDef) -> None:
     sched_rows = []
     for i, r in enumerate(pack.pull_rarity_schedule):
         sched_rows.append({
-            "PullSinceUniqueGold": i + 1,
+            # Keep this column all-strings: the final "After Gold" row makes a
+            # mixed int/str column that PyArrow can't serialize for st.dataframe.
+            "PullSinceUniqueGold": str(i + 1),
             "Gray %": round(r.gray_weight * 100, 1),
             "Blue %": round(r.blue_weight * 100, 1),
             "Gold %": round(r.gold_weight * 100, 1),

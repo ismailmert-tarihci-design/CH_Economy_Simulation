@@ -219,7 +219,7 @@ def _render_unlock_timeline_tab(config: HeroCardConfig) -> None:
         height=max(350, len(rows) * 28 + 80),
         margin=dict(l=0, r=0, t=40, b=0),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Editable table
     st.markdown("**Edit unlock thresholds below** (total bluestars; one hero per row):")
