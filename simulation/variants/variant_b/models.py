@@ -296,8 +296,8 @@ class HeroCardConfig(BaseModel):
     heroes: List[HeroDef] = Field(default_factory=list)
     hero_unlock_schedule: Dict[int, List[str]] = Field(
         default_factory=dict,
-        description="Total-bluestar threshold -> hero_ids unlocked once the "
-                    "player reaches that many bluestars (progression-gated)"
+        description="Day threshold -> hero_ids unlocked once game_state.day "
+                    "reaches that day (fixed calendar: woody day 0 … munara day 802)"
     )
 
     # Shared card settings (Gold/Blue/Gray)

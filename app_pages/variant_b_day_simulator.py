@@ -195,8 +195,8 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     # FTUE bluestars may already cross several hero unlock thresholds; bring the
     # roster up to date so day-0 reflects progression (heroes unlock by
     # bluestars, not by calendar day).
-    from simulation.variants.variant_b.hero_deck import unlock_heroes_by_bluestars
-    unlocked_names = unlock_heroes_by_bluestars(state["game_state"], config)
+    from simulation.variants.variant_b.hero_deck import unlock_heroes_by_day
+    unlocked_names = unlock_heroes_by_day(state["game_state"], config)
     if unlocked_names:
         _log(["Heroes unlocked (post-FTUE): " + ", ".join(unlocked_names)])
 

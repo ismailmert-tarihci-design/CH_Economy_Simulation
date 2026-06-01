@@ -95,10 +95,9 @@ def _builtin_defaults() -> HeroCardConfig:
         initial_bluestars=0,
         heroes=heroes,
         hero_unlock_schedule={
-            # Total-bluestar threshold -> hero unlocked. Heroes unlock by
-            # progression, not calendar day: a hero comes online once the
-            # player's total_bluestars reaches its threshold. (Values were
-            # historically labelled "days" but are consumed as bluestars.)
+            # Day threshold -> hero unlocked. Heroes unlock on a fixed
+            # calendar: a hero comes online once game_state.day reaches its
+            # key (the original design's day schedule — woody day 0 … day 802).
             0: ["woody"],        # hero 1
             1: ["cowboy"],       # hero 2
             9: ["barbarian"],    # hero 3

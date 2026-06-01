@@ -16,22 +16,22 @@ from simulation.variants.variant_b.models import (
 )
 
 
-def unlock_heroes_by_bluestars(
+def unlock_heroes_by_day(
     game_state: HeroCardGameState, config: HeroCardConfig
 ) -> List[str]:
-    """Unlock every hero whose unlock threshold has been reached.
+    """Unlock every hero whose unlock day has been reached.
 
-    `hero_unlock_schedule` keys are **total-bluestar thresholds**: a hero
-    unlocks once `game_state.total_bluestars` reaches its key (heroes come
-    online with progression, not on a fixed calendar). Idempotent — only
+    `hero_unlock_schedule` keys are **day thresholds**: a hero unlocks once
+    `game_state.day` reaches its key (woody day 0, cowboy day 1, barbarian
+    day 9, … munara day 802 — a fixed calendar cadence). Idempotent — only
     unlocks heroes not already present. Returns the display names of the
     heroes unlocked by this call (schedule order = ascending threshold, so
     the last one becomes `last_unlocked_hero`, the most-progressed hero).
     """
     unlocked: List[str] = []
-    bs = game_state.total_bluestars
+    current_day = game_state.day
     for threshold, hero_ids in config.hero_unlock_schedule.items():
-        if int(threshold) <= bs:
+        if int(threshold) <= current_day:
             for hero_id in hero_ids:
                 if hero_id not in game_state.heroes:
                     hero_def = next((h for h in config.heroes if h.hero_id == hero_id), None)

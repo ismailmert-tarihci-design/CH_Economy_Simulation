@@ -21,7 +21,7 @@ from simulation.variants.variant_b.models import (
     HeroProgressState,
     SkillTreeNode,
 )
-from simulation.variants.variant_b.hero_deck import unlock_cards, unlock_heroes_by_bluestars
+from simulation.variants.variant_b.hero_deck import unlock_cards, unlock_heroes_by_day
 from simulation.variants.variant_b.scripted_run import ScriptedRunConfig, ScriptedRunDay
 from simulation.variants.variant_b.chapter_schedule import (
     chapters_for_bluestars,
@@ -254,7 +254,7 @@ def run_one_day(
 
     # Unlock any heroes the player's bluestars already reach, so today's pulls
     # spread across the full progression-unlocked roster.
-    newly = unlock_heroes_by_bluestars(game_state, config)
+    newly = unlock_heroes_by_day(game_state, config)
     if newly:
         lines.append("Heroes unlocked: " + ", ".join(newly))
 

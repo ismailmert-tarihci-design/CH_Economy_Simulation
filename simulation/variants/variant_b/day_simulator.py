@@ -23,7 +23,7 @@ from simulation.variants.variant_b.models import (
 from simulation.variants.variant_b.hero_deck import (
     get_unlocked_cards,
     initialize_hero,
-    unlock_heroes_by_bluestars,
+    unlock_heroes_by_day,
 )
 from simulation.variants.variant_b.drop_algorithm import (
     check_joker_drop,
@@ -130,13 +130,13 @@ def init_state(config: HeroCardConfig) -> HeroCardGameState:
 
 
 def advance_day(game_state: HeroCardGameState, new_day: int, config: HeroCardConfig) -> List[str]:
-    """Set the day and unlock any heroes the player's bluestars now reach.
+    """Set the day and unlock any heroes whose scheduled unlock day has arrived.
 
-    Heroes unlock by bluestar threshold (progression), not by calendar day —
-    see `unlock_heroes_by_bluestars`.
+    Heroes unlock by calendar day (woody day 0, cowboy day 1, …) — see
+    `unlock_heroes_by_day`.
     """
     game_state.day = new_day
-    names = unlock_heroes_by_bluestars(game_state, config)
+    names = unlock_heroes_by_day(game_state, config)
     return [f"Hero unlocked: {n}" for n in names]
 
 
