@@ -1,10 +1,10 @@
 """FTUE — First-Time User Experience — for Variant B day simulator.
 
 Scripted, deterministic onboarding sequence that runs on Day 0 (install day).
-After the FTUE finishes, the player is at Woodie Level 4 with 305 cumulative
-XP, holding the dupes/coins/bluestars/etc. dictated by the FTUE spec, and
-has beaten the first 6 chapters (the FTUE walks through End-of-Chapter
-3/4/5 packs explicitly; chapters 1–2 and 6 are completed off-screen).
+After the FTUE finishes, the player holds the dupes/bluestars/XP/tokens
+dictated by the spec: 260 cumulative bluestars, 365 Woodie XP, 250 hero
+tokens, and 10 diamonds. It walks through End-of-Chapter 3/4/5 packs
+explicitly (chapters 1–2 completed off-screen), leaving chapters_beaten = 5.
 
 Mechanics:
   - Card drops: credit fixed dupe counts to specific cards (unlocking them).
@@ -28,7 +28,7 @@ from simulation.variants.variant_b.models import HeroCardConfig, HeroCardGameSta
 from simulation.variants.variant_b.upgrade_engine import _check_hero_level_up
 
 
-FTUE_END_CHAPTER = 6
+FTUE_END_CHAPTER = 5
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +64,7 @@ FTUE_CARD_MAP: Dict[str, str] = {
     "Simple Shots+":    "woody_gray_1",
     "Healing Spell":    "woody_gray_2",
     "Vital Surge":      "woody_gray_1",
+    "Wooden Shield":    "woody_gray_2",
     "Crit power":       "woody_gray_2",
 }
 
@@ -76,6 +77,7 @@ class FtueStep:
     upgrades: List[Tuple[str, int]] = field(default_factory=list)     # [(name, bluestars_reward)]
     coins: int = 0
     diamonds: int = 0
+    hero_tokens: int = 0
     xp_gain: int = 0
 
 
@@ -87,67 +89,57 @@ FTUE_STEPS: List[FtueStep] = [
     FtueStep(
         label="1st Training Pack (→ T2)",
         card_drops=[("Power Shot", 29), ("Bronze Shield", 35)],
-        coins=60,
     ),
     FtueStep(
         label="2nd Training Pack (→ T4)",
         card_drops=[("Power Shot", 34), ("Life Drain", 20), ("Ball Stash", 23), ("Simple Shots", 8)],
         upgrades=[("Power Shot", 30)],
-        coins=205,
-        xp_gain=30,
+        xp_gain=50,
     ),
     FtueStep(
         label="End of Chapter 3 Pack",
         card_drops=[("Bounce Shot", 28), ("Life Drain", 33)],
         upgrades=[("Life Drain", 10)],
-        coins=75,
         xp_gain=25,
     ),
     FtueStep(
         label="3rd Training Pack (→ T3)",
         card_drops=[("Vital Surge ++", 35), ("Bronze Shield", 19), ("Steel Hide", 23)],
         upgrades=[("Bronze Shield", 10)],
-        coins=125,
         xp_gain=25,
     ),
     FtueStep(
         label="BlueStar Milestone L2 Pack",
         card_drops=[("Vital Surge ++", 37), ("Vicious Impact", 24)],
         upgrades=[("Vital Surge ++", 30)],
-        coins=80,
-        xp_gain=30,
+        xp_gain=50,
     ),
     FtueStep(
         label="End of Chapter 4 Pack",
         card_drops=[("Hawk Shot", 34), ("Ball Fortune", 27)],
-        coins=70,
     ),
     FtueStep(
         label="SeasonPass Step 1 Pack (→ T2)",
         card_drops=[("Steel Hide", 29), ("Healing Spell", 12), ("Power Shot", 25)],
         upgrades=[("Steel Hide", 10)],
-        coins=85,
         xp_gain=25,
     ),
     FtueStep(
         label="1st Daily Pack (→ T2)",
         card_drops=[("Extra Shot", 32), ("Healing Spell", 10)],
         upgrades=[("Healing Spell", 10)],
-        coins=165,
         xp_gain=10,
     ),
     FtueStep(
         label="2nd Daily Pack (→ T1)",
         card_drops=[("Hawk Shot", 29), ("Battle Cry", 23)],
         upgrades=[("Hawk Shot", 30)],
-        coins=60,
-        xp_gain=30,
+        xp_gain=50,
     ),
     FtueStep(
         label="SeasonPass Step 2 Pack (→ T2)",
         card_drops=[("Vicious Impact", 27), ("Sharp Instinct", 13)],
         upgrades=[("Vicious Impact", 10)],
-        coins=80,
         xp_gain=25,
     ),
     FtueStep(
@@ -155,33 +147,30 @@ FTUE_STEPS: List[FtueStep] = [
         card_drops=[
             ("Extra Shot", 37), ("Battle Cry", 28), ("Ball Fortune", 25), ("Simple Shots+", 9),
         ],
-        upgrades=[("Extra Shot", 50), ("Battle Cry", 10), ("Ball Fortune", 10)],
-        coins=350,
+        upgrades=[("Extra Shot", 30), ("Battle Cry", 10), ("Ball Fortune", 10)],
         diamonds=10,
         xp_gain=50,
     ),
     FtueStep(
+        label="BlueStar Milestone L3 Pack",
+        card_drops=[("Bounce Shot", 34), ("Simple Shots", 13)],
+        upgrades=[("Bounce Shot", 30), ("Simple Shots", 10)],
+        hero_tokens=250,
+        xp_gain=25,
+    ),
+    FtueStep(
         label="End of Chapter 5 Pack",
-        card_drops=[("Power Shot", 30), ("Healing Spell+", 23)],
-        coins=90,
+        card_drops=[("Power Shot", 30), ("Wooden Shield", 12)],
     ),
     FtueStep(
         label="4th Daily Pack (→ T2)",
-        card_drops=[("Bounce Shot", 34), ("Sharp Instinct +", 27)],
-        upgrades=[("Bounce Shot", 30)],
-        coins=70,
-    ),
-    FtueStep(
-        label="BlueStar Milestone L3 Pack",
-        card_drops=[("Power Shot", 42), ("Healing Spell+", 29)],
-        upgrades=[("Power Shot", 30), ("Healing Spell+", 10), ("Fury", 40)],
-        coins=80,
-        xp_gain=55,
+        card_drops=[("Power Shot", 42), ("Sharp Instinct +", 27)],
+        upgrades=[("Power Shot", 30)],
+        xp_gain=30,
     ),
     FtueStep(
         label="SeasonPass Step 4 Pack (→ T3)",
         card_drops=[("Double Strike", 27), ("Shadow Step", 31), ("Vital Surge", 11)],
-        coins=125,
     ),
 ]
 
@@ -237,6 +226,9 @@ def run_ftue(
         if step.diamonds:
             game_state.bonus_items["Diamonds"] = game_state.bonus_items.get("Diamonds", 0) + step.diamonds
             log.append(f"  +{step.diamonds} diamonds")
+        if step.hero_tokens:
+            game_state.bonus_items["HeroTokens"] = game_state.bonus_items.get("HeroTokens", 0) + step.hero_tokens
+            log.append(f"  +{step.hero_tokens} hero tokens")
 
         # XP + level-ups
         if step.xp_gain:
