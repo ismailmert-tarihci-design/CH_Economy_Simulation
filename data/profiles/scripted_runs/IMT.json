@@ -1,0 +1,72 @@
+{
+  "name": "IMT",
+  "paid_season_pass": false,
+  "auto_open_daily_packs": false,
+  "token_spend_policy": "cheapest_first",
+  "focus_hero_id": null,
+  "chapter_gating": "calendar",
+  "bluestar_cohort": null,
+  "season_pass_steps_per_day": 9,
+  "schedule": [
+    {
+      "day": 0,
+      "chapters_beaten": 0,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 1,
+      "chapters_beaten": 1,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 2,
+      "chapters_beaten": 9,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 3,
+      "chapters_beaten": 4,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 4,
+      "chapters_beaten": 3,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 5,
+      "chapters_beaten": 2,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 6,
+      "chapters_beaten": 1,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 7,
+      "chapters_beaten": 1,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 8,
+      "chapters_beaten": 1,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 9,
+      "chapters_beaten": 1,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 10,
+      "chapters_beaten": 1,
+      "season_pass_target_step": null
+    },
+    {
+      "day": 11,
+      "chapters_beaten": 1,
+      "season_pass_target_step": null
+    }
+  ]
+}
