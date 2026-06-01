@@ -88,6 +88,41 @@ def _snapshot_history(state: Dict[str, Any]) -> None:
         history.append(snap)
 
 
+def _record_bluestars(state: Dict[str, Any]) -> None:
+    """Append a bluestar sample to the continuous trace whenever it changes.
+
+    Called on every rerun (i.e. after every action — pack open, upgrade,
+    chapter beat, day advance), so the trace captures the full bluestar curve
+    rather than only day-boundary snapshots.
+    """
+    trace: List[Dict[str, Any]] = state.setdefault("bs_trace", [])
+    bs = state["game_state"].total_bluestars
+    if trace and trace[-1]["bluestars"] == bs:
+        return  # no change since last sample — don't pad the chart
+    trace.append({"step": len(trace), "day": state["day"], "bluestars": bs})
+
+
+def _run_auto_upgrade(state: Dict[str, Any], config: HeroCardConfig) -> int:
+    """Greedily upgrade every eligible card (hero + shared), mirroring the
+    manual "Greedy auto-upgrade" button. Updates the cumulative counters and
+    logs only when something actually upgraded. Returns the number of upgrades.
+    """
+    game_state: HeroCardGameState = state["game_state"]
+    hero_events, total_xp, total_bs, tree_acts = attempt_hero_upgrades(game_state, config)
+    shared_events, shared_bs = attempt_shared_upgrades(game_state, config)
+    n = len(hero_events) + len(shared_events)
+    if n:
+        state["upgrades_hero"] += len(hero_events)
+        state["upgrades_shared"] += len(shared_events)
+        tree_count = sum(len(v) for v in tree_acts.values())
+        _log([
+            f"Auto-upgrade: {len(hero_events)} hero (+{total_xp} XP, "
+            f"+{total_bs} bluestars), {len(shared_events)} shared "
+            f"(+{shared_bs} bluestars), {tree_count} skill-tree activations"
+        ])
+    return n
+
+
 def _hero_def(config: HeroCardConfig, hero_id: str):
     return next((h for h in config.heroes if h.hero_id == hero_id), None)
 
@@ -163,6 +198,7 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     rng = Random(seed if seed and seed > 0 else None)
     prev = st.session_state.get(_STATE_KEY, {})
     paid_pass = prev.get("paid_pass", False)
+    auto_upgrade = prev.get("auto_upgrade", False)
     cohort = prev.get("cohort") or _DEFAULT_COHORT
     chapters_per_day = _load_cohort_chapters(cohort)
     bs_gating = prev.get("bs_gating") or _DEFAULT_BS_GATING
@@ -172,6 +208,8 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "day": 0,
         "season_pass_step": 1,
         "paid_pass": paid_pass,
+        "auto_upgrade": auto_upgrade,
+        "bs_trace": [],
         "extras": ds.init_extras(),
         "event_log": [],
         "rng": rng,
@@ -215,7 +253,10 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     state["season_pass_step"] = 5
     _log(catchup_lines)
 
+    if auto_upgrade:
+        _run_auto_upgrade(state, config)
     _snapshot_history(state)
+    _record_bluestars(state)
 
 
 # ─── Top-level render ────────────────────────────────────────────────────────
@@ -246,6 +287,14 @@ def render_variant_b_day_simulator() -> None:
 
     state = st.session_state[_STATE_KEY]
     game_state: HeroCardGameState = state["game_state"]
+
+    # Every action (pack open, season-pass claim, chapter beat, day advance)
+    # ends in st.rerun(), so this block runs once per action. When auto-upgrade
+    # is on, greedily upgrade everything affordable; then record the resulting
+    # bluestar balance into the continuous trace for the chart.
+    if state.get("auto_upgrade"):
+        _run_auto_upgrade(state, config)
+    _record_bluestars(state)
 
     _render_balances(game_state)
     _render_heroes_panel(config, game_state)
@@ -278,8 +327,8 @@ def render_variant_b_day_simulator() -> None:
 
 def _render_top_bar(config: HeroCardConfig) -> None:
     with st.container(border=True):
-        c_seed, c_reset, c_cohort, c_gate, c_paid, c_day, c_chap, c_up, c_next = st.columns(
-            [1.0, 1.0, 1.1, 1.2, 1.1, 0.7, 0.9, 0.9, 1.2]
+        c_seed, c_reset, c_cohort, c_gate, c_paid, c_auto, c_day, c_chap, c_up, c_next = st.columns(
+            [1.0, 1.0, 1.1, 1.2, 1.1, 1.1, 0.7, 0.9, 0.9, 1.2]
         )
         with c_seed:
             seed = st.number_input(
@@ -335,6 +384,17 @@ def _render_top_bar(config: HeroCardConfig) -> None:
                     "💎 Paid season pass",
                     value=st.session_state[_STATE_KEY].get("paid_pass", False),
                     key="day_sim_paid_toggle",
+                )
+        with c_auto:
+            st.write("")
+            if _STATE_KEY in st.session_state:
+                st.session_state[_STATE_KEY]["auto_upgrade"] = st.toggle(
+                    "⚡ Auto-upgrade",
+                    value=st.session_state[_STATE_KEY].get("auto_upgrade", False),
+                    key="day_sim_auto_upgrade_toggle",
+                    help="When on, greedily upgrade every card you can afford "
+                         "(dupes + coins, lowest-level first) after each action "
+                         "— pack open, season-pass claim, chapter beat, day advance.",
                 )
         with c_day:
             if _STATE_KEY in st.session_state:
@@ -1325,6 +1385,25 @@ def _render_shared_upgrade_table(config: HeroCardConfig, game_state: HeroCardGam
 # ─── Charts ──────────────────────────────────────────────────────────────────
 
 def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
+    # --- Continuous bluestar trace (sampled on every action) ---
+    bs_trace = st.session_state[_STATE_KEY].get("bs_trace") or []
+    if len(bs_trace) >= 2:
+        with st.container(border=True):
+            st.markdown("**Bluestars (every change)**")
+            st.caption(
+                "Sampled on every action — pack opens, upgrades, chapter beats, "
+                "day advances — so you see the full bluestar curve, not just "
+                "day boundaries. X-axis is the action number."
+            )
+            trace_df = pd.DataFrame(
+                [{"Event #": s["step"], "Bluestars": s["bluestars"]} for s in bs_trace]
+            ).set_index("Event #")
+            st.line_chart(trace_df, height=260)
+            t1, t2, t3 = st.columns(3)
+            t1.metric("Current", f"{bs_trace[-1]['bluestars']:,}")
+            t2.metric("Samples", f"{len(bs_trace):,}")
+            t3.metric("Latest day", bs_trace[-1]["day"])
+
     history = st.session_state[_STATE_KEY].get("history") or []
     if len(history) < 2:
         st.info(
