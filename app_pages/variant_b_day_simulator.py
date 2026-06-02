@@ -737,10 +737,37 @@ def _render_pack_results(results: List[Dict[str, Any]], header: str = "Pack resu
         total_cards = sum(len(r["cards"]) for r in results)
         total_coins = sum(r["coins_earned"] for r in results)
         total_jokers = sum(r["jokers_received"] for r in results)
-        s1, s2, s3 = st.columns(3)
+        distinct_types = {
+            (c["kind"], c.get("hero_id") or c.get("category"), c.get("card_name"))
+            for r in results for c in r["cards"]
+        }
+        s1, s2, s3, s4 = st.columns(4)
         s1.metric("Cards pulled", total_cards)
-        s2.metric("Coins gained", f"{total_coins:,}")
-        s3.metric("Jokers gained", total_jokers)
+        s2.metric("Card types", len(distinct_types))
+        s3.metric("Coins gained", f"{total_coins:,}")
+        s4.metric("Jokers gained", total_jokers)
+
+        # Flat, always-visible pull-by-pull list across every pack opened in
+        # this action (one row per card pulled).
+        flat_rows = []
+        for idx, r in enumerate(results):
+            for c in r["cards"]:
+                base = c.get("dupe_base_cost", 0) or 0
+                eff = c.get("dupe_effective_pct", 0.0) or 0.0
+                flat_rows.append({
+                    "Pack #": idx + 1,
+                    "Kind": "Hero" if c["kind"] == "hero" else "Shared",
+                    "Owner": c.get("hero_id") if c["kind"] == "hero" else c.get("category"),
+                    "Card": c["card_name"],
+                    "Rarity": c["rarity"] if c["kind"] == "hero" else "—",
+                    "Lvl before": c["level_before"],
+                    "Dupes/Need": f"{c['duplicates_received']} / {base}" if base else f"{c['duplicates_received']}",
+                    "% of next lvl": f"{eff * 100:.1f}%" if base else "—",
+                    "Coins": c["coins_earned"],
+                })
+        if flat_rows:
+            st.markdown("**Every pull**")
+            st.dataframe(pd.DataFrame(flat_rows), hide_index=True, width="stretch")
 
         for idx, r in enumerate(results):
             start = r.get("start_tier")
@@ -1003,6 +1030,12 @@ def _render_upgrades(config: HeroCardConfig, game_state: HeroCardGameState) -> N
     if not game_state.heroes and not game_state.shared_cards:
         st.caption("Nothing to upgrade yet.")
         return
+
+    st.caption(
+        "A card is upgradeable once you hold enough **duplicates (+ jokers)**. "
+        "**Coins need** is the coin cost that gets spent — it does NOT block the "
+        "upgrade (coins can go negative), so ⬆ enables on duplicates alone."
+    )
 
     tab_labels = [f"Hero: {hero_id}" for hero_id in game_state.heroes] + ["Shared"]
     tabs = st.tabs(tab_labels)
@@ -1350,9 +1383,9 @@ def _render_hero_upgrade_table(config: HeroCardConfig, game_state: HeroCardGameS
         coin_cost = table.coin_costs[level_idx]
 
         joker_fill = max(0, dupe_cost - card.duplicates)
-        has_dupes = card.duplicates + hs.joker_count >= dupe_cost
-        has_coins = game_state.coins >= coin_cost
-        enabled = has_dupes and has_coins
+        # Coins are spent but do NOT gate upgrades (same rule as the greedy
+        # engine), so availability depends on duplicates + jokers only.
+        enabled = card.duplicates + hs.joker_count >= dupe_cost
 
         cols = st.columns([2, 1, 1, 1, 1, 1, 1, 1])
         cols[0].write(card.card_id)
@@ -1400,7 +1433,8 @@ def _render_shared_upgrade_table(config: HeroCardConfig, game_state: HeroCardGam
             continue
         dupe_cost = table.duplicate_costs[level_idx]
         coin_cost = table.coin_costs[level_idx]
-        enabled = card.duplicates >= dupe_cost and game_state.coins >= coin_cost
+        # Coins are spent but do NOT gate upgrades (same rule as the engine).
+        enabled = card.duplicates >= dupe_cost
 
         cols = st.columns([2, 1, 1, 1, 1, 1, 1])
         cols[0].write(card.id)

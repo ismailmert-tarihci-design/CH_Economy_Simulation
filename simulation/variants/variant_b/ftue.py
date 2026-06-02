@@ -190,6 +190,15 @@ def run_ftue(
     if hero_def is None:
         return log + ["[FTUE skipped: no Woody hero_def in config]"]
 
+    upgrade_tables = {t.rarity.value: t for t in config.hero_upgrade_tables}
+
+    def _next_cost(card) -> int:
+        """Dupe cost for the card's next level-up, or 0 if maxed/unknown."""
+        table = upgrade_tables.get(card.rarity.value)
+        if not table or card.level - 1 >= len(table.duplicate_costs):
+            return 0
+        return table.duplicate_costs[card.level - 1]
+
     for step in FTUE_STEPS:
         log.append(f"FTUE | {step.label}")
 
@@ -215,9 +224,13 @@ def run_ftue(
             card = woody.cards[card_id]
             card.unlocked = True
             old_level = card.level
+            # Spend the real dupe cost for this level-up (clamped at 0 so a
+            # short FTUE grant can't go negative), then level up + award BS.
+            dupe_cost = _next_cost(card)
+            card.duplicates = max(0, card.duplicates - dupe_cost)
             card.level += 1
             game_state.total_bluestars += bs_reward
-            log.append(f"  upgrade {name} L{old_level}→L{card.level} (+{bs_reward} bluestars, free)")
+            log.append(f"  upgrade {name} L{old_level}→L{card.level} (-{dupe_cost} dupes, +{bs_reward} bluestars)")
 
         # Coins / diamonds
         if step.coins:
@@ -236,6 +249,17 @@ def run_ftue(
             leveled = _check_hero_level_up(woody, hero_def)
             tail = f" → Woody L{woody.level}" if leveled else ""
             log.append(f"  +{step.xp_gain} XP{tail}")
+
+    # Cap leftover duplicates below each card's next-level cost. The FTUE's
+    # card-name → id reuse (esp. the 2 gray slots) can still pile dupes past a
+    # threshold; this enforces the post-greedy-play invariant so nothing is
+    # instantly upgradeable when the FTUE ends.
+    for card in woody.cards.values():
+        if not card.unlocked:
+            continue
+        next_cost = _next_cost(card)
+        if next_cost and card.duplicates >= next_cost:
+            card.duplicates = next_cost - 1
 
     game_state.chapters_beaten = FTUE_END_CHAPTER
     log.append(f"  chapters beaten set to {FTUE_END_CHAPTER} (post-FTUE state)")
