@@ -118,6 +118,7 @@ def _snapshot_history(state: Dict[str, Any]) -> None:
         "day": state["day"],
         "bluestars": game_state.total_bluestars,
         "coins": game_state.coins,
+        "hero_tokens": int(game_state.bonus_items.get("HeroTokens", 0)),
         "upgrades_hero": state.get("upgrades_hero", 0),
         "upgrades_shared": state.get("upgrades_shared", 0),
         "upg_by_bucket": dict(state.get("upg_by_bucket", {})),
@@ -139,20 +140,6 @@ def _snapshot_history(state: Dict[str, Any]) -> None:
         history[-1] = snap
     else:
         history.append(snap)
-
-
-def _record_bluestars(state: Dict[str, Any]) -> None:
-    """Append a bluestar sample to the continuous trace whenever it changes.
-
-    Called on every rerun (i.e. after every action — pack open, upgrade,
-    chapter beat, day advance), so the trace captures the full bluestar curve
-    rather than only day-boundary snapshots.
-    """
-    trace: List[Dict[str, Any]] = state.setdefault("bs_trace", [])
-    bs = state["game_state"].total_bluestars
-    if trace and trace[-1]["bluestars"] == bs:
-        return  # no change since last sample — don't pad the chart
-    trace.append({"step": len(trace), "day": state["day"], "bluestars": bs})
 
 
 def _per_card_upgrade_lines(
@@ -310,7 +297,6 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "season_pass_step": 1,
         "paid_pass": paid_pass,
         "auto_upgrade": auto_upgrade,
-        "bs_trace": [],
         "extras": ds.init_extras(),
         "event_log": [],
         "rng": rng,
@@ -359,7 +345,6 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     if auto_upgrade:
         _run_auto_upgrade(state, config)
     _snapshot_history(state)
-    _record_bluestars(state)
 
 
 # ─── Top-level render ────────────────────────────────────────────────────────
@@ -393,11 +378,9 @@ def render_variant_b_day_simulator() -> None:
 
     # Every action (pack open, season-pass claim, chapter beat, day advance)
     # ends in st.rerun(), so this block runs once per action. When auto-upgrade
-    # is on, greedily upgrade everything affordable; then record the resulting
-    # bluestar balance into the continuous trace for the chart.
+    # is on, greedily upgrade everything affordable after each action.
     if state.get("auto_upgrade"):
         _run_auto_upgrade(state, config)
-    _record_bluestars(state)
 
     _render_balances(game_state)
     _render_heroes_panel(config, game_state)
@@ -1089,6 +1072,7 @@ def _render_upgrades(config: HeroCardConfig, game_state: HeroCardGameState) -> N
 
     if game_state.heroes:
         _render_skill_tree_panel(config, game_state)
+        _render_token_hunger(config, game_state)
 
     if not game_state.heroes and not game_state.shared_cards:
         st.caption("Nothing to upgrade yet.")
@@ -1188,7 +1172,181 @@ def _render_skill_tree_panel(config: HeroCardConfig, game_state: HeroCardGameSta
                     st.rerun()
 
 
+def _render_token_hunger(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
+    """Hero Token economy diagnostic — *is the player starved for tokens?*
+
+    A balancing readout that pits the current Hero Token balance + net earn
+    rate against skill-tree **demand**: the next node for each hero and the
+    full cost to finish every tree. Each hero's next node is classified so you
+    can see whether **tokens** or **hero levels** are the real bottleneck:
+
+    - **Ready** — level met AND affordable right now.
+    - **Token-gated** — level met but can't pay (true token hunger).
+    - **Level-gated** — can't reach the required level yet (tokens irrelevant).
+
+    If most heroes are *token-gated*, the token faucet is too tight (or node
+    costs too high). If most are *level-gated*, tokens aren't the constraint —
+    XP/levelling is — and pouring in more tokens won't speed progression.
+    """
+    tokens = int(game_state.bonus_items.get("HeroTokens", 0))
+
+    rows: List[Dict[str, Any]] = []
+    next_wave_cost = 0          # cost to buy one node for every eligible hero
+    full_remaining = 0          # cost to finish every tree from here
+    ready = token_gated = level_gated = maxed = 0
+
+    for hero_id, hs in game_state.heroes.items():
+        hero_def = _hero_def(config, hero_id)
+        if hero_def is None or not hero_def.skill_tree:
+            continue
+        name = hero_def.name
+        next_idx = hs.skill_tree_progress + 1
+        if next_idx >= len(hero_def.skill_tree):
+            maxed += 1
+            rows.append({
+                "Hero": name, "Next node": "—", "Perk": "—",
+                "Token cost": 0, "Level (cur→req)": f"{hs.level}",
+                "Status": "✓ MAX", "Tree cost left": 0,
+            })
+            continue
+
+        node = hero_def.skill_tree[next_idx]
+        remaining = sum(n.token_cost for n in hero_def.skill_tree[next_idx:])
+        full_remaining += remaining
+        next_wave_cost += node.token_cost
+
+        level_ok = hs.level >= node.hero_level_required
+        cost_ok = tokens >= node.token_cost
+        if level_ok and cost_ok:
+            status = "🟢 Ready"
+            ready += 1
+        elif not level_ok:
+            status = f"🔒 Level-gated (need L{node.hero_level_required})"
+            level_gated += 1
+        else:
+            status = f"🎟 Token-gated (need {node.token_cost - tokens:,} more)"
+            token_gated += 1
+
+        rows.append({
+            "Hero": name,
+            "Next node": f"#{node.node_index}",
+            "Perk": node.perk_label or "—",
+            "Token cost": node.token_cost,
+            "Level (cur→req)": f"{hs.level} → {node.hero_level_required}",
+            "Status": status,
+            "Tree cost left": remaining,
+        })
+
+    if not rows:
+        return
+
+    eligible = ready + token_gated + level_gated  # non-MAX heroes
+    shortfall = max(0, next_wave_cost - tokens)
+
+    history = st.session_state[_STATE_KEY].get("history") or []
+    net_rate: Optional[float] = None
+    if len(history) >= 2:
+        span = max(1, history[-1]["day"] - history[0]["day"])
+        net_rate = (
+            history[-1].get("hero_tokens", 0) - history[0].get("hero_tokens", 0)
+        ) / span
+
+    with st.container(border=True):
+        st.markdown("**🎟 Hero Token hunger**")
+        st.caption(
+            "Token balance & net earn rate vs. skill-tree demand. The status "
+            "column tells you whether **tokens** or **hero levels** are the "
+            "bottleneck — pour tokens in only if heroes are *token-gated*."
+        )
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Balance", f"{tokens:,}")
+        m2.metric(
+            "Net / day",
+            f"{net_rate:+,.1f}" if net_rate is not None else "—",
+            help="Net change in Hero Tokens per day across the run "
+                 "(earned minus spent on skill nodes).",
+        )
+        m3.metric(
+            "Next-wave cost", f"{next_wave_cost:,}",
+            help="Tokens to buy ONE node for every hero that has a next node.",
+        )
+        m4.metric(
+            "Finish-all cost", f"{full_remaining:,}",
+            help="Tokens to activate every remaining skill-tree node across all heroes.",
+        )
+
+        # Hunger verdict + runway to the next wave.
+        if eligible == 0:
+            st.success("✓ Every hero's skill tree is maxed — no token demand.")
+        else:
+            if shortfall == 0:
+                bar_txt = f"Can afford all {eligible} eligible heroes' next node now."
+                st.progress(1.0, text=bar_txt)
+            else:
+                covered = max(0.0, min(1.0, tokens / next_wave_cost)) if next_wave_cost else 0.0
+                st.progress(
+                    covered,
+                    text=f"Balance covers {covered*100:.0f}% of the next wave "
+                         f"({tokens:,} / {next_wave_cost:,}) — short {shortfall:,}.",
+                )
+
+            # Bottleneck verdict.
+            if token_gated and token_gated >= level_gated:
+                verdict = (
+                    f"🎟 **Token-starved** — {token_gated} hero(es) have the level "
+                    f"but can't afford the next node. The token faucet is the bottleneck."
+                )
+            elif level_gated and level_gated > token_gated:
+                verdict = (
+                    f"🔒 **Level-bound** — {level_gated} hero(es) can't reach the "
+                    f"required level yet; tokens are *not* the constraint here."
+                )
+            elif ready == eligible:
+                verdict = (
+                    f"🟢 **Flush** — all {ready} eligible next node(s) are affordable now. "
+                    f"Tokens may be over-supplied (or node costs too low)."
+                )
+            else:
+                verdict = (
+                    f"Mixed: {ready} ready, {token_gated} token-gated, "
+                    f"{level_gated} level-gated."
+                )
+            st.markdown(verdict)
+
+            # Runway: at the current net earn rate, days until the next wave is affordable.
+            if shortfall > 0 and net_rate is not None and net_rate > 0:
+                st.caption(
+                    f"At {net_rate:+,.1f} tokens/day net, ~"
+                    f"**{shortfall / net_rate:,.0f} day(s)** to afford the next wave."
+                )
+            elif shortfall > 0 and net_rate is not None and net_rate <= 0:
+                st.caption(
+                    "Net token rate is flat/negative — the next wave is unreachable "
+                    "without more token income."
+                )
+
+        st.dataframe(
+            pd.DataFrame(rows),
+            hide_index=True,
+            width="stretch",
+            height=min(420, 80 + 36 * len(rows)),
+        )
+
+        # Token balance over time (uses day snapshots).
+        if len(history) >= 2:
+            with st.expander("Hero Tokens over time", expanded=False):
+                tk_df = pd.DataFrame(
+                    [{"Day": s["day"], "Hero Tokens": s.get("hero_tokens", 0)} for s in history]
+                ).set_index("Day")
+                st.line_chart(tk_df, height=220)
+
+
 _SCRIPTED_KEY = "day_sim_scripted_cfg"
+# Stable baseline DataFrame for the daily-schedule data_editor (see
+# _render_scripted_run). Cleared on preset load so it re-seeds from the
+# freshly loaded schedule.
+_SCHED_DF_KEY = "day_sim_sched_baseline_df"
 
 
 _DEFAULT_SCRIPTED_PRESET = "AvgPaid-Balanced-14d"
@@ -1248,6 +1406,10 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                     loaded = load_scripted_run(pick)
                     if loaded is not None:
                         st.session_state[_SCRIPTED_KEY] = loaded
+                        # Drop the editor baseline + widget state so the
+                        # schedule table re-seeds from the loaded preset.
+                        st.session_state.pop(_SCHED_DF_KEY, None)
+                        st.session_state.pop("day_sim_scripted_schedule", None)
                         st.rerun()
 
     with st.container(border=True):
@@ -1319,16 +1481,21 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
             "One row per day. Days not listed run baseline (auto-pack only). "
             "Day 0 is the FTUE day (FTUE auto-runs on Start/Reset)."
         )
-        rows = []
-        for d in sorted(cfg.schedule, key=lambda d: d.day):
-            rows.append({
-                "Day": d.day,
-                "Chapters beaten": d.chapters_beaten,
-                "Season pass target step": d.season_pass_target_step or 0,
-            })
-        if not rows:
-            rows = [{"Day": 0, "Chapters beaten": 0, "Season pass target step": 0}]
-        sched_df = pd.DataFrame(rows)
+        # Stable editor baseline: re-deriving this from cfg.schedule on every
+        # rerun (which sorts + de-dupes) is what made cells jump/reset while
+        # typing. Seed the baseline once and keep it in session_state; only
+        # re-seed when a different preset is loaded (the Load button clears it).
+        if _SCHED_DF_KEY not in st.session_state:
+            seed_rows = [
+                {
+                    "Day": d.day,
+                    "Chapters beaten": d.chapters_beaten,
+                    "Season pass target step": d.season_pass_target_step or 0,
+                }
+                for d in sorted(cfg.schedule, key=lambda d: d.day)
+            ] or [{"Day": 0, "Chapters beaten": 0, "Season pass target step": 0}]
+            st.session_state[_SCHED_DF_KEY] = pd.DataFrame(seed_rows)
+        sched_df = st.session_state[_SCHED_DF_KEY]
         edited = st.data_editor(
             sched_df,
             column_config={
@@ -1574,25 +1741,6 @@ def _render_breakdown_chart(
 
 
 def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
-    # --- Continuous bluestar trace (sampled on every action) ---
-    bs_trace = st.session_state[_STATE_KEY].get("bs_trace") or []
-    if len(bs_trace) >= 2:
-        with st.container(border=True):
-            st.markdown("**Bluestars (every change)**")
-            st.caption(
-                "Sampled on every action — pack opens, upgrades, chapter beats, "
-                "day advances — so you see the full bluestar curve, not just "
-                "day boundaries. X-axis is the action number."
-            )
-            trace_df = pd.DataFrame(
-                [{"Event #": s["step"], "Bluestars": s["bluestars"]} for s in bs_trace]
-            ).set_index("Event #")
-            st.line_chart(trace_df, height=260)
-            t1, t2, t3 = st.columns(3)
-            t1.metric("Current", f"{bs_trace[-1]['bluestars']:,}")
-            t2.metric("Samples", f"{len(bs_trace):,}")
-            t3.metric("Latest day", bs_trace[-1]["day"])
-
     history = st.session_state[_STATE_KEY].get("history") or []
     if len(history) < 2:
         st.info(
