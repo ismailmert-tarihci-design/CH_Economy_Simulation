@@ -52,7 +52,6 @@ from simulation.variants.variant_b.chapter_schedule import (
     load_cohort_chapters as _load_cohort_chapters,
     load_default_bluestar_thresholds as _load_bluestar_thresholds,
 )
-from simulation.variants.variant_b.power_curve import power_for_bluestars
 
 
 _STATE_KEY = "day_sim"
@@ -65,7 +64,6 @@ def _snapshot_history(state: Dict[str, Any]) -> None:
     snap = {
         "day": state["day"],
         "bluestars": game_state.total_bluestars,
-        "power": power_for_bluestars(game_state.total_bluestars),
         "coins": game_state.coins,
         "upgrades_hero": state.get("upgrades_hero", 0),
         "upgrades_shared": state.get("upgrades_shared", 0),
@@ -102,6 +100,53 @@ def _record_bluestars(state: Dict[str, Any]) -> None:
     trace.append({"step": len(trace), "day": state["day"], "bluestars": bs})
 
 
+def _per_card_upgrade_lines(
+    hero_events: List[Dict[str, Any]],
+    shared_events: List[Dict[str, Any]],
+) -> List[str]:
+    """Collapse raw upgrade events into one human-readable line per card so the
+    user can see exactly which cards leveled, how far, and at what cost."""
+    agg: Dict[str, Dict[str, Any]] = {}
+    order: List[str] = []
+    for e in hero_events:
+        key = f"{e['hero_id']}/{e['card_id']}"
+        a = agg.get(key)
+        if a is None:
+            a = {"lo": e["old_level"], "hi": e["new_level"], "n": 0,
+                 "dupes": 0, "jokers": 0, "bs": 0}
+            agg[key] = a
+            order.append(key)
+        a["lo"] = min(a["lo"], e["old_level"])
+        a["hi"] = max(a["hi"], e["new_level"])
+        a["n"] += 1
+        a["dupes"] += e["dupes_spent"]
+        a["jokers"] += e.get("jokers_spent", 0)
+        a["bs"] += e["bluestars_earned"]
+    for e in shared_events:
+        key = f"shared/{e['card_id']}"
+        a = agg.get(key)
+        if a is None:
+            a = {"lo": e["old_level"], "hi": e["new_level"], "n": 0,
+                 "dupes": 0, "jokers": 0, "bs": 0}
+            agg[key] = a
+            order.append(key)
+        a["lo"] = min(a["lo"], e["old_level"])
+        a["hi"] = max(a["hi"], e["new_level"])
+        a["n"] += 1
+        a["dupes"] += e["dupes_spent"]
+        a["bs"] += e["bluestars_earned"]
+
+    lines: List[str] = []
+    for key in order:
+        a = agg[key]
+        joker = f", {a['jokers']} jokers" if a["jokers"] else ""
+        lines.append(
+            f"    ↑ {key}: L{a['lo']}→L{a['hi']} (×{a['n']}, "
+            f"{a['dupes']} dupes{joker}, +{a['bs']} ⭐)"
+        )
+    return lines
+
+
 def _run_auto_upgrade(state: Dict[str, Any], config: HeroCardConfig) -> int:
     """Greedily upgrade every eligible card (hero + shared), mirroring the
     manual "Greedy auto-upgrade" button. Updates the cumulative counters and
@@ -119,7 +164,7 @@ def _run_auto_upgrade(state: Dict[str, Any], config: HeroCardConfig) -> int:
             f"Auto-upgrade: {len(hero_events)} hero (+{total_xp} XP, "
             f"+{total_bs} bluestars), {len(shared_events)} shared "
             f"(+{shared_bs} bluestars), {tree_count} skill-tree activations"
-        ])
+        ] + _per_card_upgrade_lines(hero_events, shared_events))
     return n
 
 
@@ -452,17 +497,11 @@ def _render_top_bar(config: HeroCardConfig) -> None:
 def _render_balances(game_state: HeroCardGameState) -> None:
     bi = game_state.bonus_items
     with st.container(border=True):
-        m1, m2, m3, m4, m5 = st.columns(5)
+        m1, m2, m3, m4 = st.columns(4)
         m1.metric("🪙 Coins", f"{game_state.coins:,}")
         m2.metric("⭐ Bluestars", f"{game_state.total_bluestars:,}")
-        power = power_for_bluestars(game_state.total_bluestars)
-        m3.metric(
-            "⚡ Power", f"{power:,.2f}",
-            help="Total multiplier from bluestars (cumulative product of "
-                 "per-bluestar tier multipliers).",
-        )
-        m4.metric("🎟 Hero Tokens", f"{bi.get('HeroTokens', 0):,}")
-        m5.metric("💎 Diamonds", f"{bi.get('Diamonds', 0):,}")
+        m3.metric("🎟 Hero Tokens", f"{bi.get('HeroTokens', 0):,}")
+        m4.metric("💎 Diamonds", f"{bi.get('Diamonds', 0):,}")
 
         with st.expander("Other resources", expanded=False):
             rows = [
@@ -953,10 +992,10 @@ def _render_upgrades(config: HeroCardConfig, game_state: HeroCardGameState) -> N
                     f"Auto-upgrade: {len(hero_events)} hero upgrades (+{total_xp} XP, +{total_bs} bluestars), "
                     f"{len(shared_events)} shared upgrades (+{shared_bs} bluestars), "
                     f"{tree_count} skill tree activations"
-                ])
+                ] + _per_card_upgrade_lines(hero_events, shared_events))
                 st.rerun()
         with bc2:
-            st.caption("Auto-upgrade spends dupes + coins greedily (lowest-level first), mirroring the daily orchestrator.")
+            st.caption("Auto-upgrade spends duplicates greedily (lowest-level first), mirroring the daily orchestrator. Each card that levels is listed in the activity log.")
 
     if game_state.heroes:
         _render_skill_tree_panel(config, game_state)
@@ -1424,28 +1463,6 @@ def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> Non
         c2.metric("Δ since day 0", f"{history[-1]['bluestars'] - history[0]['bluestars']:,}")
         days_span = max(1, history[-1]["day"] - history[0]["day"])
         c3.metric("Avg / day", f"{(history[-1]['bluestars'] - history[0]['bluestars']) / days_span:,.1f}")
-
-    # --- Power over time ---
-    with st.container(border=True):
-        st.markdown("**Power over time**")
-        st.caption(
-            "Power = total multiplier from bluestars. Because high tiers are "
-            "near-exponential, a small bluestar gap shows up as a large power "
-            "gap here."
-        )
-        pw_df = pd.DataFrame(
-            [{"Day": s["day"],
-              "Power": s.get("power") or power_for_bluestars(s["bluestars"])}
-             for s in history]
-        ).set_index("Day")
-        st.line_chart(pw_df, height=260)
-        p1, p2, p3 = st.columns(3)
-        cur_power = pw_df["Power"].iloc[-1]
-        first_power = pw_df["Power"].iloc[0]
-        p1.metric("Current", f"{cur_power:,.2f}")
-        p2.metric("× since day 0",
-                  f"{cur_power / first_power:,.2f}×" if first_power else "—")
-        p3.metric("Latest bluestars", f"{history[-1]['bluestars']:,}")
 
     # --- Upgrades per day ---
     with st.container(border=True):
