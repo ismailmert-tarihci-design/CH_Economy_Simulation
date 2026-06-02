@@ -139,7 +139,6 @@ def run_simulation(
                 pull_type = decide_hero_or_shared(game_state, config, rng, pull_index=pull_index)
 
                 if pull_type == "hero":
-                    game_state.pity_counter = 0
                     result = select_hero_card(game_state, config, rng)
                     if result:
                         hero_id, card_id = result
@@ -184,7 +183,6 @@ def run_simulation(
                             day_jokers_received += 1
 
                 else:
-                    game_state.pity_counter += 1
                     card = select_shared_card(game_state, config, rng)
                     if card:
                         level_before = card.level

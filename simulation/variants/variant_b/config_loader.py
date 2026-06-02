@@ -139,13 +139,19 @@ def _builtin_defaults() -> HeroCardConfig:
         shared_max_hero_level=30,
         joker_drop_rate_in_regular_packs=0.01,
         drop_config=HeroDropConfig(
-            # Real-game value (per design data, May 2026): 0.5/0.5 unique-vs-
-            # shared base split.
-            hero_vs_shared_base_rate=0.50,
-            pity_counter_threshold=10,
-            rarity_weight_gray=0.0673,
-            rarity_weight_blue=0.3894,
-            rarity_weight_gold=0.5432,
+            # New Algo diagram (June 2026). Bucket / rarity weights are stored as
+            # fractions but are relative (normalized at roll time), so 0.40 == "40%".
+            hero_vs_shared_base_rate=0.6,   # 0.6 hero / 0.4 shared
+            bucket_bottom_weight=0.40,
+            bucket_middle_weight=0.35,
+            bucket_top_weight=0.25,
+            rarity_weight_gray=0.07,
+            rarity_weight_blue=0.39,
+            rarity_weight_gold=0.54,
+            streak_decay_hero=0.8,
+            streak_decay_rarity=0.6,
+            streak_decay_card=0.6,
+            streak_decay_shared=0.6,
         ),
         pack_types=_default_pack_types(),
         daily_pack_schedule=_load_default_daily_pack_schedule(),
@@ -559,26 +565,17 @@ def _default_shared_duplicate_ranges() -> list[SharedDuplicateRange]:
 
     99 entries per category (one per card level). Same values for all shared categories.
     """
-    # Stepped taper matching the user-specified breakpoints, scaled up so each
-    # shared card pull grants a bigger duplicate pile.
-    #
-    # Calibration (May 2026): at the base breakpoints the sim produced ~7.9
-    # upgrades/day (shared ~5.7) — below the in-game run AND Control's ~11.1.
-    # Because dupes = dupe_cost * pct, the upgrade *rate* is driven by pct (not
-    # cost), and shared upgrades otherwise cap at the shared-pull count. Scaling
-    # pct by 1.45 (pct may exceed 1.0 — a single pull can fund more than one
-    # level) lifts Deckbuilding to ~10.9 upgrades/day, just below Control's 11.1
-    # (hero upgrades stay ~2/day). Bluestars rise as a side effect; power parity
-    # with Control is handled separately by the bluestar->power multiplier table.
-    _SHARED_PCT_SCALE = 1.45
-    shared_min_pct = [round(p * _SHARED_PCT_SCALE, 4) for p in (
+    # Stepped taper matching the design breakpoints. A pull grants
+    # dupes = dupe_cost * uniform(min%, max%); these percentages are <= 1.0 so a
+    # single shared pull never funds more than one level.
+    shared_min_pct = (
         [0.80] * 10 + [0.70] * 19 + [0.65] * 11 + [0.60] * 9 +
         [0.55] * 11 + [0.50] * 20 + [0.40] * 19
-    )]
-    shared_max_pct = [round(p * _SHARED_PCT_SCALE, 4) for p in (
+    )
+    shared_max_pct = (
         [0.90] * 10 + [0.80] * 19 + [0.75] * 11 + [0.70] * 9 +
         [0.65] * 11 + [0.60] * 20 + [0.60] * 19
-    )]
+    )
     shared_coins = [
         5, 8, 9, 11, 13, 14, 15, 16, 17, 18,
         18, 19, 20, 20, 20, 21, 21, 22, 22, 22,

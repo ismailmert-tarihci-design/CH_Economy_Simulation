@@ -1785,7 +1785,7 @@ def _render_hero_card_overview() -> None:
         | Unique cards | Global pool, ~10 cards, levels 1-10 | Per-hero decks, ~45 cards each, tiered by rarity |
         | Card access | All cards available at unlock | Start with few starter cards, unlock via skill tree |
         | Progression | Card dupes → upgrade → bluestars | Card dupes → upgrade → bluestars + Hero XP → hero level → unlock more cards |
-        | Drop algorithm | Exponential gap (shared vs unique) | Configurable hero vs shared rate + pity counter |
+        | Drop algorithm | Exponential gap (shared vs unique) | Configurable hero vs shared rate, bucket + anti-streak weighting |
         | Wildcards | None | Hero Joker = wildcard dupe within one hero's deck |
         | Premium packs | None | 5 rarity tiers per hero, diamond-only, rotating FOMO |
         | Heroes | Day-based unlock schedule | Day-based unlock + per-hero progression (XP, levels, skill tree) |
@@ -1908,10 +1908,7 @@ def _render_hero_card_core_systems() -> None:
         base_hero_rate = 0.60 (configurable)
         base_shared_rate = 1.0 - base_hero_rate
 
-        If pity_counter >= pity_threshold:
-            → force hero card (pity system)
-        Else:
-            → roll against base rates
+        → roll against base rates (hero vs shared)
         ```
 
         Pity counter increments on shared pulls, resets on hero pulls.
@@ -2049,7 +2046,6 @@ def _render_hero_card_data_models() -> None:
         ```python
         hero_vs_shared_base_rate: float     # Base probability of hero card (default 0.60)
         card_selection_mode: str            # "lowest_level" | "weighted_rarity" | "equal"
-        pity_counter_threshold: int         # Guaranteed hero card after N shared pulls (0=off)
         streak_decay_shared: float          # Streak penalty for shared pulls
         streak_decay_hero: float            # Streak penalty for hero pulls
         ```
@@ -2063,7 +2059,6 @@ def _render_hero_card_data_models() -> None:
         shared_cards: List[Card]                # Gold/Blue cards (same as Variant A)
         coins: int
         total_bluestars: int
-        pity_counter: int                       # Pulls since last hero card
         ```
 
         #### HeroProgressState

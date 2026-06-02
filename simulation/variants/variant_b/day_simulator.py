@@ -264,7 +264,6 @@ def open_pack_by_name(
     for pull_i in range(cards_in_pack):
         pull_type = decide_hero_or_shared(game_state, config, rng, pull_index=pull_i)
         if pull_type == "hero":
-            game_state.pity_counter = 0
             result = select_hero_card(game_state, config, rng)
             if result:
                 hero_id, card_id = result
@@ -303,7 +302,6 @@ def open_pack_by_name(
                     add_jokers(game_state.heroes[best_hero], 1)
                     jokers_received += 1
         else:
-            game_state.pity_counter += 1
             shared_card = select_shared_card(game_state, config, rng)
             if shared_card:
                 level_before = shared_card.level

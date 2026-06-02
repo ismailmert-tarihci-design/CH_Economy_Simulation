@@ -256,8 +256,7 @@ class HeroDuplicateRange(BaseModel):
 
 class HeroDropConfig(BaseModel):
     """Drop algorithm parameters for Variant B."""
-    hero_vs_shared_base_rate: float = Field(default=0.50, description="Base probability of hero card vs shared card")
-    pity_counter_threshold: int = Field(default=0, description="Guaranteed hero card after N shared-only pulls (0=disabled)")
+    hero_vs_shared_base_rate: float = Field(default=0.6, description="Base probability of hero card vs shared card")
 
     # Hero bucket selection weights (heroes ranked by level, divided into 3 tiers)
     bucket_bottom_weight: float = Field(default=0.40, description="Probability of selecting from lowest-level hero bucket")
@@ -269,10 +268,10 @@ class HeroDropConfig(BaseModel):
     rarity_weight_blue: float = Field(default=0.39, description="Probability of dropping a BLUE card")
     rarity_weight_gold: float = Field(default=0.54, description="Probability of dropping a GOLD card")
 
-    # Anti-streak decay. New Algo applies a 0.6^streak penalty on every axis:
-    # hero (StreakHero), rarity/shared category (StreakColor), and card (StreakCard).
+    # Anti-streak decay (New Algo): hero axis uses 0.8^StreakHero, the rarity,
+    # card, and shared-color axes use 0.6^Streak.
     streak_decay_shared: float = Field(default=0.6, description="Weight decay per consecutive shared pull of the same category (StreakColor)")
-    streak_decay_hero: float = Field(default=0.6, description="Weight decay per consecutive pull of the same hero (StreakHero)")
+    streak_decay_hero: float = Field(default=0.8, description="Weight decay per consecutive pull of the same hero (StreakHero)")
     streak_decay_rarity: float = Field(default=0.6, description="Weight decay per consecutive hero-card pull of the same rarity (StreakColor)")
     streak_decay_card: float = Field(default=0.6, description="Weight decay per consecutive pull of the same hero card (StreakCard)")
 
@@ -455,7 +454,6 @@ class HeroCardGameState(BaseModel):
     shared_cards: List[Any] = Field(default_factory=list, description="Gold/Blue/Gray shared cards")
     coins: int = Field(default=0)
     total_bluestars: int = Field(default=0)
-    pity_counter: int = Field(default=0, description="Pulls since last hero card")
     last_hero_pulled: Optional[str] = Field(default=None, description="hero_id of last hero card pull (StreakHero)")
     hero_streak_count: int = Field(default=0, description="Consecutive pulls of the same hero")
     last_rarity_pulled: Optional[str] = Field(default=None, description="Rarity of last hero card pull (StreakColor)")

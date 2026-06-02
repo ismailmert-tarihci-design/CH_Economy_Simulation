@@ -418,19 +418,6 @@ def _render_drop_algorithm_tab(config: HeroCardConfig) -> None:
     st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
 
     with st.container(border=True):
-        st.markdown("**:material/shield: Pity check**")
-        dc.pity_counter_threshold = st.number_input(
-            "Guarantee hero card after N shared-only pulls (0 = disabled)",
-            min_value=0, max_value=100, value=dc.pity_counter_threshold, step=1, key="vb_pity",
-        )
-        if dc.pity_counter_threshold > 0:
-            st.caption(f"After {dc.pity_counter_threshold} shared pulls without a hero card -> force hero card.")
-        else:
-            st.caption("Pity system disabled.")
-
-    st.markdown("<div style='text-align:center;color:#475569;font-size:28px;font-weight:600'>↓</div>", unsafe_allow_html=True)
-
-    with st.container(border=True):
         st.markdown("**:material/call_split: Hero vs shared**")
         dc.hero_vs_shared_base_rate = st.slider(
             "Hero card probability",

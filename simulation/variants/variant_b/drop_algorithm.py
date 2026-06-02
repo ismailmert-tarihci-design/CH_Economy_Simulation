@@ -91,17 +91,13 @@ def decide_hero_or_shared(
     dc = config.drop_config
     base_hero = dc.hero_vs_shared_base_rate
 
-    # Pity system: guarantee hero card after N shared-only pulls
-    if dc.pity_counter_threshold > 0 and game_state.pity_counter >= dc.pity_counter_threshold:
-        return "hero"
-
     if rng:
         roll = rng.random()
     else:
-        # Deterministic: hash on (day, pity, pull_index) so consecutive pulls within
-        # a day don't all return the same decision. Falls back to a stable EV approach.
+        # Deterministic: hash on (day, pull_index) so consecutive pulls within
+        # a day don't all return the same decision.
         h = hashlib.md5(
-            f"hero_or_shared_{game_state.day}_{game_state.pity_counter}_{pull_index}".encode()
+            f"hero_or_shared_{game_state.day}_{pull_index}".encode()
         )
         roll = int(h.hexdigest()[:8], 16) / 0xFFFFFFFF
 
