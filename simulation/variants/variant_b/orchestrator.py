@@ -108,6 +108,7 @@ def run_simulation(
         day_upgrades: List[Any] = []
         day_premium_packs = 0
         day_premium_diamonds = 0
+        day_premium_bluestars = 0
         day_hero_tokens = 0
         tokens_balance_start = int(game_state.bonus_items.get("HeroTokens", 0))
         pull_index = 0
@@ -244,7 +245,9 @@ def run_simulation(
                 day_coins_earned += pull.get("reward_amount", 0)
                 continue
             if pull.get("reward_type") == "bluestars":
-                game_state.total_bluestars += pull.get("reward_amount", 0)
+                amt = pull.get("reward_amount", 0)
+                game_state.total_bluestars += amt
+                day_premium_bluestars += amt
                 continue
             if pull.get("reward_type"):
                 continue
@@ -459,6 +462,7 @@ def run_simulation(
             jokers_used_today=sum(e.get("jokers_spent", 0) for e in day_upgrades),
             premium_packs_opened=day_premium_packs,
             premium_diamonds_spent=day_premium_diamonds,
+            premium_bluestars_today=day_premium_bluestars,
             hero_tokens_received=day_hero_tokens,
             hero_tokens_balance=int(game_state.bonus_items.get("HeroTokens", 0)),
             hero_tokens_spent_today=max(

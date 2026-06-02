@@ -532,6 +532,8 @@ class HeroCardDailySnapshot:
     jokers_used_today: int = 0
     premium_packs_opened: int = 0
     premium_diamonds_spent: int = 0
+    # Bluestars granted directly by premium packs today (not from upgrades).
+    premium_bluestars_today: int = 0
     hero_tokens_received: int = 0
     hero_tokens_spent_today: int = 0
     hero_tokens_balance: int = 0

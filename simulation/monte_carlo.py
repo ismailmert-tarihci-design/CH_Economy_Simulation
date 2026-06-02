@@ -12,6 +12,40 @@ from math import sqrt
 from random import Random
 from typing import Any, Dict, List
 
+# Upgrade / bluestar-source breakdown keys. "type_color" where type is the
+# upgrade origin (HERO card vs SHARED card) and color is the card rarity
+# (GOLD / BLUE / GRAY). Fixed set so per-day means are computed over every
+# run (days with no upgrades of a key contribute a 0, not a missing sample).
+UPGRADE_BREAKDOWN_KEYS = [
+    "HERO_GOLD", "HERO_BLUE", "HERO_GRAY",
+    "SHARED_GOLD", "SHARED_BLUE", "SHARED_GRAY",
+]
+# Bluestar sources = the same upgrade buckets plus direct premium-pack grants.
+BLUESTAR_SOURCE_KEYS = UPGRADE_BREAKDOWN_KEYS + ["PREMIUM_PACK"]
+
+
+def _breakdown_keys_from_snapshot(snapshot: Any) -> tuple[dict, dict, int]:
+    """Parse a daily snapshot's upgrade events into per-key counts and bluestars.
+
+    Returns (upgrade_counts, bluestars_from_upgrades, premium_bluestars) where
+    the first two are dicts keyed by UPGRADE_BREAKDOWN_KEYS.
+    """
+    counts: Dict[str, int] = {}
+    bluestars: Dict[str, int] = {}
+    for evt in getattr(snapshot, "upgrades_today", None) or []:
+        if "category" in evt:  # shared-card upgrade: GOLD_SHARED / BLUE_SHARED / ...
+            color = str(evt.get("category", "")).replace("_SHARED", "")
+            key = f"SHARED_{color}"
+        else:  # hero-card upgrade
+            color = str(evt.get("rarity", ""))
+            key = f"HERO_{color}"
+        if key not in UPGRADE_BREAKDOWN_KEYS:
+            continue
+        counts[key] = counts.get(key, 0) + 1
+        bluestars[key] = bluestars.get(key, 0) + int(evt.get("bluestars_earned", 0))
+    premium = int(getattr(snapshot, "premium_bluestars_today", 0) or 0)
+    return counts, bluestars, premium
+
 
 class WelfordAccumulator:
     """
@@ -119,6 +153,16 @@ class DailyAccumulators:
         # MCResult shape into per-slot series.
         self.hero_pet_level_accumulators: Dict[str, List[WelfordAccumulator]] = {}
         self.hero_gear_total_level_accumulators: Dict[str, List[WelfordAccumulator]] = {}
+        # Upgrade & bluestar-source breakdowns (Variant B). Fixed key sets so
+        # every run contributes a sample (0 when absent) to every per-day bucket.
+        self.upgrade_count_accumulators: Dict[str, List[WelfordAccumulator]] = {
+            key: [WelfordAccumulator() for _ in range(num_days)]
+            for key in UPGRADE_BREAKDOWN_KEYS
+        }
+        self.bluestar_source_accumulators: Dict[str, List[WelfordAccumulator]] = {
+            key: [WelfordAccumulator() for _ in range(num_days)]
+            for key in BLUESTAR_SOURCE_KEYS
+        }
 
     def update_from_snapshot(self, day_index: int, snapshot: Any) -> None:
         """
@@ -197,6 +241,18 @@ class DailyAccumulators:
                 self.hero_gear_total_level_accumulators[hero_id][day_index].update(
                     float(getattr(hero_snap, "gear_total_level", 0))
                 )
+
+        # Upgrade / bluestar-source breakdowns. Update every fixed key with the
+        # day's total (0 when no events of that bucket) so means stay unbiased.
+        counts, upgrade_bluestars, premium_bluestars = _breakdown_keys_from_snapshot(snapshot)
+        for key in UPGRADE_BREAKDOWN_KEYS:
+            self.upgrade_count_accumulators[key][day_index].update(float(counts.get(key, 0)))
+            self.bluestar_source_accumulators[key][day_index].update(
+                float(upgrade_bluestars.get(key, 0))
+            )
+        self.bluestar_source_accumulators["PREMIUM_PACK"][day_index].update(
+            float(premium_bluestars)
+        )
 
     def finalize(self) -> Dict[str, Any]:
         """
@@ -277,6 +333,19 @@ class DailyAccumulators:
                     acc.result()[1] for acc in accumulators
                 ]
 
+        # Upgrade count + bluestar-source breakdowns.
+        result["upgrade_count_means"] = {}
+        result["upgrade_count_stds"] = {}
+        for key, accumulators in self.upgrade_count_accumulators.items():
+            result["upgrade_count_means"][key] = [acc.result()[0] for acc in accumulators]
+            result["upgrade_count_stds"][key] = [acc.result()[1] for acc in accumulators]
+
+        result["bluestar_source_means"] = {}
+        result["bluestar_source_stds"] = {}
+        for key, accumulators in self.bluestar_source_accumulators.items():
+            result["bluestar_source_means"][key] = [acc.result()[0] for acc in accumulators]
+            result["bluestar_source_stds"][key] = [acc.result()[1] for acc in accumulators]
+
         return result
 
 
@@ -311,6 +380,12 @@ class MCResult:
     daily_hero_pet_level_stds: Dict[str, List[float]] = field(default_factory=dict)
     daily_hero_gear_total_level_means: Dict[str, List[float]] = field(default_factory=dict)
     daily_hero_gear_total_level_stds: Dict[str, List[float]] = field(default_factory=dict)
+    # Upgrade-count + bluestar-source breakdowns by type+color (Variant B).
+    # Keyed by UPGRADE_BREAKDOWN_KEYS / BLUESTAR_SOURCE_KEYS -> per-day floats.
+    daily_upgrade_count_means: Dict[str, List[float]] = field(default_factory=dict)
+    daily_upgrade_count_stds: Dict[str, List[float]] = field(default_factory=dict)
+    daily_bluestar_source_means: Dict[str, List[float]] = field(default_factory=dict)
+    daily_bluestar_source_stds: Dict[str, List[float]] = field(default_factory=dict)
     completion_time: float = 0.0
 
 
@@ -405,5 +480,9 @@ def run_monte_carlo(
         daily_hero_pet_level_stds=daily_stats["hero_pet_level_stds"],
         daily_hero_gear_total_level_means=daily_stats["hero_gear_total_level_means"],
         daily_hero_gear_total_level_stds=daily_stats["hero_gear_total_level_stds"],
+        daily_upgrade_count_means=daily_stats["upgrade_count_means"],
+        daily_upgrade_count_stds=daily_stats["upgrade_count_stds"],
+        daily_bluestar_source_means=daily_stats["bluestar_source_means"],
+        daily_bluestar_source_stds=daily_stats["bluestar_source_stds"],
         completion_time=completion_time,
     )

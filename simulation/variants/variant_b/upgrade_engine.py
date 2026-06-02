@@ -107,6 +107,7 @@ def try_upgrade_hero_card(
     event = {
         "hero_id": hero_id,
         "card_id": card.card_id,
+        "rarity": card.rarity.value if hasattr(card.rarity, "value") else str(card.rarity),
         "old_level": old_level,
         "new_level": card.level,
         "dupes_spent": dupes_from_card,

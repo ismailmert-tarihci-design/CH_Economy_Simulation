@@ -57,6 +57,59 @@ from simulation.variants.variant_b.chapter_schedule import (
 _STATE_KEY = "day_sim"
 _MAX_LOG = 120
 
+# Type+color buckets for upgrade / bluestar-source breakdowns. Mirrors the
+# Monte Carlo dashboard: HERO buckets use strong hues, SHARED buckets lighter
+# tints, premium-pack bluestars get their own violet bucket.
+_BREAKDOWN_BUCKETS = ["HERO_GOLD", "HERO_BLUE", "HERO_GRAY",
+                      "SHARED_GOLD", "SHARED_BLUE", "SHARED_GRAY"]
+_BLUESTAR_SOURCE_BUCKETS = _BREAKDOWN_BUCKETS + ["PREMIUM_PACK"]
+_BUCKET_LABELS = {
+    "HERO_GOLD": "Hero · Gold", "HERO_BLUE": "Hero · Blue", "HERO_GRAY": "Hero · Gray",
+    "SHARED_GOLD": "Shared · Gold", "SHARED_BLUE": "Shared · Blue",
+    "SHARED_GRAY": "Shared · Gray", "PREMIUM_PACK": "Premium pack",
+}
+_BUCKET_COLORS = {
+    "HERO_GOLD": "#CA8A04", "HERO_BLUE": "#2563EB", "HERO_GRAY": "#6B7280",
+    "SHARED_GOLD": "#FCD34D", "SHARED_BLUE": "#93C5FD", "SHARED_GRAY": "#D1D5DB",
+    "PREMIUM_PACK": "#7C3AED",
+}
+
+
+def _hero_event_bucket(evt: Dict[str, Any]) -> str:
+    return f"HERO_{evt.get('rarity', '')}"
+
+
+def _shared_event_bucket(evt: Dict[str, Any]) -> str:
+    color = str(evt.get("category", "")).replace("_SHARED", "")
+    return f"SHARED_{color}"
+
+
+def _accumulate_upgrade_breakdown(
+    state: Dict[str, Any],
+    hero_events: List[Dict[str, Any]],
+    shared_events: List[Dict[str, Any]],
+) -> None:
+    """Fold raw upgrade events into the cumulative per-bucket upgrade-count and
+    bluestar-source counters (type × color). Premium-pack bluestars are tracked
+    separately via `_accumulate_premium_bluestars`."""
+    upg = state.setdefault("upg_by_bucket", {})
+    bs = state.setdefault("bs_by_source", {})
+    for evt in hero_events:
+        key = _hero_event_bucket(evt)
+        upg[key] = upg.get(key, 0) + 1
+        bs[key] = bs.get(key, 0) + int(evt.get("bluestars_earned", 0))
+    for evt in shared_events:
+        key = _shared_event_bucket(evt)
+        upg[key] = upg.get(key, 0) + 1
+        bs[key] = bs.get(key, 0) + int(evt.get("bluestars_earned", 0))
+
+
+def _accumulate_premium_bluestars(state: Dict[str, Any], amount: int) -> None:
+    if amount <= 0:
+        return
+    bs = state.setdefault("bs_by_source", {})
+    bs["PREMIUM_PACK"] = bs.get("PREMIUM_PACK", 0) + int(amount)
+
 
 def _snapshot_history(state: Dict[str, Any]) -> None:
     """Capture a per-day snapshot for the history charts."""
@@ -67,6 +120,8 @@ def _snapshot_history(state: Dict[str, Any]) -> None:
         "coins": game_state.coins,
         "upgrades_hero": state.get("upgrades_hero", 0),
         "upgrades_shared": state.get("upgrades_shared", 0),
+        "upg_by_bucket": dict(state.get("upg_by_bucket", {})),
+        "bs_by_source": dict(state.get("bs_by_source", {})),
         "heroes": {
             hero_id: {
                 "level": hs.level,
@@ -159,6 +214,7 @@ def _run_auto_upgrade(state: Dict[str, Any], config: HeroCardConfig) -> int:
     if n:
         state["upgrades_hero"] += len(hero_events)
         state["upgrades_shared"] += len(shared_events)
+        _accumulate_upgrade_breakdown(state, hero_events, shared_events)
         tree_count = sum(len(v) for v in tree_acts.values())
         _log([
             f"Auto-upgrade: {len(hero_events)} hero (+{total_xp} XP, "
@@ -268,6 +324,8 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "bs_thresholds": bs_thresholds,
         "upgrades_hero": 0,
         "upgrades_shared": 0,
+        "upg_by_bucket": {},
+        "bs_by_source": {},
     }
     _log([f"Day 0 (install day) — fresh simulation (seed={seed or 'random'})"])
     state = st.session_state[_STATE_KEY]
@@ -971,7 +1029,9 @@ def _do_open_premium_pack(
             tokens_added += amt
             continue
         if rtype == "bluestars":
-            game_state.total_bluestars += pull.get("reward_amount", 0)
+            amt = pull.get("reward_amount", 0)
+            game_state.total_bluestars += amt
+            _accumulate_premium_bluestars(state, amt)
             continue
         if rtype:
             continue
@@ -1015,6 +1075,9 @@ def _render_upgrades(config: HeroCardConfig, game_state: HeroCardGameState) -> N
                 tree_count = sum(len(v) for v in tree_acts.values())
                 st.session_state[_STATE_KEY]["upgrades_hero"] += len(hero_events)
                 st.session_state[_STATE_KEY]["upgrades_shared"] += len(shared_events)
+                _accumulate_upgrade_breakdown(
+                    st.session_state[_STATE_KEY], hero_events, shared_events
+                )
                 _log([
                     f"Auto-upgrade: {len(hero_events)} hero upgrades (+{total_xp} XP, +{total_bs} bluestars), "
                     f"{len(shared_events)} shared upgrades (+{shared_bs} bluestars), "
@@ -1325,6 +1388,11 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                     opened_all.extend(summary["opened_packs"])
                     state["upgrades_hero"] += summary.get("hero_upgrades", 0)
                     state["upgrades_shared"] += summary.get("shared_upgrades", 0)
+                    _accumulate_upgrade_breakdown(
+                        state,
+                        summary.get("hero_events", []),
+                        summary.get("shared_events", []),
+                    )
                     # Advance day counter (mirrors the manual top-bar Next Day flow).
                     _snapshot_history(state)
                     state["day"] += 1
@@ -1401,6 +1469,7 @@ def _render_hero_upgrade_table(config: HeroCardConfig, game_state: HeroCardGameS
                 if result:
                     evt, tree_acts = result
                     st.session_state[_STATE_KEY]["upgrades_hero"] += 1
+                    _accumulate_upgrade_breakdown(st.session_state[_STATE_KEY], [evt], [])
                     parts = [
                         f"Upgrade {hero_id}/{card.card_id}: L{evt['old_level']}→L{evt['new_level']} "
                         f"(-{evt['dupes_spent']} dupes, -{evt['jokers_spent']} jokers, -{evt['coins_spent']} coins, "
@@ -1448,6 +1517,7 @@ def _render_shared_upgrade_table(config: HeroCardConfig, game_state: HeroCardGam
                 evt = ds.upgrade_single_shared_card(game_state, config, card.id)
                 if evt:
                     st.session_state[_STATE_KEY]["upgrades_shared"] += 1
+                    _accumulate_upgrade_breakdown(st.session_state[_STATE_KEY], [], [evt])
                     _log(
                         f"Upgrade {card.id} ({cat}): L{evt['old_level']}→L{evt['new_level']} "
                         f"(-{evt['dupes_spent']} dupes, -{evt['coins_spent']} coins, +{evt['bluestars_earned']} bluestars)"
@@ -1456,6 +1526,52 @@ def _render_shared_upgrade_table(config: HeroCardConfig, game_state: HeroCardGam
 
 
 # ─── Charts ──────────────────────────────────────────────────────────────────
+
+def _render_breakdown_chart(
+    history: List[Dict[str, Any]],
+    state_key: str,
+    buckets: List[str],
+    value_name: str,
+) -> None:
+    """Stacked per-day bar chart of cumulative-dict deltas, plus lifetime totals.
+
+    `state_key` selects the per-snapshot cumulative dict (`upg_by_bucket` or
+    `bs_by_source`); `buckets` fixes column order. Only buckets with a nonzero
+    lifetime total are shown.
+    """
+    totals = history[-1].get(state_key, {}) or {}
+    active = [b for b in buckets if totals.get(b, 0)]
+    if not active:
+        st.caption("No data yet.")
+        return
+
+    rows = []
+    prev = history[0].get(state_key, {}) or {}
+    for s in history[1:]:
+        cur = s.get(state_key, {}) or {}
+        row = {"Day": s["day"]}
+        for b in active:
+            row[_BUCKET_LABELS[b]] = cur.get(b, 0) - prev.get(b, 0)
+        rows.append(row)
+        prev = cur
+    if not rows:
+        st.caption("No day-to-day deltas yet.")
+        return
+
+    df = pd.DataFrame(rows).set_index("Day")
+    st.bar_chart(df, height=260, color=[_BUCKET_COLORS[b] for b in active])
+
+    cols = st.columns(len(active))
+    grand = sum(totals.get(b, 0) for b in active) or 1
+    for col, b in zip(cols, active):
+        col.metric(
+            _BUCKET_LABELS[b],
+            f"{totals.get(b, 0):,}",
+            delta=f"{100 * totals.get(b, 0) / grand:.0f}%",
+            delta_color="off",
+        )
+    st.caption(f"Totals are lifetime {value_name} per bucket.")
+
 
 def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
     # --- Continuous bluestar trace (sampled on every action) ---
@@ -1498,39 +1614,28 @@ def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> Non
         days_span = max(1, history[-1]["day"] - history[0]["day"])
         c3.metric("Avg / day", f"{(history[-1]['bluestars'] - history[0]['bluestars']) / days_span:,.1f}")
 
-    # --- Upgrades per day ---
+    # --- Upgrades by type & color ---
     with st.container(border=True):
-        st.markdown("**Card upgrades per day**")
+        st.markdown("**Upgrades per day — by type & color**")
         st.caption(
-            "Per-day delta in cumulative upgrade count. Hero = unique hero "
-            "cards; Shared = shared (non-hero) cards. Counts upgrades from the "
-            "auto-upgrade button, single-card buttons, and scripted runs."
+            "Per-day delta in cumulative upgrade count, split by card type "
+            "(Hero vs Shared) and color. Counts upgrades from the auto-upgrade "
+            "button, single-card buttons, and scripted runs."
         )
-        up_rows = []
-        prev_hero = history[0].get("upgrades_hero", 0)
-        prev_shared = history[0].get("upgrades_shared", 0)
-        for s in history[1:]:
-            cur_hero = s.get("upgrades_hero", 0)
-            cur_shared = s.get("upgrades_shared", 0)
-            up_rows.append({
-                "Day": s["day"],
-                "Hero": cur_hero - prev_hero,
-                "Shared": cur_shared - prev_shared,
-            })
-            prev_hero, prev_shared = cur_hero, cur_shared
-        if up_rows:
-            up_df = pd.DataFrame(up_rows).set_index("Day")
-            st.bar_chart(up_df, height=240)
-            latest = up_rows[-1]
-            total_hero = history[-1].get("upgrades_hero", 0)
-            total_shared = history[-1].get("upgrades_shared", 0)
-            u1, u2, u3, u4 = st.columns(4)
-            u1.metric(f"Day {latest['Day']} hero", latest["Hero"])
-            u2.metric(f"Day {latest['Day']} shared", latest["Shared"])
-            u3.metric("Total hero", f"{total_hero:,}")
-            u4.metric("Total shared", f"{total_shared:,}")
-        else:
-            st.caption("No day-to-day deltas yet.")
+        _render_breakdown_chart(
+            history, "upg_by_bucket", _BREAKDOWN_BUCKETS, "upgrades"
+        )
+
+    # --- Bluestar sources by type & color ---
+    with st.container(border=True):
+        st.markdown("**Bluestar sources per day — by type & color**")
+        st.caption(
+            "Per-day delta in bluestars earned, split by source — card upgrades "
+            "(by type & color) and direct premium-pack grants."
+        )
+        _render_breakdown_chart(
+            history, "bs_by_source", _BLUESTAR_SOURCE_BUCKETS, "bluestars"
+        )
 
     # --- Hero XP / level ---
     with st.container(border=True):

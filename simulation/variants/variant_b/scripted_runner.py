@@ -197,9 +197,12 @@ def beat_chapters_by_bluestars(
     total_chapters = 0
     hero_ups = 0
     shared_ups = 0
+    hero_events: List[Dict[str, Any]] = []
+    shared_events: List[Dict[str, Any]] = []
     if not thresholds:
         return {"chapters": 0, "opened": opened, "hero_upgrades": 0,
-                "shared_upgrades": 0, "log_lines": lines}
+                "shared_upgrades": 0, "hero_events": hero_events,
+                "shared_events": shared_events, "log_lines": lines}
 
     iterations = cap if auto_upgrade else 1
     for _ in range(iterations):
@@ -221,6 +224,8 @@ def beat_chapters_by_bluestars(
         se, _sbs = attempt_shared_upgrades(game_state, config)
         hero_ups += len(he)
         shared_ups += len(se)
+        hero_events.extend(he)
+        shared_events.extend(se)
         if not he and not se:
             break  # no fresh bluestars -> re-check can't qualify new chapters
 
@@ -231,6 +236,7 @@ def beat_chapters_by_bluestars(
         )
     return {"chapters": total_chapters, "opened": opened,
             "hero_upgrades": hero_ups, "shared_upgrades": shared_ups,
+            "hero_events": hero_events, "shared_events": shared_events,
             "log_lines": lines}
 
 
@@ -310,6 +316,8 @@ def run_one_day(
 
     hero_upgrade_count = len(upgrade_events)
     shared_upgrade_count = len(shared_events)
+    all_hero_events = list(upgrade_events)
+    all_shared_events = list(shared_events)
 
     # Bluestar gating: now that the day's bluestars are banked, beat every
     # chapter the player can afford (re-upgrading dupes from the chapter packs).
@@ -321,6 +329,8 @@ def run_one_day(
         opened_packs.extend(ch_res["opened"])
         hero_upgrade_count += ch_res["hero_upgrades"]
         shared_upgrade_count += ch_res["shared_upgrades"]
+        all_hero_events.extend(ch_res.get("hero_events", []))
+        all_shared_events.extend(ch_res.get("shared_events", []))
         lines.extend(ch_res["log_lines"])
 
     return {
@@ -329,4 +339,6 @@ def run_one_day(
         "activations": activations,
         "hero_upgrades": hero_upgrade_count,
         "shared_upgrades": shared_upgrade_count,
+        "hero_events": all_hero_events,
+        "shared_events": all_shared_events,
     }

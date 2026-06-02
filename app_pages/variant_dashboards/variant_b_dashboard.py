@@ -52,6 +52,10 @@ def render_variant_b_dashboard() -> None:
         _render_mc_bluestar_chart(result)
         _render_mc_chapter_chart(result)
         with st.container(border=True):
+            _render_mc_bluestar_source_breakdown(result)
+        with st.container(border=True):
+            _render_mc_upgrade_breakdown(result)
+        with st.container(border=True):
             _render_mc_per_hero_breakdown(result)
         return
 
@@ -953,3 +957,74 @@ def _render_mc_bluestar_chart(result: Any) -> None:
         line=dict(color=_BLUE, width=2),
     ))
     st.plotly_chart(fig, width="stretch")
+
+
+# Type+color buckets -> (display label, color). HERO buckets use the strong
+# palette; SHARED buckets use lighter tints of the same hue; premium is violet.
+_BREAKDOWN_STYLE = {
+    "HERO_GOLD": ("Hero · Gold", _AMBER),
+    "HERO_BLUE": ("Hero · Blue", _BLUE),
+    "HERO_GRAY": ("Hero · Gray", "#6B7280"),
+    "SHARED_GOLD": ("Shared · Gold", "#FCD34D"),
+    "SHARED_BLUE": ("Shared · Blue", "#93C5FD"),
+    "SHARED_GRAY": ("Shared · Gray", "#D1D5DB"),
+    "PREMIUM_PACK": ("Premium pack", _VIOLET),
+}
+
+
+def _render_mc_stacked_breakdown(
+    title: str,
+    means_by_key: Dict[str, list],
+    value_label: str,
+    caption: str,
+) -> None:
+    """Stacked per-day bar chart + per-bucket lifetime totals for a breakdown."""
+    keys = [k for k in _BREAKDOWN_STYLE if means_by_key.get(k) and any(means_by_key[k])]
+    if not keys:
+        return
+
+    n_days = max(len(means_by_key[k]) for k in keys)
+    days = list(range(1, n_days + 1))
+
+    fig = _styled_fig(title)
+    for key in keys:
+        label, color = _BREAKDOWN_STYLE[key]
+        fig.add_trace(go.Bar(
+            x=days, y=means_by_key[key], name=label, marker_color=color,
+        ))
+    fig.update_layout(barmode="stack", xaxis=dict(title="Day"),
+                      yaxis=dict(title=value_label))
+    st.plotly_chart(fig, width="stretch")
+
+    totals = {k: sum(means_by_key[k]) for k in keys}
+    grand = sum(totals.values()) or 1.0
+    with st.container(horizontal=True):
+        for key in keys:
+            label, _ = _BREAKDOWN_STYLE[key]
+            st.metric(label, f"{totals[key]:,.0f}",
+                      delta=f"{100 * totals[key] / grand:.0f}%",
+                      delta_color="off", border=True)
+    st.caption(caption)
+
+
+def _render_mc_upgrade_breakdown(result: Any) -> None:
+    means = getattr(result, "daily_upgrade_count_means", {}) or {}
+    _render_mc_stacked_breakdown(
+        "Upgrades by type & color (Monte Carlo)",
+        means,
+        "Upgrades / day (mean)",
+        "Mean upgrades performed per day, split by card type (Hero vs Shared) "
+        "and color. Totals are mean lifetime upgrades per run.",
+    )
+
+
+def _render_mc_bluestar_source_breakdown(result: Any) -> None:
+    means = getattr(result, "daily_bluestar_source_means", {}) or {}
+    _render_mc_stacked_breakdown(
+        "Bluestar sources by type & color (Monte Carlo)",
+        means,
+        "Bluestars / day (mean)",
+        "Mean bluestars earned per day by source — card upgrades (by type & "
+        "color) and direct premium-pack grants. Totals are mean lifetime "
+        "bluestars per run.",
+    )
