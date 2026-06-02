@@ -52,6 +52,14 @@ from simulation.variants.variant_b.chapter_schedule import (
     load_cohort_chapters as _load_cohort_chapters,
     load_default_bluestar_thresholds as _load_bluestar_thresholds,
 )
+from simulation.variants.variant_b.day_sim_settings import (
+    DaySimSettings,
+    CALENDAR_GATING,
+    load_day_sim_settings,
+    save_day_sim_settings,
+    effective_chapters_per_day as _effective_chapters_per_day,
+    effective_bluestar_thresholds as _effective_bluestar_thresholds,
+)
 
 
 _STATE_KEY = "day_sim"
@@ -227,6 +235,18 @@ def _xp_to_next_level(hero_def, hero_level: int) -> int:
 
 # ─── State helpers ───────────────────────────────────────────────────────────
 
+_SETTINGS_KEY = "day_sim_settings_obj"
+
+
+def _settings() -> DaySimSettings:
+    """Return the persisted day-sim settings, loading from disk once per session."""
+    s = st.session_state.get(_SETTINGS_KEY)
+    if s is None or not isinstance(s, DaySimSettings):
+        s = load_day_sim_settings()
+        st.session_state[_SETTINGS_KEY] = s
+    return s
+
+
 def _rng() -> Random:
     return st.session_state[_STATE_KEY]["rng"]
 
@@ -282,19 +302,44 @@ def _auto_beat_chapters(state: Dict[str, Any], config: HeroCardConfig, n: int) -
     _log_pack_results(last_results)
 
 
+def _maybe_roll_season(state: Dict[str, Any]) -> None:
+    """If the new day crosses into a fresh season, reset the season pass.
+
+    Seasons run on a fixed cadence (`state['season_length']`, default 28 days).
+    Crossing a boundary starts a new pass at step 1 — the post-pass infinite
+    pack only resumes once the new pass is completed again.
+    """
+    season_len = int(state.get("season_length") or sp.DEFAULT_SEASON_LENGTH_DAYS)
+    new_idx = sp.season_index(state["day"], season_len)
+    if new_idx > state.get("season_index", 0):
+        state["season_index"] = new_idx
+        state["season_pass_step"] = 1
+        _log([
+            f"── 🎟 New season {new_idx + 1} started (day {state['day']}) — "
+            f"season pass reset to step 1 ──"
+        ])
+
+
 def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
     rng = Random(seed if seed and seed > 0 else None)
+    # Clear stateful widget values that would otherwise survive the reset and
+    # surprise the user — notably the season-pass "Claim through step" target,
+    # which (left stale) would make the first claim sweep a large step range.
+    st.session_state.pop("day_sim_pass_target", None)
+    settings = _settings()
     prev = st.session_state.get(_STATE_KEY, {})
-    paid_pass = prev.get("paid_pass", False)
-    auto_upgrade = prev.get("auto_upgrade", False)
-    cohort = prev.get("cohort") or _DEFAULT_COHORT
-    chapters_per_day = _load_cohort_chapters(cohort)
-    bs_gating = prev.get("bs_gating") or _DEFAULT_BS_GATING
-    bs_thresholds = [] if bs_gating == "Calendar" else _load_bluestar_thresholds(bs_gating)
+    paid_pass = prev.get("paid_pass", settings.paid_pass)
+    auto_upgrade = prev.get("auto_upgrade", settings.auto_upgrade)
+    cohort = prev.get("cohort") or settings.cohort or _DEFAULT_COHORT
+    bs_gating = prev.get("bs_gating") or settings.bs_gating or _DEFAULT_BS_GATING
+    chapters_per_day = _effective_chapters_per_day(settings, cohort)
+    bs_thresholds = _effective_bluestar_thresholds(settings, bs_gating)
     st.session_state[_STATE_KEY] = {
         "game_state": ds.init_state(config),
         "day": 0,
         "season_pass_step": 1,
+        "season_index": 0,
+        "season_length": int(settings.season_length_days or sp.DEFAULT_SEASON_LENGTH_DAYS),
         "paid_pass": paid_pass,
         "auto_upgrade": auto_upgrade,
         "extras": ds.init_extras(),
@@ -312,6 +357,7 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
         "upgrades_shared": 0,
         "upg_by_bucket": {},
         "bs_by_source": {},
+        "pending_autoupgrade": False,
     }
     _log([f"Day 0 (install day) — fresh simulation (seed={seed or 'random'})"])
     state = st.session_state[_STATE_KEY]
@@ -368,6 +414,7 @@ def render_variant_b_day_simulator() -> None:
         return
 
     _render_top_bar(config)
+    _render_settings_bar(config)
 
     if _STATE_KEY not in st.session_state:
         st.info("Click **Start / Reset** above to begin a new simulation.")
@@ -376,10 +423,12 @@ def render_variant_b_day_simulator() -> None:
     state = st.session_state[_STATE_KEY]
     game_state: HeroCardGameState = state["game_state"]
 
-    # Every action (pack open, season-pass claim, chapter beat, day advance)
-    # ends in st.rerun(), so this block runs once per action. When auto-upgrade
-    # is on, greedily upgrade everything affordable after each action.
-    if state.get("auto_upgrade"):
+    # Auto-upgrade runs once per *action* (pack open, season-pass claim,
+    # chapter beat, day advance) — not on every incidental rerun (a widget
+    # tweak like nudging the "Claim through step" spinner, or a tab switch).
+    # Action handlers set `pending_autoupgrade`; we consume it here so the
+    # greedy O(cards) pass never fires just because the user touched a control.
+    if state.pop("pending_autoupgrade", False) and state.get("auto_upgrade"):
         _run_auto_upgrade(state, config)
 
     _render_balances(game_state)
@@ -403,7 +452,7 @@ def render_variant_b_day_simulator() -> None:
 
     # Charts + activity log are useful across both modes — render below the
     # mode tabs as collapsible sections so they're always reachable.
-    with st.expander("📈 Charts", expanded=False):
+    with st.expander("📈 Charts & Token Hunger", expanded=True):
         _render_charts(config, game_state)
     with st.expander("📜 Activity Log", expanded=False):
         _render_activity_log()
@@ -413,8 +462,8 @@ def render_variant_b_day_simulator() -> None:
 
 def _render_top_bar(config: HeroCardConfig) -> None:
     with st.container(border=True):
-        c_seed, c_reset, c_cohort, c_gate, c_paid, c_auto, c_day, c_chap, c_up, c_next = st.columns(
-            [1.0, 1.0, 1.1, 1.2, 1.1, 1.1, 0.7, 0.9, 0.9, 1.2]
+        c_seed, c_reset, c_paid, c_auto, c_day, c_chap, c_up, c_next = st.columns(
+            [1.0, 1.1, 1.2, 1.2, 0.7, 0.9, 0.9, 1.2]
         )
         with c_seed:
             seed = st.number_input(
@@ -425,44 +474,6 @@ def _render_top_bar(config: HeroCardConfig) -> None:
             if st.button("🔄 Start / Reset", type="primary", key="day_sim_reset", width="stretch"):
                 _reset(config, int(seed) if seed else None)
                 st.rerun()
-        with c_cohort:
-            current_cohort = (
-                st.session_state.get(_STATE_KEY, {}).get("cohort")
-                or _DEFAULT_COHORT
-            )
-            picked_cohort = st.selectbox(
-                "Player cohort",
-                options=_COHORT_PROFILES,
-                index=_COHORT_PROFILES.index(current_cohort)
-                    if current_cohort in _COHORT_PROFILES else 0,
-                key="day_sim_cohort",
-                help="Drives chapters-per-day on 'Next day'. Source: matching profile JSON.",
-            )
-            if _STATE_KEY in st.session_state and picked_cohort != current_cohort:
-                st.session_state[_STATE_KEY]["cohort"] = picked_cohort
-                st.session_state[_STATE_KEY]["chapters_per_day"] = _load_cohort_chapters(picked_cohort)
-                _log([f"Cohort switched to **{picked_cohort}** — chapters-per-day reloaded."])
-        with c_gate:
-            current_gate = (
-                st.session_state.get(_STATE_KEY, {}).get("bs_gating")
-                or _DEFAULT_BS_GATING
-            )
-            picked_gate = st.selectbox(
-                "Chapter gating",
-                options=_BS_GATING_OPTIONS,
-                index=_BS_GATING_OPTIONS.index(current_gate)
-                    if current_gate in _BS_GATING_OPTIONS else 0,
-                key="day_sim_bs_gating",
-                help="Bluestar cohorts beat chapters when total bluestars cross "
-                     "that cohort's thresholds (matches the in-game methodology). "
-                     "'Calendar' uses the legacy fixed chapters-per-day cadence.",
-            )
-            if _STATE_KEY in st.session_state and picked_gate != current_gate:
-                st.session_state[_STATE_KEY]["bs_gating"] = picked_gate
-                st.session_state[_STATE_KEY]["bs_thresholds"] = (
-                    [] if picked_gate == "Calendar" else _load_bluestar_thresholds(picked_gate)
-                )
-                _log([f"Chapter gating switched to **{picked_gate}**."])
         with c_paid:
             st.write("")
             if _STATE_KEY in st.session_state:
@@ -504,12 +515,17 @@ def _render_top_bar(config: HeroCardConfig) -> None:
             if _STATE_KEY in st.session_state:
                 if st.button("Next day →", key="day_sim_next_day", type="secondary", width="stretch"):
                     state = st.session_state[_STATE_KEY]
+                    state["pending_autoupgrade"] = True
                     # Snapshot the *current* (about-to-end) day before advancing.
                     _snapshot_history(state)
                     state["day"] += 1
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
                     state["daily_used"] = set()
                     _log([f"── Advanced to day {state['day']} ──"] + unlocks)
+                    # Season cycle: when the day crosses a season boundary the
+                    # season pass resets (a fresh pass must be completed before
+                    # post-pass infinite packs resume).
+                    _maybe_roll_season(state)
                     # Beat chapters. Bluestar gating beats every chapter the
                     # player's current bluestars can afford (matches the in-game
                     # methodology); the legacy "Calendar" mode beats a fixed
@@ -531,6 +547,207 @@ def _render_top_bar(config: HeroCardConfig) -> None:
                         _auto_beat_chapters(state, config, chapters_today)
                     _snapshot_history(state)
                     st.rerun()
+
+
+# ─── Editable player-type / chapter-gating settings bar ──────────────────────
+
+_SET_CH_DF = "day_sim_set_chapters_df"       # editor baseline (chapters/day)
+_SET_CH_FOR = "day_sim_set_chapters_for"     # cohort the baseline is seeded for
+_SET_THR_DF = "day_sim_set_thr_df"           # editor baseline (bluestar thresholds)
+_SET_THR_FOR = "day_sim_set_thr_for"         # gating the baseline is seeded for
+
+
+def _seed_chapters_editor(settings: DaySimSettings, cohort: str) -> None:
+    vals = _effective_chapters_per_day(settings, cohort)
+    st.session_state[_SET_CH_DF] = pd.DataFrame(
+        {"Cycle day": list(range(len(vals))), "Chapters": [int(v) for v in vals]}
+    )
+    st.session_state[_SET_CH_FOR] = cohort
+
+
+def _seed_thresholds_editor(settings: DaySimSettings, gating: str) -> None:
+    vals = _effective_bluestar_thresholds(settings, gating)
+    st.session_state[_SET_THR_DF] = pd.DataFrame(
+        {"Chapter": list(range(1, len(vals) + 1)), "Bluestars": [float(v) for v in vals]}
+    )
+    st.session_state[_SET_THR_FOR] = gating
+
+
+def _apply_cohort_to_run(settings: DaySimSettings, cohort: str) -> None:
+    """Apply a cohort selection to the live run (cadence) + in-memory settings."""
+    settings.cohort = cohort
+    running = st.session_state.get(_STATE_KEY)
+    if running is not None:
+        running["cohort"] = cohort
+        running["chapters_per_day"] = _effective_chapters_per_day(settings, cohort)
+
+
+def _apply_gating_to_run(settings: DaySimSettings, gating: str) -> None:
+    settings.bs_gating = gating
+    running = st.session_state.get(_STATE_KEY)
+    if running is not None:
+        running["bs_gating"] = gating
+        running["bs_thresholds"] = _effective_bluestar_thresholds(settings, gating)
+
+
+def _render_settings_bar(config: HeroCardConfig) -> None:
+    """Collapsible, editable, disk-persisted player-type / chapter-gating bar.
+
+    Hidden by default (expander). The user can pick the cohort + gating mode,
+    edit the underlying chapters-per-day cadence and bluestar-threshold tables,
+    and **Save to disk** so the choices and edits survive an app restart.
+    Selection changes apply to the running simulation immediately; table edits
+    apply (and persist) on Save.
+    """
+    settings = _settings()
+    running = st.session_state.get(_STATE_KEY)
+
+    with st.expander("⚙️ Player type & chapter gating — edit & save", expanded=False):
+        st.caption(
+            "Pick the player cohort and chapter-gating mode, edit the underlying "
+            "cadence / threshold tables, then **💾 Save** to persist them to disk "
+            "(they reload automatically next time you start the app). Cohort & "
+            "gating selections apply to the running sim immediately."
+        )
+
+        col_a, col_b = st.columns(2)
+
+        # ── Player type (cohort) + chapters-per-day cadence ──
+        with col_a:
+            st.markdown("**Player type (cohort)**")
+            cur_cohort = (running or {}).get("cohort") or settings.cohort or _DEFAULT_COHORT
+            cohort = st.selectbox(
+                "Cohort", _COHORT_PROFILES,
+                index=_COHORT_PROFILES.index(cur_cohort) if cur_cohort in _COHORT_PROFILES else 0,
+                key="day_sim_set_cohort",
+                help="Drives chapters-per-day under Calendar gating, and the daily "
+                     "pack schedule. Source: matching profile JSON (overridable below).",
+            )
+            if cohort != cur_cohort:
+                _apply_cohort_to_run(settings, cohort)
+                _seed_chapters_editor(settings, cohort)
+                if running is not None:
+                    _log([f"Cohort switched to **{cohort}** — chapters-per-day reloaded."])
+            if st.session_state.get(_SET_CH_FOR) != cohort:
+                _seed_chapters_editor(settings, cohort)
+
+            st.caption("**Chapters-per-day cadence** (one row per cycle day; wraps).")
+            edited_ch = st.data_editor(
+                st.session_state[_SET_CH_DF],
+                key="day_sim_set_chapters_editor",
+                num_rows="dynamic", hide_index=True, width="stretch",
+                height=240,
+                column_config={
+                    "Cycle day": st.column_config.NumberColumn("Cycle day", disabled=True),
+                    "Chapters": st.column_config.NumberColumn(
+                        "Chapters", min_value=0, max_value=50, step=1,
+                    ),
+                },
+            )
+
+        # ── Chapter gating + bluestar thresholds ──
+        with col_b:
+            st.markdown("**Chapter gating**")
+            cur_gate = (running or {}).get("bs_gating") or settings.bs_gating or _DEFAULT_BS_GATING
+            gating = st.selectbox(
+                "Gating mode", _BS_GATING_OPTIONS,
+                index=_BS_GATING_OPTIONS.index(cur_gate) if cur_gate in _BS_GATING_OPTIONS else 0,
+                key="day_sim_set_gating",
+                help="Bluestar cohorts beat chapters when total bluestars cross that "
+                     "cohort's thresholds (matches the in-game methodology). "
+                     "'Calendar' uses the fixed chapters-per-day cadence instead.",
+            )
+            if gating != cur_gate:
+                _apply_gating_to_run(settings, gating)
+                _seed_thresholds_editor(settings, gating)
+                if running is not None:
+                    _log([f"Chapter gating switched to **{gating}**."])
+            if st.session_state.get(_SET_THR_FOR) != gating:
+                _seed_thresholds_editor(settings, gating)
+
+            if gating == CALENDAR_GATING:
+                st.info(
+                    "Calendar mode beats a fixed number of chapters each day from the "
+                    "cohort cadence on the left — no bluestar thresholds to edit."
+                )
+                edited_thr = None
+            else:
+                st.caption("**Per-chapter bluestar thresholds** (chapter N beaten at ≥ value).")
+                edited_thr = st.data_editor(
+                    st.session_state[_SET_THR_DF],
+                    key="day_sim_set_thr_editor",
+                    num_rows="dynamic", hide_index=True, width="stretch",
+                    height=240,
+                    column_config={
+                        "Chapter": st.column_config.NumberColumn("Chapter", disabled=True),
+                        "Bluestars": st.column_config.NumberColumn(
+                            "Bluestars", min_value=0, step=1,
+                        ),
+                    },
+                )
+
+        # ── Season length + persistence controls ──
+        s1, s2, s3 = st.columns([1.2, 1, 1])
+        with s1:
+            season_len = st.number_input(
+                "Season length (days)", min_value=1, max_value=365,
+                value=int(settings.season_length_days or sp.DEFAULT_SEASON_LENGTH_DAYS),
+                step=1, key="day_sim_set_season_len",
+                help="After the season pass is finished, the infinite pack is "
+                     "claimable daily until the season ends; then the pass resets.",
+            )
+        with s2:
+            st.write("")
+            st.write("")
+            save_clicked = st.button(
+                "💾 Save settings to disk", type="primary",
+                key="day_sim_set_save", width="stretch",
+            )
+        with s3:
+            st.write("")
+            st.write("")
+            revert_clicked = st.button(
+                "↺ Revert to defaults", key="day_sim_set_revert", width="stretch",
+                help="Clear edits for the current cohort/gating and reload the "
+                     "shipped profile / defaults.",
+            )
+
+        if revert_clicked:
+            settings.chapters_per_day_overrides.pop(cohort, None)
+            if gating != CALENDAR_GATING:
+                settings.bluestar_threshold_overrides.pop(gating, None)
+            _seed_chapters_editor(settings, cohort)
+            _seed_thresholds_editor(settings, gating)
+            _apply_cohort_to_run(settings, cohort)
+            _apply_gating_to_run(settings, gating)
+            save_day_sim_settings(settings)
+            st.toast("Reverted to shipped defaults and saved.")
+            st.rerun()
+
+        if save_clicked:
+            # Parse edited tables into overrides (row order is authoritative).
+            new_chapters = [int(v or 0) for v in edited_ch["Chapters"].tolist()]
+            settings.chapters_per_day_overrides[cohort] = new_chapters
+            if edited_thr is not None:
+                new_thr = [float(v or 0) for v in edited_thr["Bluestars"].tolist()]
+                settings.bluestar_threshold_overrides[gating] = new_thr
+            settings.cohort = cohort
+            settings.bs_gating = gating
+            settings.season_length_days = int(season_len)
+            if running is not None:
+                settings.paid_pass = bool(running.get("paid_pass", settings.paid_pass))
+                settings.auto_upgrade = bool(running.get("auto_upgrade", settings.auto_upgrade))
+            save_day_sim_settings(settings)
+            # Apply to the live run so edits take effect without a reset.
+            if running is not None:
+                running["chapters_per_day"] = _effective_chapters_per_day(settings, cohort)
+                running["bs_thresholds"] = _effective_bluestar_thresholds(settings, gating)
+                running["season_length"] = int(season_len)
+            # Re-seed editors from the saved values.
+            _seed_chapters_editor(settings, cohort)
+            _seed_thresholds_editor(settings, gating)
+            st.toast("Saved settings to disk — will reload on next app start.")
+            st.rerun()
 
 
 # ─── Balances ────────────────────────────────────────────────────────────────
@@ -709,6 +926,7 @@ def _render_daily_packs(config: HeroCardConfig, game_state: HeroCardGameState) -
             state["last_pack_results"] = results
             _log_pack_results(results)
             used.update(all_keys)
+            state["pending_autoupgrade"] = True
             st.rerun()
         if b_t2.button("Open 1× T2", disabled="t2" in used,
                        key="day_sim_open_t2", width="stretch"):
@@ -716,6 +934,7 @@ def _render_daily_packs(config: HeroCardConfig, game_state: HeroCardGameState) -
             state["last_pack_results"] = [r]
             _log_pack_results([r])
             used.add("t2")
+            state["pending_autoupgrade"] = True
             st.rerun()
         for i, (col, label) in enumerate(zip([b_t1a, b_t1b, b_t1c], ("T1 #1", "T1 #2", "T1 #3"))):
             key = f"t1_{i}"
@@ -725,6 +944,7 @@ def _render_daily_packs(config: HeroCardConfig, game_state: HeroCardGameState) -
                 state["last_pack_results"] = [r]
                 _log_pack_results([r])
                 used.add(key)
+                state["pending_autoupgrade"] = True
                 st.rerun()
 
     with st.container(border=True):
@@ -744,6 +964,7 @@ def _render_daily_packs(config: HeroCardConfig, game_state: HeroCardGameState) -
             game_state.chapters_beaten += 1
             _log([f"Beat chapter #{game_state.chapters_beaten} → EndOfChapter pack opened"])
             _log_pack_results([r])
+            state["pending_autoupgrade"] = True
             st.rerun()
         with b_beat_n:
             st.caption(f"Total chapters beaten: **{game_state.chapters_beaten}**")
@@ -856,6 +1077,21 @@ def _render_pack_results(results: List[Dict[str, Any]], header: str = "Pack resu
 
 # ─── Season pass ─────────────────────────────────────────────────────────────
 
+@st.cache_data(show_spinner=False)
+def _sp_reward_base() -> pd.DataFrame:
+    """Static (#, Free, Paid) reward-table rows. Cached — the 90-step table
+    never changes, so we don't rebuild it on every rerun; only the per-render
+    Status column is recomputed below."""
+    return pd.DataFrame([
+        {
+            "#": s.step,
+            "Free": f"{s.free.amount}× {s.free.reward_type}",
+            "Paid": f"{s.paid.amount}× {s.paid.reward_type}",
+        }
+        for s in sp.SEASON_PASS_TABLE
+    ])
+
+
 def _render_season_pass(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
     state = st.session_state[_STATE_KEY]
     extras = state["extras"]
@@ -863,12 +1099,19 @@ def _render_season_pass(config: HeroCardConfig, game_state: HeroCardGameState) -
     paid = state["paid_pass"]
     total = len(sp.SEASON_PASS_TABLE)
     claimed = next_step - 1
+    season_len = int(state.get("season_length") or sp.DEFAULT_SEASON_LENGTH_DAYS)
+    day = state["day"]
 
     with st.container(border=True):
         m1, m2, m3 = st.columns([1, 1, 1])
         m1.metric("Steps claimed", f"{claimed} / {total}")
         m2.metric("Track", "Free + Paid" if paid else "Free only")
         m3.progress(min(1.0, claimed / total), text=f"{claimed}/{total} claimed")
+        st.caption(
+            f"🎟 Season **{state.get('season_index', 0) + 1}** · "
+            f"day **{sp.day_in_season(day, season_len)}/{season_len}** · "
+            f"**{sp.days_left_in_season(day, season_len)}** day(s) until the pass resets."
+        )
 
         if next_step <= total:
             t1, t2 = st.columns([2, 1])
@@ -902,28 +1145,58 @@ def _render_season_pass(config: HeroCardConfig, game_state: HeroCardGameState) -
                     if all_opened:
                         _log_pack_results(all_opened)
                         state["last_pack_results"] = all_opened
+                    state["pending_autoupgrade"] = True
                     st.rerun()
         else:
-            st.success("✓ All season pass steps claimed.")
+            st.success("✓ All season pass steps claimed for this season.")
+            _render_infinite_pack(config, game_state, state, season_len)
 
-    # Reward table
+    # Reward table — static base is cached; only Status varies per render.
     with st.container(border=True):
         st.markdown("**Reward table**")
-        rows = []
-        for step in sp.SEASON_PASS_TABLE:
-            if step.step < next_step:
-                status = "✓ claimed"
-            elif step.step == next_step:
-                status = "→ next"
-            else:
-                status = ""
-            rows.append({
-                "#": step.step,
-                "Status": status,
-                "Free": f"{step.free.amount}× {step.free.reward_type}",
-                "Paid": f"{step.paid.amount}× {step.paid.reward_type}",
-            })
-        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch", height=420)
+        base = _sp_reward_base().copy()
+        status = [
+            "✓ claimed" if step < next_step else ("→ next" if step == next_step else "")
+            for step in base["#"]
+        ]
+        base.insert(1, "Status", status)
+        st.dataframe(base, hide_index=True, width="stretch", height=420)
+
+
+def _render_infinite_pack(
+    config: HeroCardConfig,
+    game_state: HeroCardGameState,
+    state: Dict[str, Any],
+    season_len: int,
+) -> None:
+    """Post-pass daily reward: once the whole pass is claimed, the player can
+    claim one infinite pack (2× StandardPackT1) per day until the season ends.
+    """
+    used = state.setdefault("daily_used", set())
+    claimed_today = "infinite_pack" in used
+    days_left = sp.days_left_in_season(state["day"], season_len)
+
+    with st.container(border=True):
+        st.markdown("**♾️ Infinite pack** — post-pass daily reward")
+        st.caption(
+            f"Pass complete! Claim **{sp.INFINITE_PACK_COUNT}× {sp.INFINITE_PACK_TIER}** "
+            f"once per day for the rest of the season "
+            f"(**{days_left}** day(s) left, then the pass resets)."
+        )
+        if st.button(
+            f"♾️ Claim infinite pack ({sp.INFINITE_PACK_COUNT}× {sp.INFINITE_PACK_TIER})",
+            type="primary", disabled=claimed_today,
+            key="day_sim_infinite_pack", width="stretch",
+        ):
+            results = sp.open_infinite_pack(game_state, config, _rng())
+            state["last_pack_results"] = results
+            _log([f"♾️ Claimed infinite pack: {sp.INFINITE_PACK_COUNT}× {sp.INFINITE_PACK_TIER}"])
+            _log_pack_results(results)
+            used.add("infinite_pack")
+            state["pending_autoupgrade"] = True
+            st.rerun()
+        if claimed_today:
+            st.caption("✓ Claimed today — comes back after **Next day →**.")
 
 
 # ─── Hero Unique Pack (premium per-hero) ─────────────────────────────────────
@@ -957,6 +1230,7 @@ def _render_hero_unique_pack(config: HeroCardConfig, game_state: HeroCardGameSta
             if st.button("⭐ Open Hero Unique Pack", type="primary",
                          key="day_sim_open_premium", width="stretch"):
                 _do_open_premium_pack(pack, selected_hero, config, game_state, state)
+                state["pending_autoupgrade"] = True
                 st.rerun()
 
     last = state.get("last_premium_result")
@@ -1072,7 +1346,10 @@ def _render_upgrades(config: HeroCardConfig, game_state: HeroCardGameState) -> N
 
     if game_state.heroes:
         _render_skill_tree_panel(config, game_state)
-        _render_token_hunger(config, game_state)
+        st.caption(
+            "💡 The **Hero Token hunger** diagnostic now lives in the "
+            "**📈 Charts** section below."
+        )
 
     if not game_state.heroes and not game_state.shared_cards:
         st.caption("Nothing to upgrade yet.")
@@ -1741,10 +2018,15 @@ def _render_breakdown_chart(
 
 
 def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> None:
+    # Hero Token hunger diagnostic leads the charts section — it's useful from
+    # day 0 (it reads current state) and frames the progression charts below.
+    if game_state.heroes:
+        _render_token_hunger(config, game_state)
+
     history = st.session_state[_STATE_KEY].get("history") or []
     if len(history) < 2:
         st.info(
-            "Charts populate once you have at least two day-snapshots. "
+            "Time-series charts populate once you have at least two day-snapshots. "
             "Click **Next day →** to advance time, then return here."
         )
         return

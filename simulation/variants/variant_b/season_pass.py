@@ -196,6 +196,66 @@ def _apply_reward(
     return f"+{amt} {rtype} (misc)"
 
 
+# ─── Post-pass infinite pack + season cycle ──────────────────────────────────
+#
+# Once every season-pass step is claimed, the player can claim one "infinite
+# pack" per day for the rest of the season. The infinite pack is 2x
+# StandardPackT1 (opened immediately, no evolution). Seasons run on a fixed
+# cadence (default 28 days); when a season ends the pass resets and must be
+# completed again before infinite packs resume.
+
+INFINITE_PACK_TIER = "StandardPackT1"
+INFINITE_PACK_COUNT = 2
+DEFAULT_SEASON_LENGTH_DAYS = 28
+
+
+def open_infinite_pack(
+    game_state: HeroCardGameState,
+    config: HeroCardConfig,
+    rng: Random,
+    count: int = INFINITE_PACK_COUNT,
+    tier: str = INFINITE_PACK_TIER,
+) -> List[Dict[str, Any]]:
+    """Open the post-pass infinite pack: `count` x `tier` standard packs.
+
+    Packs open immediately via the standard drop flow (no evolution), mirroring
+    how season-pass pack rewards are credited. Returns the per-pack result list.
+    """
+    from simulation.variants.variant_b.day_simulator import open_pack_by_name
+
+    return [
+        open_pack_by_name(tier, game_state, config, rng, apply_evolution=False)
+        for _ in range(max(0, count))
+    ]
+
+
+def season_index(day: int, season_length: int = DEFAULT_SEASON_LENGTH_DAYS) -> int:
+    """0-based season number for a given sim day.
+
+    Day 0 (install/FTUE) and days 1..season_length are season 0; the next
+    block of `season_length` days is season 1, and so on.
+    """
+    if season_length <= 0 or day <= 0:
+        return 0
+    return (day - 1) // season_length
+
+
+def day_in_season(day: int, season_length: int = DEFAULT_SEASON_LENGTH_DAYS) -> int:
+    """1-based day within the current season (0 on the install day)."""
+    if season_length <= 0 or day <= 0:
+        return 0
+    return (day - 1) % season_length + 1
+
+
+def days_left_in_season(day: int, season_length: int = DEFAULT_SEASON_LENGTH_DAYS) -> int:
+    """Days remaining in the current season, counting the current day as used."""
+    if season_length <= 0:
+        return 0
+    if day <= 0:
+        return season_length
+    return season_length - day_in_season(day, season_length)
+
+
 def apply_season_pass_step(
     step_idx_1based: int,
     paid_pass: bool,
