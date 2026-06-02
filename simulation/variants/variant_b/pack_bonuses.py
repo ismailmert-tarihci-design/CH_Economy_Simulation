@@ -150,8 +150,8 @@ PACK_BONUS_VARIANCE: Dict[str, Tuple[float, float]] = {
 PACK_DUPE_BOOST: Dict[str, Tuple[float, float]] = {
     "StandardPackT1":   (0.00, 0.00),
     "StandardPackT2":   (0.00, 0.00),
-    "StandardPackT3":   (0.05, 0.03),
-    "StandardPackT4":   (0.25, 0.10),
+    "StandardPackT3":   (0.05, 0.05),
+    "StandardPackT4":   (0.25, 0.25),
     "StandardPackT5":   (0.50, 0.50),
     "EndOfChapterPack": (0.00, 0.00),
     "HeroPack":         (0.00, 0.00),
