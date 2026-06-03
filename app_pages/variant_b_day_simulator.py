@@ -34,6 +34,10 @@ from simulation.variants.variant_b.hero_deck import (
     hero_card_avg_level,
 )
 from simulation.variants.variant_b.skill_tree import check_and_advance_skill_tree
+from simulation.variants.variant_b.power_curve import (
+    power_for_bluestars,
+    resolve_power_table,
+)
 from simulation.variants.variant_b.scripted_run import (
     ScriptedRunConfig,
     ScriptedRunDay,
@@ -119,12 +123,16 @@ def _accumulate_premium_bluestars(state: Dict[str, Any], amount: int) -> None:
     bs["PREMIUM_PACK"] = bs.get("PREMIUM_PACK", 0) + int(amount)
 
 
-def _snapshot_history(state: Dict[str, Any]) -> None:
+def _snapshot_history(state: Dict[str, Any], config: HeroCardConfig) -> None:
     """Capture a per-day snapshot for the history charts."""
     game_state: HeroCardGameState = state["game_state"]
     snap = {
         "day": state["day"],
         "bluestars": game_state.total_bluestars,
+        "power": power_for_bluestars(
+            game_state.total_bluestars, resolve_power_table(config)
+        ),
+        "chapters_beaten": game_state.chapters_beaten,
         "coins": game_state.coins,
         "hero_tokens": int(game_state.bonus_items.get("HeroTokens", 0)),
         "upgrades_hero": state.get("upgrades_hero", 0),
@@ -390,7 +398,7 @@ def _reset(config: HeroCardConfig, seed: Optional[int]) -> None:
 
     if auto_upgrade:
         _run_auto_upgrade(state, config)
-    _snapshot_history(state)
+    _snapshot_history(state, config)
 
 
 # ─── Top-level render ────────────────────────────────────────────────────────
@@ -517,7 +525,7 @@ def _render_top_bar(config: HeroCardConfig) -> None:
                     state = st.session_state[_STATE_KEY]
                     state["pending_autoupgrade"] = True
                     # Snapshot the *current* (about-to-end) day before advancing.
-                    _snapshot_history(state)
+                    _snapshot_history(state, config)
                     state["day"] += 1
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
                     state["daily_used"] = set()
@@ -545,7 +553,7 @@ def _render_top_bar(config: HeroCardConfig) -> None:
                             state.get("chapters_per_day", []), state["day"]
                         )
                         _auto_beat_chapters(state, config, chapters_today)
-                    _snapshot_history(state)
+                    _snapshot_history(state, config)
                     st.rerun()
 
 
@@ -1838,7 +1846,7 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                         summary.get("shared_events", []),
                     )
                     # Advance day counter (mirrors the manual top-bar Next Day flow).
-                    _snapshot_history(state)
+                    _snapshot_history(state, config)
                     state["day"] += 1
                     unlocks = ds.advance_day(state["game_state"], state["day"], config)
                     state["daily_used"] = set()
@@ -1853,7 +1861,7 @@ def _render_scripted_run(config: HeroCardConfig, game_state: HeroCardGameState) 
                         if chapters_today > 0:
                             _auto_beat_chapters(state, config, chapters_today)
                             opened_all.extend(state.get("last_pack_results") or [])
-                    _snapshot_history(state)
+                    _snapshot_history(state, config)
                 if opened_all:
                     state["last_pack_results"] = opened_all[-10:]
                 st.rerun()
@@ -2030,6 +2038,52 @@ def _render_charts(config: HeroCardConfig, game_state: HeroCardGameState) -> Non
             "Click **Next day →** to advance time, then return here."
         )
         return
+
+    # --- Per-day end-of-day summary table ---
+    with st.container(border=True):
+        st.markdown("**Per-day summary (end of day)**")
+        st.caption(
+            "One row per recorded day. Each metric shows the cumulative "
+            "end-of-day total and the per-day delta (Δ = change vs. the "
+            "previous recorded day). Unique = hero-specific cards, "
+            "Shared = shared cards."
+        )
+        summary_rows = []
+        prev = None
+        for s in history:
+            bs = s["bluestars"]
+            ch = s.get("chapters_beaten", 0)
+            shared = s.get("upgrades_shared", 0)
+            unique = s.get("upgrades_hero", 0)
+            summary_rows.append({
+                "Day": s["day"],
+                "Total bluestars": bs,
+                "Δ bluestars": bs - (prev["bluestars"] if prev else 0),
+                "Power": s.get("power", 1.0),
+                "Chapters finished": ch,
+                "Δ chapters": ch - (prev.get("chapters_beaten", 0) if prev else 0),
+                "Shared upgrades": shared,
+                "Δ shared": shared - (prev.get("upgrades_shared", 0) if prev else 0),
+                "Unique upgrades": unique,
+                "Δ unique": unique - (prev.get("upgrades_hero", 0) if prev else 0),
+            })
+            prev = s
+        summary_df = pd.DataFrame(summary_rows).set_index("Day")
+        st.dataframe(
+            summary_df,
+            width="stretch",
+            column_config={
+                "Total bluestars": st.column_config.NumberColumn(format="%d"),
+                "Δ bluestars": st.column_config.NumberColumn(format="%d"),
+                "Power": st.column_config.NumberColumn(format="%.2f"),
+                "Chapters finished": st.column_config.NumberColumn(format="%d"),
+                "Δ chapters": st.column_config.NumberColumn(format="%d"),
+                "Shared upgrades": st.column_config.NumberColumn(format="%d"),
+                "Δ shared": st.column_config.NumberColumn(format="%d"),
+                "Unique upgrades": st.column_config.NumberColumn(format="%d"),
+                "Δ unique": st.column_config.NumberColumn(format="%d"),
+            },
+        )
 
     # --- Bluestars over time ---
     with st.container(border=True):
