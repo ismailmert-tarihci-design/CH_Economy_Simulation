@@ -1163,10 +1163,7 @@ def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
 
 
 def _render_power_curve_tab(config: HeroCardConfig) -> None:
-    from simulation.variants.variant_b.power_curve import (
-        power_for_bluestars,
-        resolve_power_table,
-    )
+    from simulation.variants.variant_b.power_curve import resolve_power_table
 
     st.subheader("Bluestar → power curve")
     st.caption(
@@ -1234,19 +1231,6 @@ def _render_power_curve_tab(config: HeroCardConfig) -> None:
     ]
     if gaps:
         st.warning("Power table is not contiguous:\n\n- " + "\n- ".join(gaps))
-
-    # Quick preview of the resulting power at a few bluestar anchors.
-    if new_tiers:
-        table = resolve_power_table(config)
-        last_max = new_tiers[-1].max_bluestar
-        anchors = [a for a in (100, 1000, 5000, 25000, 100000, 300000, 600000) if a <= last_max]
-        if anchors:
-            preview = pd.DataFrame({
-                "Bluestars": anchors,
-                "Power ×": [round(power_for_bluestars(a, table), 2) for a in anchors],
-            })
-            st.markdown("**Power at sample bluestar totals**")
-            st.dataframe(preview, hide_index=True, width="stretch")
 
 
 def _render_profiles_tab(config: HeroCardConfig) -> None:
