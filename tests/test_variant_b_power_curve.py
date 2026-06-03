@@ -23,13 +23,13 @@ def test_zero_and_negative_bluestars_give_unit_power():
     assert power_for_bluestars(-5) == 1.0
 
 
-def test_reference_points_match_fitted_parity_curve():
-    # The table is fitted so Deckbuilding's per-day power matches the in-game
-    # Control run. Anchors: day-0 ~320 bluestars -> 3.53 power; day-11 ~4625
-    # bluestars -> 3500 power (Control's day-11 power). Bluestars differ from
-    # Control's because Deckbuilding earns more — power-per-bluestar is lower.
-    assert power_for_bluestars(320) == pytest.approx(3.53, rel=0.05)
-    assert power_for_bluestars(4625) == pytest.approx(3500, rel=0.05)
+def test_reference_points_match_fitted_curve():
+    # Anchors from the configured bluestar->power table. Tier 1 is tuned so the
+    # first 30 bluestars exactly double power (1.023373892 ** 30 == 2.0); higher
+    # anchors follow from the per-tier multipliers.
+    assert power_for_bluestars(30) == pytest.approx(2.0, rel=0.01)
+    assert power_for_bluestars(260) == pytest.approx(3.98, rel=0.02)
+    assert power_for_bluestars(1000) == pytest.approx(13.84, rel=0.02)
 
 
 def test_monotonic_increasing():

@@ -102,6 +102,11 @@ def _page_gacha():
     render_gacha_simulator()
 
 
+def _page_card_drop_sim():
+    from app_pages.card_drop_simulator import render_card_drop_simulator
+    render_card_drop_simulator()
+
+
 def _page_docs():
     from app_pages.documentation import render_documentation
     render_documentation()
@@ -125,6 +130,7 @@ page = st.navigation(
             st.Page(_page_saved_results, title="Saved results", icon=":material/bookmark:"),
             st.Page(_page_pull_logs, title="Pull logs", icon=":material/list_alt:"),
             st.Page(_page_gacha, title="Pack simulator", icon=":material/playing_cards:"),
+            st.Page(_page_card_drop_sim, title="Card drop simulator", icon=":material/style:"),
         ],
     }
 )

@@ -281,6 +281,20 @@ class HeroDropConfig(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Bluestar -> power curve (editable tier table)
+# ---------------------------------------------------------------------------
+
+class BluestarPowerTier(BaseModel):
+    """One bluestar->power tier: every bluestar in `(min_bluestar, max_bluestar]`
+    multiplies total power by `multiplier`. Tiers are expected to be contiguous
+    (each tier's `min_bluestar` equals the previous tier's `max_bluestar`)."""
+    tier: int = Field(description="Tier index (1-based, display only)")
+    min_bluestar: float = Field(description="Lower bound (exclusive)")
+    max_bluestar: float = Field(description="Upper bound (inclusive)")
+    multiplier: float = Field(description="Per-bluestar power multiplier in this tier")
+
+
+# ---------------------------------------------------------------------------
 # Main config (satisfies ConfigProtocol)
 # ---------------------------------------------------------------------------
 
@@ -383,6 +397,16 @@ class HeroCardConfig(BaseModel):
     chapter_bluestar_thresholds: List[float] = Field(
         default_factory=list,
         description="Bluestars required to beat chapter N (1-indexed by list position). Drives chapter beating in the big simulator.",
+    )
+
+    # Bluestar -> power conversion. Each tier covers (min_bluestar, max_bluestar]
+    # and multiplies total power by `multiplier` per bluestar in that range; total
+    # power = product over tiers of multiplier ** (bluestars in tier). Editable in
+    # the Configuration > Power curve tab. When empty, the default table file
+    # (data/defaults/variant_b_bluestar_power_table.json) is used.
+    bluestar_power_table: List[BluestarPowerTier] = Field(
+        default_factory=list,
+        description="Bluestar->power tier table. Contiguous tiers; multiplier applied per bluestar in (min, max].",
     )
 
 

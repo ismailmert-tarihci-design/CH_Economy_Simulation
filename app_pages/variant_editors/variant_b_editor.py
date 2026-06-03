@@ -15,6 +15,7 @@ from simulation.variants.variant_b.config_loader import (
     list_vb_profiles, load_vb_profile, save_vb_profile, delete_vb_profile,
 )
 from simulation.variants.variant_b.models import (
+    BluestarPowerTier,
     HeroCardConfig,
     HeroCardDef,
     HeroCardRarity,
@@ -58,6 +59,7 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
         ":material/inventory_2: Hero packs",
         ":material/redeem: Pack bonuses",
         ":material/calendar_today: Pack schedule",
+        ":material/bolt: Power curve",
         ":material/person: Profiles",
         ":material/swap_horiz: Import / export",
     ])
@@ -87,8 +89,10 @@ def render_variant_b_editor(config: HeroCardConfig) -> None:
     with tabs[11]:
         _render_pack_schedule_tab(config)
     with tabs[12]:
-        _render_profiles_tab(config)
+        _render_power_curve_tab(config)
     with tabs[13]:
+        _render_profiles_tab(config)
+    with tabs[14]:
         _render_import_export(config)
 
 
@@ -1156,6 +1160,93 @@ def _render_pack_schedule_tab(config: HeroCardConfig) -> None:
             {col: int(row[col]) for col in edited.columns if col != "Day"}
             for _, row in edited.iterrows()
         ]
+
+
+def _render_power_curve_tab(config: HeroCardConfig) -> None:
+    from simulation.variants.variant_b.power_curve import (
+        power_for_bluestars,
+        resolve_power_table,
+    )
+
+    st.subheader("Bluestar → power curve")
+    st.caption(
+        "Total power is the product over tiers of `multiplier ** (bluestars in tier)`, "
+        "where each tier covers the half-open range **(min, max]**. Tiers must be "
+        "contiguous — each tier's **Min Bluestar** equals the previous tier's "
+        "**Max Bluestar**. The Card-drop simulator and any power read-out use this table."
+    )
+
+    # Ensure the config carries a table (older saved configs may not). Seed from
+    # the file-backed default so there's something to edit.
+    if not config.bluestar_power_table:
+        config.bluestar_power_table = [
+            BluestarPowerTier(tier=t.tier, min_bluestar=t.min_bluestar,
+                              max_bluestar=t.max_bluestar, multiplier=t.multiplier)
+            for t in resolve_power_table(None)
+        ]
+
+    tiers = sorted(config.bluestar_power_table, key=lambda t: t.min_bluestar)
+    df = pd.DataFrame({
+        "Tier": [t.tier for t in tiers],
+        "Min Bluestar": [t.min_bluestar for t in tiers],
+        "Max Bluestar": [t.max_bluestar for t in tiers],
+        "Multiplier": [t.multiplier for t in tiers],
+    })
+
+    bulk = render_bulk_edit_bar("vb_power_curve", df, label="Bluestar Power Curve")
+    if bulk is not None:
+        df = bulk
+
+    edited = st.data_editor(
+        df,
+        column_config={
+            "Tier": st.column_config.NumberColumn("Tier", min_value=1, step=1),
+            "Min Bluestar": st.column_config.NumberColumn("Min Bluestar", min_value=0, step=1),
+            "Max Bluestar": st.column_config.NumberColumn("Max Bluestar", min_value=0, step=1),
+            "Multiplier": st.column_config.NumberColumn("Multiplier", min_value=1.0, step=0.0001, format="%.9f"),
+        },
+        width="stretch",
+        hide_index=True,
+        num_rows="dynamic",
+        key="vb_power_curve_editor",
+    )
+
+    new_tiers = []
+    for _, row in edited.iterrows():
+        try:
+            new_tiers.append(BluestarPowerTier(
+                tier=int(row["Tier"]),
+                min_bluestar=float(row["Min Bluestar"]),
+                max_bluestar=float(row["Max Bluestar"]),
+                multiplier=float(row["Multiplier"]),
+            ))
+        except (TypeError, ValueError):
+            continue
+    new_tiers.sort(key=lambda t: t.min_bluestar)
+    config.bluestar_power_table = new_tiers
+
+    # Contiguity check (warn but don't block — bluestars past the last tier are
+    # ignored by power_for_bluestars).
+    gaps = [
+        f"tier {prev.tier} ends at {prev.max_bluestar:g} but tier {cur.tier} starts at {cur.min_bluestar:g}"
+        for prev, cur in zip(new_tiers, new_tiers[1:])
+        if cur.min_bluestar != prev.max_bluestar
+    ]
+    if gaps:
+        st.warning("Power table is not contiguous:\n\n- " + "\n- ".join(gaps))
+
+    # Quick preview of the resulting power at a few bluestar anchors.
+    if new_tiers:
+        table = resolve_power_table(config)
+        last_max = new_tiers[-1].max_bluestar
+        anchors = [a for a in (100, 1000, 5000, 25000, 100000, 300000, 600000) if a <= last_max]
+        if anchors:
+            preview = pd.DataFrame({
+                "Bluestars": anchors,
+                "Power ×": [round(power_for_bluestars(a, table), 2) for a in anchors],
+            })
+            st.markdown("**Power at sample bluestar totals**")
+            st.dataframe(preview, hide_index=True, width="stretch")
 
 
 def _render_profiles_tab(config: HeroCardConfig) -> None:

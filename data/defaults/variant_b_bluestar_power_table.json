@@ -1,83 +1,551 @@
 {
-  "_comment": "Hero Card System (Variant B) bluestar->power table, fitted so Deckbuilding's per-day power matches the in-game Classic/Control run. Deckbuilding earns more bluestars than Control, so its power-per-bluestar is lower. Tiers are geometric segments between anchor points (median Deckbuilding bluestars on day d under the NonPayer-Bluestar-9SP-11d scenario -> Control power on day d): a segment [B0,B1] uses multiplier (P1/P0)**(1/(B1-B0)) so power(B0)=P0 and power(B1)=P1. Power(B)=product of multiplier^(bluestars in tier). If the economy calibration (hero unlock, dupe pct, daily routine) changes, re-fit these anchors against the Control day-by-day power curve.",
+  "_comment": "Hero Card System (Variant B) bluestar->power table. Per-bluestar multiplier per tier; power(B)=product of multiplier^(bluestars in tier (min,max]). Tiers must be contiguous (each tier's min == previous tier's max). Editable in the Configuration > Power curve tab.",
   "tiers": [
     {
       "tier": 1,
       "min_bluestar": 0,
-      "max_bluestar": 320,
-      "multiplier": 1.003949334
+      "max_bluestar": 30,
+      "multiplier": 1.023373892
     },
     {
       "tier": 2,
-      "min_bluestar": 320,
-      "max_bluestar": 808,
-      "multiplier": 1.00203282
+      "min_bluestar": 30,
+      "max_bluestar": 260,
+      "multiplier": 1.003
     },
     {
       "tier": 3,
-      "min_bluestar": 808,
-      "max_bluestar": 1240,
-      "multiplier": 1.00068961
+      "min_bluestar": 260,
+      "max_bluestar": 300,
+      "multiplier": 1.003
     },
     {
       "tier": 4,
-      "min_bluestar": 1240,
-      "max_bluestar": 1608,
-      "multiplier": 1.000485581
+      "min_bluestar": 300,
+      "max_bluestar": 630,
+      "multiplier": 1.001851743
     },
     {
       "tier": 5,
-      "min_bluestar": 1608,
-      "max_bluestar": 1918,
-      "multiplier": 1.004135885
+      "min_bluestar": 630,
+      "max_bluestar": 1000,
+      "multiplier": 1.001393523
     },
     {
       "tier": 6,
-      "min_bluestar": 1918,
-      "max_bluestar": 2258,
-      "multiplier": 1.002717848
+      "min_bluestar": 1000,
+      "max_bluestar": 1412,
+      "multiplier": 1.0010869
     },
     {
       "tier": 7,
-      "min_bluestar": 2258,
-      "max_bluestar": 2662,
-      "multiplier": 1.001850249
+      "min_bluestar": 1412,
+      "max_bluestar": 1824,
+      "multiplier": 1.000907492
     },
     {
       "tier": 8,
-      "min_bluestar": 2662,
-      "max_bluestar": 2988,
-      "multiplier": 1.000912812
+      "min_bluestar": 1824,
+      "max_bluestar": 4486,
+      "multiplier": 1.000994688
     },
     {
       "tier": 9,
-      "min_bluestar": 2988,
-      "max_bluestar": 3438,
-      "multiplier": 1.001112974
+      "min_bluestar": 4486,
+      "max_bluestar": 7149,
+      "multiplier": 1.000749523
     },
     {
       "tier": 10,
-      "min_bluestar": 3438,
-      "max_bluestar": 3785,
-      "multiplier": 1.001192082
+      "min_bluestar": 7149,
+      "max_bluestar": 11498,
+      "multiplier": 1.000662203
     },
     {
       "tier": 11,
-      "min_bluestar": 3785,
-      "max_bluestar": 4302,
-      "multiplier": 1.001171014
+      "min_bluestar": 11498,
+      "max_bluestar": 15847,
+      "multiplier": 1.000658261
     },
     {
       "tier": 12,
-      "min_bluestar": 4302,
-      "max_bluestar": 4625,
-      "multiplier": 1.002064069
+      "min_bluestar": 15847,
+      "max_bluestar": 19470,
+      "multiplier": 1.000677982
     },
     {
       "tier": 13,
-      "min_bluestar": 4625,
-      "max_bluestar": 9999999,
-      "multiplier": 1.002064069
+      "min_bluestar": 19470,
+      "max_bluestar": 23094,
+      "multiplier": 1.000601241
+    },
+    {
+      "tier": 14,
+      "min_bluestar": 23094,
+      "max_bluestar": 27413,
+      "multiplier": 1.000627043
+    },
+    {
+      "tier": 15,
+      "min_bluestar": 27413,
+      "max_bluestar": 31733,
+      "multiplier": 1.000568106
+    },
+    {
+      "tier": 16,
+      "min_bluestar": 31733,
+      "max_bluestar": 36299,
+      "multiplier": 1.000677604
+    },
+    {
+      "tier": 17,
+      "min_bluestar": 36299,
+      "max_bluestar": 40866,
+      "multiplier": 1.000709106
+    },
+    {
+      "tier": 18,
+      "min_bluestar": 40866,
+      "max_bluestar": 46061,
+      "multiplier": 1.000600721
+    },
+    {
+      "tier": 19,
+      "min_bluestar": 46061,
+      "max_bluestar": 51257,
+      "multiplier": 1.000544336
+    },
+    {
+      "tier": 20,
+      "min_bluestar": 51257,
+      "max_bluestar": 58434,
+      "multiplier": 1.000637226
+    },
+    {
+      "tier": 21,
+      "min_bluestar": 58434,
+      "max_bluestar": 65612,
+      "multiplier": 1.000568903
+    },
+    {
+      "tier": 22,
+      "min_bluestar": 65612,
+      "max_bluestar": 72919,
+      "multiplier": 1.000603703
+    },
+    {
+      "tier": 23,
+      "min_bluestar": 72919,
+      "max_bluestar": 80227,
+      "multiplier": 1.000575634
+    },
+    {
+      "tier": 24,
+      "min_bluestar": 80227,
+      "max_bluestar": 88170,
+      "multiplier": 1.000508656
+    },
+    {
+      "tier": 25,
+      "min_bluestar": 88170,
+      "max_bluestar": 96113,
+      "multiplier": 1.000548076
+    },
+    {
+      "tier": 26,
+      "min_bluestar": 96113,
+      "max_bluestar": 104333,
+      "multiplier": 1.000516979
+    },
+    {
+      "tier": 27,
+      "min_bluestar": 104333,
+      "max_bluestar": 112554,
+      "multiplier": 1.000508496
+    },
+    {
+      "tier": 28,
+      "min_bluestar": 112554,
+      "max_bluestar": 120727,
+      "multiplier": 1.000518521
+    },
+    {
+      "tier": 29,
+      "min_bluestar": 120727,
+      "max_bluestar": 128900,
+      "multiplier": 1.000546107
+    },
+    {
+      "tier": 30,
+      "min_bluestar": 128900,
+      "max_bluestar": 138075,
+      "multiplier": 1.000556794
+    },
+    {
+      "tier": 31,
+      "min_bluestar": 138075,
+      "max_bluestar": 147251,
+      "multiplier": 1.000492041
+    },
+    {
+      "tier": 32,
+      "min_bluestar": 147251,
+      "max_bluestar": 156738,
+      "multiplier": 1.000448376
+    },
+    {
+      "tier": 33,
+      "min_bluestar": 156738,
+      "max_bluestar": 166225,
+      "multiplier": 1.000492988
+    },
+    {
+      "tier": 34,
+      "min_bluestar": 166225,
+      "max_bluestar": 175012,
+      "multiplier": 1.000477319
+    },
+    {
+      "tier": 35,
+      "min_bluestar": 175012,
+      "max_bluestar": 183799,
+      "multiplier": 1.000523599
+    },
+    {
+      "tier": 36,
+      "min_bluestar": 183799,
+      "max_bluestar": 192373,
+      "multiplier": 1.000445257
+    },
+    {
+      "tier": 37,
+      "min_bluestar": 192373,
+      "max_bluestar": 200947,
+      "multiplier": 1.000485608
+    },
+    {
+      "tier": 38,
+      "min_bluestar": 200947,
+      "max_bluestar": 209690,
+      "multiplier": 1.000467549
+    },
+    {
+      "tier": 39,
+      "min_bluestar": 209690,
+      "max_bluestar": 218434,
+      "multiplier": 1.000438753
+    },
+    {
+      "tier": 40,
+      "min_bluestar": 218434,
+      "max_bluestar": 227349,
+      "multiplier": 1.000408133
+    },
+    {
+      "tier": 41,
+      "min_bluestar": 227349,
+      "max_bluestar": 236264,
+      "multiplier": 1.000431937
+    },
+    {
+      "tier": 42,
+      "min_bluestar": 236264,
+      "max_bluestar": 245785,
+      "multiplier": 1.000467414
+    },
+    {
+      "tier": 43,
+      "min_bluestar": 245785,
+      "max_bluestar": 255306,
+      "multiplier": 1.00044991
+    },
+    {
+      "tier": 44,
+      "min_bluestar": 255306,
+      "max_bluestar": 265264,
+      "multiplier": 1.000427948
+    },
+    {
+      "tier": 45,
+      "min_bluestar": 265264,
+      "max_bluestar": 275223,
+      "multiplier": 1.000377306
+    },
+    {
+      "tier": 46,
+      "min_bluestar": 275223,
+      "max_bluestar": 284820,
+      "multiplier": 1.000413053
+    },
+    {
+      "tier": 47,
+      "min_bluestar": 284820,
+      "max_bluestar": 294418,
+      "multiplier": 1.000398147
+    },
+    {
+      "tier": 48,
+      "min_bluestar": 294418,
+      "max_bluestar": 304254,
+      "multiplier": 1.00040363
+    },
+    {
+      "tier": 49,
+      "min_bluestar": 304254,
+      "max_bluestar": 314091,
+      "multiplier": 1.000433476
+    },
+    {
+      "tier": 50,
+      "min_bluestar": 314091,
+      "max_bluestar": 324291,
+      "multiplier": 1.000432244
+    },
+    {
+      "tier": 51,
+      "min_bluestar": 324291,
+      "max_bluestar": 334491,
+      "multiplier": 1.000434871
+    },
+    {
+      "tier": 52,
+      "min_bluestar": 334491,
+      "max_bluestar": 344949,
+      "multiplier": 1.000435572
+    },
+    {
+      "tier": 53,
+      "min_bluestar": 344949,
+      "max_bluestar": 355408,
+      "multiplier": 1.0004093
+    },
+    {
+      "tier": 54,
+      "min_bluestar": 355408,
+      "max_bluestar": 362709,
+      "multiplier": 1.000435416
+    },
+    {
+      "tier": 55,
+      "min_bluestar": 362709,
+      "max_bluestar": 370010,
+      "multiplier": 1.000447963
+    },
+    {
+      "tier": 56,
+      "min_bluestar": 370010,
+      "max_bluestar": 374855,
+      "multiplier": 1.00048619
+    },
+    {
+      "tier": 57,
+      "min_bluestar": 374855,
+      "max_bluestar": 379700,
+      "multiplier": 1.000445217
+    },
+    {
+      "tier": 58,
+      "min_bluestar": 379700,
+      "max_bluestar": 389700,
+      "multiplier": 1.000465581
+    },
+    {
+      "tier": 59,
+      "min_bluestar": 389700,
+      "max_bluestar": 399700,
+      "multiplier": 1.000489516
+    },
+    {
+      "tier": 60,
+      "min_bluestar": 399700,
+      "max_bluestar": 409700,
+      "multiplier": 1.000464071
+    },
+    {
+      "tier": 61,
+      "min_bluestar": 409700,
+      "max_bluestar": 419700,
+      "multiplier": 1.000483101
+    },
+    {
+      "tier": 62,
+      "min_bluestar": 419700,
+      "max_bluestar": 429700,
+      "multiplier": 1.000460078
+    },
+    {
+      "tier": 63,
+      "min_bluestar": 429700,
+      "max_bluestar": 439700,
+      "multiplier": 1.000540226
+    },
+    {
+      "tier": 64,
+      "min_bluestar": 439700,
+      "max_bluestar": 449700,
+      "multiplier": 1.000501422
+    },
+    {
+      "tier": 65,
+      "min_bluestar": 449700,
+      "max_bluestar": 459700,
+      "multiplier": 1.000562393
+    },
+    {
+      "tier": 66,
+      "min_bluestar": 459700,
+      "max_bluestar": 469700,
+      "multiplier": 1.000493989
+    },
+    {
+      "tier": 67,
+      "min_bluestar": 469700,
+      "max_bluestar": 479700,
+      "multiplier": 1.000499107
+    },
+    {
+      "tier": 68,
+      "min_bluestar": 479700,
+      "max_bluestar": 489700,
+      "multiplier": 1.00056045
+    },
+    {
+      "tier": 69,
+      "min_bluestar": 489700,
+      "max_bluestar": 499700,
+      "multiplier": 1.000577273
+    },
+    {
+      "tier": 70,
+      "min_bluestar": 499700,
+      "max_bluestar": 509700,
+      "multiplier": 1.000526318
+    },
+    {
+      "tier": 71,
+      "min_bluestar": 509700,
+      "max_bluestar": 519700,
+      "multiplier": 1.000569502
+    },
+    {
+      "tier": 72,
+      "min_bluestar": 519700,
+      "max_bluestar": 529700,
+      "multiplier": 1.000532306
+    },
+    {
+      "tier": 73,
+      "min_bluestar": 529700,
+      "max_bluestar": 539700,
+      "multiplier": 1.000585751
+    },
+    {
+      "tier": 74,
+      "min_bluestar": 539700,
+      "max_bluestar": 549700,
+      "multiplier": 1.000585188
+    },
+    {
+      "tier": 75,
+      "min_bluestar": 549700,
+      "max_bluestar": 559700,
+      "multiplier": 1.000586033
+    },
+    {
+      "tier": 76,
+      "min_bluestar": 559700,
+      "max_bluestar": 569700,
+      "multiplier": 1.000569169
+    },
+    {
+      "tier": 77,
+      "min_bluestar": 569700,
+      "max_bluestar": 579700,
+      "multiplier": 1.000548385
+    },
+    {
+      "tier": 78,
+      "min_bluestar": 579700,
+      "max_bluestar": 589700,
+      "multiplier": 1.000577204
+    },
+    {
+      "tier": 79,
+      "min_bluestar": 589700,
+      "max_bluestar": 599457,
+      "multiplier": 1.000586386
+    },
+    {
+      "tier": 80,
+      "min_bluestar": 599457,
+      "max_bluestar": 609457,
+      "multiplier": 1.000570103
+    },
+    {
+      "tier": 81,
+      "min_bluestar": 609457,
+      "max_bluestar": 619457,
+      "multiplier": 1.000592456
+    },
+    {
+      "tier": 82,
+      "min_bluestar": 619457,
+      "max_bluestar": 629457,
+      "multiplier": 1.000518466
+    },
+    {
+      "tier": 83,
+      "min_bluestar": 629457,
+      "max_bluestar": 639457,
+      "multiplier": 1.000676379
+    },
+    {
+      "tier": 84,
+      "min_bluestar": 639457,
+      "max_bluestar": 649457,
+      "multiplier": 1.000676379
+    },
+    {
+      "tier": 85,
+      "min_bluestar": 649457,
+      "max_bluestar": 659457,
+      "multiplier": 1.000676379
+    },
+    {
+      "tier": 86,
+      "min_bluestar": 659457,
+      "max_bluestar": 669457,
+      "multiplier": 1.000676379
+    },
+    {
+      "tier": 87,
+      "min_bluestar": 669457,
+      "max_bluestar": 679457,
+      "multiplier": 1.000676379
+    },
+    {
+      "tier": 88,
+      "min_bluestar": 679457,
+      "max_bluestar": 689457,
+      "multiplier": 1.000676379
+    },
+    {
+      "tier": 89,
+      "min_bluestar": 689457,
+      "max_bluestar": 699457,
+      "multiplier": 1.000676379
+    },
+    {
+      "tier": 90,
+      "min_bluestar": 699457,
+      "max_bluestar": 709457,
+      "multiplier": 1.000676379
+    },
+    {
+      "tier": 91,
+      "min_bluestar": 709457,
+      "max_bluestar": 999999,
+      "multiplier": 1.000676379
     }
   ]
 }

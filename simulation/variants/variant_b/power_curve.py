@@ -73,6 +73,37 @@ def _cached_default_table() -> tuple[PowerTier, ...]:
     return tuple(load_power_table())
 
 
+def resolve_power_table(config: object | None) -> List[PowerTier]:
+    """Return the power tier list to use for a config.
+
+    Prefers the config's own `bluestar_power_table` (the editable table). Falls
+    back to the default file-backed table when the config carries no tiers (e.g.
+    older saved configs). Accepts any object exposing `bluestar_power_table`
+    (Pydantic `BluestarPowerTier` rows or plain dicts) or `None`.
+    """
+    tiers = getattr(config, "bluestar_power_table", None) if config is not None else None
+    if not tiers:
+        return list(_cached_default_table())
+    resolved: List[PowerTier] = []
+    for t in tiers:
+        if isinstance(t, dict):
+            resolved.append(PowerTier(
+                tier=int(t["tier"]),
+                min_bluestar=float(t["min_bluestar"]),
+                max_bluestar=float(t["max_bluestar"]),
+                multiplier=float(t["multiplier"]),
+            ))
+        else:
+            resolved.append(PowerTier(
+                tier=int(t.tier),
+                min_bluestar=float(t.min_bluestar),
+                max_bluestar=float(t.max_bluestar),
+                multiplier=float(t.multiplier),
+            ))
+    resolved.sort(key=lambda x: x.min_bluestar)
+    return resolved
+
+
 def power_for_bluestars(
     total_bluestars: int | float,
     table: Optional[List[PowerTier]] = None,

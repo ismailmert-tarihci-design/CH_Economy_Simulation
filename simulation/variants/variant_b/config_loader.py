@@ -62,6 +62,25 @@ def _load_default_daily_pack_schedule() -> list[dict[str, float]]:
     return [{k: v for k, v in day.items() if k != "EndOfChapterPack"} for day in schedule]
 
 
+def _load_default_bluestar_power_table() -> list:
+    """Load the default bluestar->power tier table into BluestarPowerTier rows."""
+    from simulation.variants.variant_b.models import BluestarPowerTier
+
+    path = (Path(__file__).resolve().parents[3]
+            / "data" / "defaults" / "variant_b_bluestar_power_table.json")
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    return [
+        BluestarPowerTier(
+            tier=int(t["tier"]),
+            min_bluestar=float(t["min_bluestar"]),
+            max_bluestar=float(t["max_bluestar"]),
+            multiplier=float(t["multiplier"]),
+        )
+        for t in data.get("tiers", [])
+    ]
+
+
 def _builtin_defaults() -> HeroCardConfig:
     """Built-in default Variant B configuration with all 17 heroes (24 cards each, 408 total)."""
     heroes = [
@@ -163,6 +182,7 @@ def _builtin_defaults() -> HeroCardConfig:
         pack_bonus_variance=default_pack_bonus_variance(),
         pack_dupe_boost=default_pack_dupe_boost(),
         chapter_bluestar_thresholds=load_default_bluestar_thresholds(),
+        bluestar_power_table=_load_default_bluestar_power_table(),
     )
 
 
