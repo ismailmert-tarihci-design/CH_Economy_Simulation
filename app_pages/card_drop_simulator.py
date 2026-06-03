@@ -78,9 +78,10 @@ def render_card_drop_simulator() -> None:
     c4, c5 = st.columns(2)
     with c4:
         start_day = st.number_input(
-            "Starting calendar day", min_value=1, max_value=802, value=1, step=1,
+            "Starting calendar day", min_value=0, max_value=802, value=0, step=1,
             help="Heroes unlock on a fixed calendar (Woody day 0 … Munara day 802). "
-                 "Start later to begin with more heroes already unlocked.",
+                 "Day 0 starts with a single hero (Woody); start later to begin with "
+                 "more heroes already unlocked.",
             key="cds_start_day",
         )
     with c5:
@@ -107,6 +108,12 @@ def render_card_drop_simulator() -> None:
         _display(rows)
 
 
+# Shared-card category value -> short color label, so pulls and upgrades line
+# up against the hero GRAY/BLUE/GOLD rarities in the breakdown tables.
+_SHARED_LABEL = {"GOLD_SHARED": "Gold", "BLUE_SHARED": "Blue", "GRAY_SHARED": "Gray"}
+_RARITY_LABEL = {"GOLD": "Gold", "BLUE": "Blue", "GRAY": "Gray"}
+
+
 def _simulate(
     config: HeroCardConfig,
     cards_per_day: int,
@@ -115,7 +122,11 @@ def _simulate(
     rng: Random,
     run_upgrades: bool,
 ) -> list[dict]:
-    """Run the day loop: X pulls/day → dupes + coins → upgrades → power read-out."""
+    """Run the day loop: X pulls/day → dupes + coins → upgrades → power read-out.
+
+    Records both pull counts (hero vs shared, by color) and upgrade counts
+    (hero vs shared, by color), so the UI can show pull *and* upgrade ratios.
+    """
     state = _create_initial_state(config)
     state.coins = config.initial_coins
     table = resolve_power_table(config)
@@ -128,9 +139,12 @@ def _simulate(
 
         bs_start = state.total_bluestars
         coins_start = state.coins
+
+        # --- Pulls ---
         hero_pulls = 0
         shared_pulls = 0
-        rarity_counts = {"GRAY": 0, "BLUE": 0, "GOLD": 0}
+        hero_pull_color = {"Gray": 0, "Blue": 0, "Gold": 0}
+        shared_pull_color = {"Gray": 0, "Blue": 0, "Gold": 0}
 
         for i in range(cards_per_day):
             pull_type = decide_hero_or_shared(state, config, rng, pull_index=i)
@@ -148,7 +162,7 @@ def _simulate(
                 state.coins += max(1, dupes * cpd)
                 hero_pulls += 1
                 rarity_key = card.rarity.value if hasattr(card.rarity, "value") else str(card.rarity)
-                rarity_counts[rarity_key] = rarity_counts.get(rarity_key, 0) + 1
+                hero_pull_color[_RARITY_LABEL.get(rarity_key, "Gray")] += 1
             else:
                 card = select_shared_card(state, config, rng)
                 if not card:
@@ -159,23 +173,51 @@ def _simulate(
                 cpd = get_shared_coins_per_dupe(card.level, cat, config)
                 state.coins += max(1, dupes * cpd)
                 shared_pulls += 1
+                shared_pull_color[_SHARED_LABEL.get(cat, "Gray")] += 1
 
+        # --- Upgrades ---
+        hero_up_color = {"Gray": 0, "Blue": 0, "Gold": 0}
+        shared_up_color = {"Gray": 0, "Blue": 0, "Gold": 0}
+        bs_from_hero = 0
+        bs_from_shared = 0
         if run_upgrades:
-            attempt_hero_upgrades(state, config)
-            attempt_shared_upgrades(state, config)
+            hero_events, _xp, bs_from_hero, _tree = attempt_hero_upgrades(state, config)
+            for evt in hero_events:
+                hero_up_color[_RARITY_LABEL.get(evt.get("rarity", "GRAY"), "Gray")] += 1
+            shared_events, bs_from_shared = attempt_shared_upgrades(state, config)
+            for evt in shared_events:
+                shared_up_color[_SHARED_LABEL.get(evt.get("category", "GRAY_SHARED"), "Gray")] += 1
 
+        hero_ups = sum(hero_up_color.values())
+        shared_ups = sum(shared_up_color.values())
         power = power_for_bluestars(state.total_bluestars, table)
         rows.append({
             "Day": d,
             "Calendar day": calendar_day,
             "Heroes unlocked": len(state.heroes),
+            # Pulls
             "Hero pulls": hero_pulls,
             "Shared pulls": shared_pulls,
-            "Gray": rarity_counts["GRAY"],
-            "Blue": rarity_counts["BLUE"],
-            "Gold": rarity_counts["GOLD"],
+            "Hero pull Gray": hero_pull_color["Gray"],
+            "Hero pull Blue": hero_pull_color["Blue"],
+            "Hero pull Gold": hero_pull_color["Gold"],
+            "Shared pull Gray": shared_pull_color["Gray"],
+            "Shared pull Blue": shared_pull_color["Blue"],
+            "Shared pull Gold": shared_pull_color["Gold"],
+            # Upgrades
+            "Hero upgrades": hero_ups,
+            "Shared upgrades": shared_ups,
+            "Hero upg Gray": hero_up_color["Gray"],
+            "Hero upg Blue": hero_up_color["Blue"],
+            "Hero upg Gold": hero_up_color["Gold"],
+            "Shared upg Gray": shared_up_color["Gray"],
+            "Shared upg Blue": shared_up_color["Blue"],
+            "Shared upg Gold": shared_up_color["Gold"],
+            # Economy / power
             "Coins balance": state.coins,
             "Coins earned": state.coins - coins_start,
+            "BS from hero upg": bs_from_hero,
+            "BS from shared upg": bs_from_shared,
             "Bluestars earned": state.total_bluestars - bs_start,
             "Total bluestars": state.total_bluestars,
             "Power": power,
@@ -183,35 +225,107 @@ def _simulate(
     return rows
 
 
+def _ratio_table(df: pd.DataFrame, hero_total_col: str, shared_total_col: str,
+                 hero_color_cols: dict, shared_color_cols: dict) -> pd.DataFrame:
+    """Build a Hero/Shared x color count+% breakdown from per-day columns."""
+    hero_total = int(df[hero_total_col].sum())
+    shared_total = int(df[shared_total_col].sum())
+    grand = (hero_total + shared_total) or 1
+    rows = []
+    for kind, total, color_cols in (
+        ("Hero", hero_total, hero_color_cols),
+        ("Shared", shared_total, shared_color_cols),
+    ):
+        rows.append({
+            "Source": kind,
+            "Total": total,
+            "% of all": f"{total / grand * 100:.1f}%",
+            "Gray": int(df[color_cols["Gray"]].sum()),
+            "Blue": int(df[color_cols["Blue"]].sum()),
+            "Gold": int(df[color_cols["Gold"]].sum()),
+        })
+    rows.append({
+        "Source": "Total",
+        "Total": grand if (hero_total + shared_total) else 0,
+        "% of all": "100.0%" if (hero_total + shared_total) else "0.0%",
+        "Gray": rows[0]["Gray"] + rows[1]["Gray"],
+        "Blue": rows[0]["Blue"] + rows[1]["Blue"],
+        "Gold": rows[0]["Gold"] + rows[1]["Gold"],
+    })
+    return pd.DataFrame(rows)
+
+
 def _display(rows: list[dict]) -> None:
     df = pd.DataFrame(rows)
     last = rows[-1]
+
+    total_pulls = int(df["Hero pulls"].sum() + df["Shared pulls"].sum())
+    total_ups = int(df["Hero upgrades"].sum() + df["Shared upgrades"].sum())
 
     st.markdown("---")
     st.subheader("Summary")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Days simulated", len(rows))
-    m2.metric("Total card pulls", f"{int(df['Hero pulls'].sum() + df['Shared pulls'].sum()):,}")
-    m3.metric("Final bluestars", f"{int(last['Total bluestars']):,}")
+    m2.metric("Total card pulls", f"{total_pulls:,}")
+    m3.metric("Total upgrades", f"{total_ups:,}")
     m4.metric("Final power", f"{last['Power']:,.2f}×")
 
-    n1, n2, n3 = st.columns(3)
-    total_pulls = int(df["Hero pulls"].sum() + df["Shared pulls"].sum()) or 1
-    n1.metric("Hero pulls", f"{int(df['Hero pulls'].sum()):,}",
-              help=f"{df['Hero pulls'].sum() / total_pulls * 100:.0f}% of pulls")
-    n2.metric("Shared pulls", f"{int(df['Shared pulls'].sum()):,}",
-              help=f"{df['Shared pulls'].sum() / total_pulls * 100:.0f}% of pulls")
-    n3.metric("Coins balance", f"{int(last['Coins balance']):,}")
+    n1, n2, n3, n4 = st.columns(4)
+    n1.metric("Final bluestars", f"{int(last['Total bluestars']):,}")
+    n2.metric("Bluestars / pull", f"{last['Total bluestars'] / (total_pulls or 1):.1f}")
+    n3.metric("Pulls / upgrade", f"{total_pulls / (total_ups or 1):.1f}",
+              help="Average card pulls consumed per card upgrade.")
+    n4.metric("Coins balance", f"{int(last['Coins balance']):,}")
 
+    # --- Pull ratio ---
+    st.markdown("**Pull ratio** — hero vs shared, by color")
+    st.dataframe(
+        _ratio_table(
+            df, "Hero pulls", "Shared pulls",
+            {"Gray": "Hero pull Gray", "Blue": "Hero pull Blue", "Gold": "Hero pull Gold"},
+            {"Gray": "Shared pull Gray", "Blue": "Shared pull Blue", "Gold": "Shared pull Gold"},
+        ),
+        hide_index=True, width="stretch",
+    )
+
+    # --- Upgrade ratio ---
+    st.markdown("**Upgrade ratio** — hero vs shared, by color")
+    st.dataframe(
+        _ratio_table(
+            df, "Hero upgrades", "Shared upgrades",
+            {"Gray": "Hero upg Gray", "Blue": "Hero upg Blue", "Gold": "Hero upg Gold"},
+            {"Gray": "Shared upg Gray", "Blue": "Shared upg Blue", "Gold": "Shared upg Gold"},
+        ),
+        hide_index=True, width="stretch",
+    )
+
+    # --- Charts ---
     st.markdown("**Power over time**")
-    st.line_chart(df, x="Day", y="Power", height=260)
+    st.line_chart(df, x="Day", y="Power", height=240)
 
     st.markdown("**Total bluestars over time**")
-    st.line_chart(df, x="Day", y="Total bluestars", height=260)
+    st.line_chart(df, x="Day", y="Total bluestars", height=240)
 
-    with st.expander("Per-day detail", expanded=False):
+    st.markdown("**Daily pulls vs upgrades**")
+    st.line_chart(
+        df.assign(**{
+            "Pulls": df["Hero pulls"] + df["Shared pulls"],
+            "Upgrades": df["Hero upgrades"] + df["Shared upgrades"],
+        }),
+        x="Day", y=["Pulls", "Upgrades"], height=240,
+    )
+
+    # --- Per-day detail ---
+    with st.expander("Per-day detail (pulls, upgrades, bluestars, power)", expanded=False):
+        cols = [
+            "Day", "Calendar day", "Heroes unlocked",
+            "Hero pulls", "Shared pulls", "Hero upgrades", "Shared upgrades",
+            "BS from hero upg", "BS from shared upg",
+            "Coins earned", "Coins balance",
+            "Bluestars earned", "Total bluestars", "Power",
+        ]
         st.dataframe(
-            df,
+            df[cols],
             hide_index=True,
             width="stretch",
             column_config={
