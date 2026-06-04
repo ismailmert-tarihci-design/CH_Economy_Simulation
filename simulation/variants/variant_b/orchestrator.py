@@ -95,6 +95,21 @@ def run_simulation(
     total_coins_spent = 0
     all_upgrade_events: Dict[str, int] = {}
 
+    # Hero Token *demand* lookup: hero_id -> [(hero_level_required, token_cost), ...].
+    # A node becomes "purchasable" the day the hero's level reaches its gate, so
+    # demand is a pure function of hero level — independent of token income and
+    # of whether the node was actually activated. `demand_frontier` tracks the
+    # highest hero level for which we have already counted demand.
+    node_gates: Dict[str, List[tuple[int, int]]] = {
+        h.hero_id: [
+            (int(n.hero_level_required), int(getattr(n, "token_cost", 0) or 0))
+            for n in h.skill_tree
+        ]
+        for h in config.heroes
+    }
+    demand_frontier: Dict[str, int] = {}
+    total_hero_token_demand = 0
+
     for day in range(1, config.num_days + 1):
         game_state.day = day
         day_bluestars_start = game_state.total_bluestars
@@ -347,6 +362,26 @@ def run_simulation(
             for _, card_ids, _ in acts:
                 day_cards_unlocked += len(card_ids)
 
+        # Hero Token demand: for every unlocked hero, count the cost of nodes
+        # whose level gate the hero has newly crossed. Level-based (not
+        # activation-based) so the number reflects "what you'd need to buy all
+        # the Hero Path content you've unlocked" regardless of token income.
+        day_token_demand_by_hero: Dict[str, int] = {}
+        for hero_id, hero_state in game_state.heroes.items():
+            prev = demand_frontier.get(hero_id, 1)
+            cur = hero_state.level
+            if cur <= prev:
+                continue
+            owed = sum(
+                cost for req, cost in node_gates.get(hero_id, [])
+                if prev < req <= cur
+            )
+            if owed:
+                day_token_demand_by_hero[hero_id] = owed
+            demand_frontier[hero_id] = cur
+        day_token_demand = sum(day_token_demand_by_hero.values())
+        total_hero_token_demand += day_token_demand
+
         # 4a. Re-check chapter thresholds: today's upgrade bluestars may have
         # crossed additional chapter thresholds. Open EoC packs for those
         # now so the chapter count doesn't lag a day behind bluestars. Dupes
@@ -470,6 +505,8 @@ def run_simulation(
                 tokens_balance_start + day_hero_tokens
                 - int(game_state.bonus_items.get("HeroTokens", 0)),
             ),
+            hero_token_demand_today=day_token_demand,
+            hero_token_demand_by_hero=day_token_demand_by_hero,
             chapters_beaten_today=chapters_today,
             chapters_beaten_total=game_state.chapters_beaten,
             hero_states=hero_states_today,
@@ -497,6 +534,7 @@ def run_simulation(
         total_jokers_received=sum(s.jokers_received_today for s in snapshots),
         total_hero_tokens=sum(s.hero_tokens_received for s in snapshots),
         total_hero_tokens_spent=sum(s.hero_tokens_spent_today for s in snapshots),
+        total_hero_token_demand=total_hero_token_demand,
         final_hero_tokens_balance=int(game_state.bonus_items.get("HeroTokens", 0)),
         final_hero_skill_progress={
             hid: hs.skill_tree_progress for hid, hs in game_state.heroes.items()

@@ -97,9 +97,13 @@ def try_upgrade_hero_card(
     leveled_up = _check_hero_level_up(hero_state, hero_def)
     tree_activations: List = []
     if leveled_up:
+        # `unlimited_hero_tokens` mode skips the affordability gate so nodes
+        # activate purely on the hero-level requirement — this is how we measure
+        # pure Hero Token demand independent of token income.
+        wallet = None if getattr(config, "unlimited_hero_tokens", False) else game_state.bonus_items
         activated = check_and_advance_skill_tree(
             hero_def, hero_state, hero_state.level,
-            bonus_items=game_state.bonus_items,
+            bonus_items=wallet,
         )
         if activated:
             tree_activations.extend(activated)

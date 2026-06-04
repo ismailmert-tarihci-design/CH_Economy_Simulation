@@ -98,11 +98,28 @@ def render_simulation_controls(config: Any) -> None:
                 "goal_value": float(goal_value),
             }
 
+    # ─── Hero Token demand analysis ───────────────────────────────────────────
+    unlimited_tokens = False
+    with st.expander("Hero Token demand mode", icon=":material/savings:"):
+        unlimited_tokens = st.toggle(
+            "Unlimited Hero Tokens (buy-everything demand)",
+            help="Skips the Hero Token cost gate so every skill-tree node is "
+                 "bought the moment its hero-level requirement is met. Use this "
+                 "to measure how many tokens players would NEED per day to buy "
+                 "all the Hero Path content they've unlocked — independent of "
+                 "how many tokens they actually earn. See the 'Hero Token demand' "
+                 "chart in the Dashboard.",
+        )
+        if unlimited_tokens:
+            st.caption(":material/info: Token income is ignored for node "
+                       "purchases in this run — the result shows pure demand.")
+
     # ─── Run button ───────────────────────────────────────────────────────────
     variant_id = st.session_state.get("active_variant", "variant_b")
 
     if st.button("Run simulation", type="primary", width="stretch", icon=":material/play_arrow:"):
         config.num_days = num_days
+        config.unlimited_hero_tokens = unlimited_tokens
         config_hash = hashlib.md5(config.model_dump_json().encode()).hexdigest()
 
         if mode == "Deterministic":

@@ -106,6 +106,10 @@ def render_variant_b_dashboard() -> None:
     with st.container(border=True):
         _render_hero_token_hunger(result, snapshots, config, hero_name_map)
 
+    # Hero Token demand — tokens needed to buy all unlocked Hero Path content.
+    with st.container(border=True):
+        _render_hero_token_demand(snapshots, config)
+
     # Summary sections
     col5, col6, col7 = st.columns(3)
     with col5:
@@ -582,6 +586,69 @@ def _render_hero_token_hunger(
         xaxis=dict(title="Day"),
         yaxis=dict(title="Tokens per day"),
         yaxis2=dict(title="Balance", overlaying="y", side="right"),
+    )
+    st.plotly_chart(fig, width="stretch")
+
+
+def _render_hero_token_demand(snapshots: list, config: Any) -> None:
+    """Hero Token *demand* — tokens needed to buy all Hero Path content unlocked.
+
+    Demand is supply-independent: a skill-tree node is counted the day its
+    hero-level gate is reached, regardless of token income. Run with
+    "Unlimited Hero Tokens" mode on (Run page) so the hero-level trajectory
+    reflects the buy-everything path.
+    """
+    if not snapshots or not any(
+        hasattr(s, "hero_token_demand_today") for s in snapshots
+    ):
+        return
+
+    st.markdown("**Hero Token demand — buy everything you've unlocked**")
+    unlimited = bool(getattr(config, "unlimited_hero_tokens", False))
+    if unlimited:
+        st.caption(
+            "This run used **Unlimited Hero Tokens** mode, so hero levels follow "
+            "the buy-everything path. The curve below is the tokens a player would "
+            "NEED each day to keep buying every Hero Path node they've unlocked."
+        )
+    else:
+        st.caption(
+            ":material/warning: This run did **not** use Unlimited Hero Tokens "
+            "mode. Demand is still computed from hero levels, but those levels "
+            "were slowed by token-gated card unlocks. Re-run with the toggle on "
+            "(Run page → Hero Token demand mode) for the true buy-everything curve."
+        )
+
+    days_axis = [s.day for s in snapshots]
+    daily = [int(getattr(s, "hero_token_demand_today", 0)) for s in snapshots]
+    cumulative: list[int] = []
+    run = 0
+    for v in daily:
+        run += v
+        cumulative.append(run)
+    heroes_live = [len(getattr(s, "hero_levels", {}) or {}) for s in snapshots]
+
+    total = cumulative[-1] if cumulative else 0
+    ndays = max(1, len(snapshots))
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Total tokens needed (run)", f"{total:,}")
+    m2.metric("Avg demand / day", f"{total / ndays:,.0f}")
+    m3.metric("Heroes unlocked (end)", f"{heroes_live[-1] if heroes_live else 0}")
+
+    fig = _styled_fig("Hero Token demand over time")
+    fig.add_trace(go.Bar(
+        x=days_axis, y=daily,
+        name="Daily demand", marker_color=_VIOLET, opacity=0.5,
+    ))
+    fig.add_trace(go.Scatter(
+        x=days_axis, y=cumulative,
+        mode="lines", name="Cumulative demand",
+        line=dict(color=_GREEN, width=2), yaxis="y2",
+    ))
+    fig.update_layout(
+        xaxis=dict(title="Day"),
+        yaxis=dict(title="Tokens needed that day"),
+        yaxis2=dict(title="Cumulative tokens needed", overlaying="y", side="right"),
     )
     st.plotly_chart(fig, width="stretch")
 

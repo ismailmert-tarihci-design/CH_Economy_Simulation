@@ -335,6 +335,12 @@ class HeroCardConfig(BaseModel):
     # Hero joker settings
     joker_drop_rate_in_regular_packs: float = Field(default=0.01, description="Joker chance per regular pack pull")
 
+    # When True, skill-tree nodes activate purely on the hero-level gate and the
+    # HeroToken affordability check is skipped. Used to measure pure Hero Token
+    # *demand* — the tokens a player would need to buy every Hero Path node they
+    # have unlocked — decoupled from how many tokens they actually earn.
+    unlimited_hero_tokens: bool = Field(default=False, description="Skip the HeroToken cost gate on skill-tree nodes (demand analysis)")
+
     # Drop algorithm
     drop_config: HeroDropConfig = Field(default_factory=HeroDropConfig)
 
@@ -561,6 +567,13 @@ class HeroCardDailySnapshot:
     hero_tokens_received: int = 0
     hero_tokens_spent_today: int = 0
     hero_tokens_balance: int = 0
+    # Hero Token *demand*: token cost of every skill-tree node whose hero-level
+    # gate was newly crossed today, summed across heroes — i.e. the tokens needed
+    # to buy all Hero Path content unlocked today, independent of token income.
+    # Run with `unlimited_hero_tokens=True` so the hero-level trajectory reflects
+    # the "buys everything" path (all unlockable cards come online on schedule).
+    hero_token_demand_today: int = 0
+    hero_token_demand_by_hero: Dict[str, int] = field(default_factory=dict)
 
     # Per-hero state (level, xp, jokers, card-dupes-by-rarity, total cards).
     # Keyed by hero_id. Populated for every hero unlocked on this day.
@@ -593,5 +606,6 @@ class HeroSimResult(BaseModel):
     total_jokers_received: int = Field(default=0)
     total_hero_tokens: int = Field(default=0)
     total_hero_tokens_spent: int = Field(default=0)
+    total_hero_token_demand: int = Field(default=0, description="Lifetime token cost of every Hero Path node unlocked (level-gate met), supply-independent")
     final_hero_tokens_balance: int = Field(default=0)
     final_hero_skill_progress: Dict[str, int] = Field(default_factory=dict)
